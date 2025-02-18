@@ -1,0 +1,6 @@
+*.vsidx
+*.cache
+VT2-Aseptic-Production-Demonstrator/VT2-Aseptic-Production-Demonstrator/obj/project.assets.json
+VT2-Aseptic-Production-Demonstrator/VT2-Aseptic-Production-Demonstrator/obj/project.nuget.cache
+VT2-Aseptic-Production-Demonstrator/VT2-Aseptic-Production-Demonstrator/obj/VT2-Aseptic-Production-Demonstrator.csproj.nuget.dgspec.json
+VT2-Aseptic-Production-Demonstrator/VT2-Aseptic-Production-Demonstrator/obj/VT2-Aseptic-Production-Demonstrator.csproj.nuget.g.props
