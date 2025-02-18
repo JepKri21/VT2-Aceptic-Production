@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>VT2_Aseptic_Production_Demonstrator</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Reference Include="PMCLIB">
-      <HintPath>..\..\..\..\..\Robotics_6_semester\P6\PMI_Simple_Demo\Library\PMCLIB.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\OneDrive - Aalborg Universitet\Robotteknologi\VT2\CSharp\PMI_Simple_Demo\Library\PMCLIB.dll</HintPath>
     </Reference>
   </ItemGroup>
 
