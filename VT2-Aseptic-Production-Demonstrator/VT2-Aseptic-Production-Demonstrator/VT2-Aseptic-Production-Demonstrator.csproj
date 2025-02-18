@@ -8,4 +8,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="PMCLIB">
+      <HintPath>..\..\..\..\..\..\OneDrive - Aalborg Universitet\Robotteknologi\VT2\CSharp\PMI_Simple_Demo\Library\PMCLIB.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
