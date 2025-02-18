@@ -24,9 +24,9 @@ namespace VT2_Aseptic_Production_Demonstrator
         {
             selector = 1;
             Console.Clear();
-            Console.WriteLine(" Realtime movement test");
+            Console.WriteLine(" Realtime Movement Test");
             Console.WriteLine("0    Return ");
-            Console.WriteLine("1    Run code ");
+            Console.WriteLine("1    Run Code ");
 
             ConsoleKeyInfo keyInfo = Console.ReadKey();
             switch (keyInfo.KeyChar)

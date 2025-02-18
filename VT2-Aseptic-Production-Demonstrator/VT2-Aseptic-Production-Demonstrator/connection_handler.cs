@@ -33,12 +33,12 @@ namespace VT2_Aseptic_Production_Demonstrator
                 bool control = WaitUntilFullCtrl(); //wait until control over PMC is achieved
                 if (control) //if achieved 
                 {
-                    Console.WriteLine("connection established");
+                    Console.WriteLine("Connection Cstablished");
                     return CONNECTIONSTATUS.OK; // return 'OK' 
                 }
                 else //if not achieved
                 {
-                    Console.WriteLine("connection failed to establish");
+                    Console.WriteLine("Connection Failed To Establish");
                     return CONNECTIONSTATUS.TIMEOUT_ERROR; // return 'TIMEOUT_ERROR' 
                 }
             }
