@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "I36OCDsiS9eL9VcibZEfCJNLBnEiKVQAvMpzwxjrBCc/yu7HhEShN7ogLl1qt44pNAjyLj/v6SFCMZx7oOFzRQ==",
+  "dgSpecHash": "GWfSPpB2J0g=",
   "success": true,
-  "projectFilePath": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\jeppe\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\7.0.20\\microsoft.windowsdesktop.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\jeppe\\.nuget\\packages\\microsoft.netcore.app.ref\\7.0.20\\microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\jeppe\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\7.0.20\\microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\jeppe\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\7.0.20\\microsoft.netcore.app.host.win-x64.7.0.20.nupkg.sha512"
+  ],
   "logs": []
 }
