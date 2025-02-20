@@ -1,9 +1,11 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using PMCLIB;
+using System.Linq;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Security.Cryptography;
+
 
 
 namespace VT2_Aseptic_Production_Demonstrator
@@ -26,7 +28,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         // XBot Ids
         // Change depending on the number of XBot's in the system
-        public int[] xbot_ids = { 1, 2};
+        public int[] xbot_ids = { 4, 5, 6};
 
 
         string title = @"
@@ -51,8 +53,8 @@ ____________________________________________________________________| ";
                 {
                     // Connection to the PMC and aquire mastership
                     Console.Clear();
-                    //CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-                    //Console.WriteLine(status);
+                    CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+                    Console.WriteLine(status);
                     
 
                     selector = 1;
