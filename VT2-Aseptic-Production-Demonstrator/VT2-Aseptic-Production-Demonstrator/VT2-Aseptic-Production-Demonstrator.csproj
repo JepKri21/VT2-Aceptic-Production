@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Reference Include="PMCLIB">
-      <HintPath>..\..\..\..\..\..\OneDrive - Aalborg Universitet\Robotteknologi\VT2\CSharp\PMI_Simple_Demo\Library\PMCLIB.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Downloads\PMI_Simple_Demo\Library\PMCLIB.dll</HintPath>
     </Reference>
   </ItemGroup>
 
