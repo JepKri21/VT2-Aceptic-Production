@@ -14,6 +14,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         private static SystemCommands _systemCommand = new SystemCommands();
         private static XBotCommands _xbotCommand = new XBotCommands();
+        private static WaitUntilTriggerParams time_params = new WaitUntilTriggerParams();
 
         double speedLinar = 0.1;
         double speedRotation = 0.1;
@@ -79,6 +80,12 @@ namespace VT2_Aseptic_Production_Demonstrator
             }
 
             
+        }
+
+        public void Stationairy(double secs, int xbotID)
+        {
+            time_params.delaySecs = secs;
+            _xbotCommand.WaitUntil(0, xbotID, TRIGGERSOURCE.TIME_DELAY, time_params);
         }
 
     }
