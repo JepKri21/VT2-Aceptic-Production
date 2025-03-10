@@ -17,6 +17,8 @@ namespace VT2_Aseptic_Production_Demonstrator
         WaitUntilTriggerParams CMD_params = new WaitUntilTriggerParams();
         int selector = 2;
 
+        private static Station_Class filling_and_stoppering = new Station_Class();
+
         //Creating lists for the station queues
         public List<int> filling_queue = new List<int>() {1,2,3,4,1,2,3,4};
 
@@ -41,7 +43,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                 i++;
             }
 
-            // Collect Autobots
+            // Position in queue
             _xbotCommand.LinearMotionSI(0, XIDs[0], POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.YTHENX, 0.420, 0.780, 0, 0.5, 2);
             _xbotCommand.LinearMotionSI(0, XIDs[1], POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.YTHENX, 0.420, 0.900, 0, 0.5, 2);
             _xbotCommand.LinearMotionSI(0, XIDs[2], POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.YTHENX, 0.300, 0.900, 0, 0.5, 2);
@@ -101,15 +103,17 @@ namespace VT2_Aseptic_Production_Demonstrator
                 _xbotCommand.LinearMotionSI(0, XID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.XTHENY, 0.060, 0.780, 0, 0.5, 2);
                 filling_running = true;
                 
+                
 
             }
             else if (filling_running)
             {
                 XBotStatus status = _xbotCommand.GetXbotStatus(XID);
                 Enum state = status.XBOTState;
-                if (state.ToString() == "IDLE")
+                if (Convert.ToInt32(state) == 3)
                 {
                     filling_running = false;
+                    
                 }
             }
         }
@@ -127,6 +131,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             Console.WriteLine(" Realtime Movement Test");
             Console.WriteLine("0    Return ");
             Console.WriteLine("1    Run Code ");
+            Console.WriteLine("2    Test classes");
 
             ConsoleKeyInfo keyInfo = Console.ReadKey();
             switch (keyInfo.KeyChar)
@@ -159,8 +164,9 @@ namespace VT2_Aseptic_Production_Demonstrator
                             Filling_occupied(filling_queue[0]); //Start the filling process with the ID that is first in the filling_queue
                             current_filling = filling_queue[0]; //Save that ID for checking later
                             updating_filling_queue("remove", filling_queue[0]); //Remove that specific ID from the physical_filling_queue
-                            filling_queue.RemoveAt(0); //Remove the specific ID from the filling_queue aswell
+                            filling_queue.RemoveAt(0); //Remove the specific ID from the filling_queue aswell (Note that currently it doesn't actually remove the specific one, just the first one)
                             updating_filling_queue("add", current_filling); //Inserting the shuttle into the filling queue again, just as a test
+                                                                            //(It doesn't work 100% as this means that the next filling only starts when it has gotten back into the physical queue)
                         }
                         else
                         {
@@ -176,7 +182,23 @@ namespace VT2_Aseptic_Production_Demonstrator
                     selector = 2;
 
                     break;
+
+
+                case '2':
+                    Action<int> initial_movements = (id) =>
+                    {
+                        _xbotCommand.LinearMotionSI(0, id, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.XTHENY, 0.600, 0.840, 0, 0.5, 2);
+                        _xbotCommand.RotaryMotionP2P(0, id, ROTATIONMODE.NO_ANGLE_WRAP, 0, 1, 1, POSITIONMODE.ABSOLUTE);
+                        _xbotCommand.LinearMotionSI(0, id, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.YTHENX, 0.420, 0.780, 0, 0.5, 2);
+                    };
+
+                    filling_and_stoppering.passing_functions(initial_movements);
+
+
+
+                    break;
             }
+
 
         }
         
