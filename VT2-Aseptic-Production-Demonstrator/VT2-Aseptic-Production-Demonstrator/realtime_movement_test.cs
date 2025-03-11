@@ -19,7 +19,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         {
             return selector;
         }
-
+        
         public void runRealtimeMovementTest(int[] xbot_ids)
         {
             selector = 1;
@@ -37,9 +37,9 @@ namespace VT2_Aseptic_Production_Demonstrator
                     break;
 
                 case '1':
-                    // Wriet code here :)
+                    
                     selector = 2;
-
+                    
                     break;
             }
 
