@@ -1,4 +1,6 @@
-﻿using PMCLIB;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using OpenXmlPowerTools;
+using PMCLIB;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,15 +22,19 @@ namespace VT2_Aseptic_Production_Pathfinding
         public class Node
         {
             public int X, Y;
-            public bool Walkable;
-            public Node Parent;
+            public bool nodeWalkable;
+            public Node nodeParent;
+            public int gCost, hCost;
+            public int fCost
+            { get { return gCost + hCost; } }
 
             public Node(int x, int y, bool walkable)
             {
                 X = x;
                 Y = y;
-                Walkable = walkable;
-                Parent = null;
+                nodeWalkable = walkable;
+                nodeParent = null;
+                gCost = hCost = 0;
             }
         }
 
@@ -52,14 +58,81 @@ namespace VT2_Aseptic_Production_Pathfinding
                 }
             }
 
+                public Grid ShallowCopy()
+                {
+                    return (Grid)this.MemberwiseClone();
+                }
+       
 
-            public void SetObstacle(int x, int y)
+
+            public void setObstacle(int x, int y)
             {
                 if (x >= 0 && x < Width && y >= 0 && y < Height)
                 {   
-                    Nodes[x, y].Walkable = false;
+                    Nodes[x, y].nodeWalkable = false;
                 }
             }
+
+            public void shuttlePosition(int shuttleNr)
+            {
+                double[,] shuttlePosition = new double[shuttleNr, 2];
+                for (int shuttleID = 1; shuttleID <= shuttleNr; shuttleID++)
+                {
+                    XBotStatus pos = _xbotCommand.GetXbotStatus(shuttleID);
+                    double[] temPos = pos.FeedbackPositionSI;
+                    int positionX = (int)Math.Round(temPos[0]);
+                    int positionY = (int)Math.Round(temPos[1]);
+
+                    shuttlePosition[shuttleID - 1, 0] = positionX;
+                    shuttlePosition[shuttleID - 1, 1] = positionY;
+                }
+            }
+
+            Grid gridGlobal = new Grid(720, 960); // Temporary grid size
+            public void staticObstacles()
+            {
+                for(int i = 0; i < gridGlobal.Width; i++)
+                {
+                    gridGlobal.setObstacle(i, 0);
+                    gridGlobal.setObstacle(i, gridGlobal.Height - 1);
+                }
+                for(int i = 0; i < gridGlobal.Height; i++)
+                {
+                    gridGlobal.setObstacle(0, i);
+                    gridGlobal.setObstacle(gridGlobal.Width - 1, i);
+                }
+                //Husk at sætte static obstacles for hvad der kommer til at være i midten.
+            }
+
+            int shuttleSize = 60; // Shuttle size in mm
+            public void dilateObstacles()
+            {
+                Grid gridGlobalCopy = gridGlobal.ShallowCopy();
+
+
+                for (int i = 0; i < gridGlobal.Width; i++)
+                {
+                    for (int j = 0; j < gridGlobal.Height; j++)
+                    {
+                        if (gridGlobalCopy.Nodes[i, j].nodeWalkable == false)
+                        {
+                            for (int k = -shuttleSize; k <= shuttleSize; k++)
+                            {
+                                for (int l = -shuttleSize; l <= shuttleSize; l++)
+                                {
+                                    int ni = i + k;
+                                    int nj = j + l;
+                                    if (ni >= 0 && ni < gridGlobal.Width && nj >= 0 && nj < gridGlobal.Height)
+                                    {
+                                        gridGlobal.Nodes[ni, nj].nodeWalkable = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
 
             public List<Node> GetNeighbors(Node node)
             {
@@ -67,44 +140,20 @@ namespace VT2_Aseptic_Production_Pathfinding
 
                 
 
-                int[,] directions = { { 0, 1 }, { 1, 0 }, { 0, -1 }, {-1, 0 } }; // 4-way movement
+                int[,] shuttleDirections = { { 0, 1 }, { 1, 0 }, { 0, -1 }, {-1, 0 } }; // 4-way movement
 
-                for (int i = 0; i< 4;i++)
+                for (int i = 0; i < 4; i++)
                     {
-                        int nx = node.X + directions[i,0];
-                        int ny = node.Y + directions[i,1];
+                        int nx = node.X + shuttleDirections[i,0];
+                        int ny = node.Y + shuttleDirections[i,1];
                     
 
-                    if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && Nodes[nx, ny].Walkable)
+                    if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && Nodes[nx, ny].nodeWalkable)
                     {
                         neighbors.Add(Nodes[nx, ny]);
                     }
                 }
                 return neighbors;
-            }
-
-            public class AStarPathfinder
-            {
-                public static List<Node> FindPath(Grid grid , Node start, Node goal)
-                {
-                    List<Node> openList = new List<Node>();
-                    HashSet<Node> closedList = new HashSet<Node>();
-
-                    openList.Add(start);
-
-                    while (openList.Count > 0)
-                    {
-                        // Find the node with the lowest F in the open list
-                        Node current = openList[0];
-                        for (int i = 1; i < openList.Count; i++)
-                        {
-                            if (openList[i].F < current.F || )
-                            {
-                                current = openList[i];
-                            }
-                        }
-                    }
-                }
             }
         } 
     }
