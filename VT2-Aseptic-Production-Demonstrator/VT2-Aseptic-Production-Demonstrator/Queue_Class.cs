@@ -13,64 +13,64 @@ namespace VT2_Aseptic_Production_Demonstrator
         //this class contains a collection of xbot commands, such as discover xbots, mobility control, linear motion, etc.
         private static XBotCommands _xbotCommand = new XBotCommands();
 
-        public List<int> physical_queue = new List<int>();  //Making a queue for the station
-        public int max_queue_size;
+        public List<int> physicalQueue = new List<int>();  //Making a queue for the station
+        public int maxQueueSize;
 
-        private Action<int[]>? queue_positions; //Accepting a list of functions 
+        private Action<int[]>? queuePositions; //Accepting a list of functions 
 
         //Maybe add a function that checks if it is full or not and return it
-        public void define_size(int size)
+        public void defineSize(int size)
         {
-            max_queue_size = size;
+            maxQueueSize = size;
         }
 
-        public void add_ID_to_list(int ID_to_add)
+        public void addIDToList(int IDToAdd)
         {
-            if (physical_queue.Contains(ID_to_add))
+            if (physicalQueue.Contains(IDToAdd))
             {
-                Console.WriteLine($"ID {ID_to_add} is already in the queue.");
+                //Console.WriteLine($"ID {IDToAdd} is already in the queue.");
                 return;  // Exit the function early
             }
 
-            if (physical_queue.Count < max_queue_size)
+            if (physicalQueue.Count < maxQueueSize)
             {
-                physical_queue.Add(ID_to_add);
+                physicalQueue.Add(IDToAdd);
             }
             else
             {
-                Console.WriteLine("Physicla queue is full, unable to add");
+                //Console.WriteLine("Physicla queue is full, unable to add");
             }
             
         }
 
-        public void remove_ID_from_list(int ID_to_remove)
+        public void removeIDFromList(int IDToRemove)
         {
-            if (physical_queue.Count > 0)
+            if (physicalQueue.Count > 0)
             {
-                physical_queue.Remove(ID_to_remove);
+                physicalQueue.Remove(IDToRemove);
             }
             else
             {
-                Console.WriteLine("No shuttle to remove");
+                //Console.WriteLine("No shuttle to remove");
             }
             
         }
 
-        public void passing_functions(Action<int[]> positions)
+        public void passingFunctions(Action<int[]> positions)
         {
-            queue_positions = positions;
+            queuePositions = positions;
         }
 
-        public void updating_queue()
+        public void updatingQueue()
         {
-            if (physical_queue.Count > 0 && queue_positions != null)
+            if (physicalQueue.Count > 0 && queuePositions != null)
             {
-                queue_positions(physical_queue.ToArray()); // Pass all IDs in the queue
+                queuePositions(physicalQueue.ToArray()); // Pass all IDs in the queue
                 
             }
             else
             {
-                Console.WriteLine("No positions function assigned or queue is empty.");
+                //Console.WriteLine("No positions function assigned or queue is empty.");
             }
         }
 

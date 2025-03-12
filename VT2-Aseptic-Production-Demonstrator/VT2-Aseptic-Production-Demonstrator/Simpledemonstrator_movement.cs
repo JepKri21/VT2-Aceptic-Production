@@ -180,23 +180,23 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                     //Passing positions to the queues------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
-                    PhysicalFillingQueue.passing_functions(physicalFillingQueuePos);
-                    PhysicalFillingQueue.define_size(4);
+                    PhysicalFillingQueue.passingFunctions(physicalFillingQueuePos);
+                    PhysicalFillingQueue.defineSize(4);
 
-                    PhysicalStopperingQueue.passing_functions(physicalStopperingQueuePos);
-                    PhysicalStopperingQueue.define_size(4);
+                    PhysicalStopperingQueue.passingFunctions(physicalStopperingQueuePos);
+                    PhysicalStopperingQueue.defineSize(4);
 
-                    PhysicalVisionQueue.passing_functions(physicalVisionQueuePos);
-                    PhysicalVisionQueue.define_size(4);
+                    PhysicalVisionQueue.passingFunctions(physicalVisionQueuePos);
+                    PhysicalVisionQueue.defineSize(4);
 
-                    PhysicalEndQueue.passing_functions(physicalEndQueuePos);
-                    PhysicalEndQueue.define_size(4);
+                    PhysicalEndQueue.passingFunctions(physicalEndQueuePos);
+                    PhysicalEndQueue.defineSize(4);
 
                     //Passing the motion functions to their classes------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
-                    Filling.passing_functions(fillingMovements);
-                    Stoppering.passing_functions(stopperingMovements);
-                    Vision.passing_functions(visionMovements);
+                    Filling.passingFunctions(fillingMovements);
+                    Stoppering.passingFunctions(stopperingMovements);
+                    Vision.passingFunctions(visionMovements);
 
                     //Adding tasks to the shuttles-------------------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
@@ -205,8 +205,8 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Shuttle3.shuttleID = 3;
                     Shuttle4.shuttleID = 4;
 
-                    string[] tasksArray = { "filling", "stoppering", "vision" };
-
+                    string[] tasksArray = { "filling", "done" };
+                     
 
                     foreach (ShuttleClass shuttle in allShuttles)
                     {
@@ -222,24 +222,78 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                     while (true)
                     {
+
+                        //---------------------- First we update the queues-----------------------------------------------------------------------
+                        //------------------------------------------------------------------------------------------------------------------------
+                        PhysicalFillingQueue.updatingQueue();
+                        PhysicalStopperingQueue.updatingQueue();
+                        PhysicalVisionQueue.updatingQueue();
+                        PhysicalEndQueue.updatingQueue();
+                        
+                        //---------------------- Second we check if a shuttle is idle, then we check the tasks of the shuttles---------------------
+                        //------------------------------------------------------------------------------------------------------------------------
                         foreach (ShuttleClass shuttle in allShuttles)
                         {
-                            if (shuttle.Status == shuttle.shuttleIdle)
+                            if (shuttle.Status == shuttle.shuttleIdle) 
+                                //If the shuttle is moving, aka not idle, then we don't want to do anything to it, other than check for errors
                             {
-                                switch (shuttle.Tasks[0])
+                                if (shuttle.Tasks.Count > 0) //If the shuttle has any tasks
                                 {
-                                    case "filling":
 
-                                        break;
+                                    switch (shuttle.Tasks[0]) //Checking what the first task is.
+                                    {
 
-                                    case "stoppering":
-                                        break;
+                                        case "filling": // If the first task of the shuttle is filling
 
-                                    case "vision":
-                                        break;
+                                            Console.WriteLine(Filling.stationStatus());
 
+                                            if (Filling.stationStatus() == false) //filling is NOT running, so we start it
+
+                                            {
+
+
+                                                PhysicalFillingQueue.removeIDFromList(shuttle.shuttleID); //Here we should add it so that it removes it from the queue that the shuttle is in, not always the filling queue
+                                                Filling.addIDToList(shuttle.shuttleID); //add the shuttle ID to the queue of the station
+                                                Filling.runMovement(); //We then give the shuttle the movements AND remove it from the station queue
+                                                shuttle.replaceFirstTask("runningFilling"); //Then we replace the filling task with a running filling status
+                                                Filling.updateStationStatus();
+
+                                            }
+
+                                            else if (Filling.stationStatus() == true) //Filling IS running, so we add this one to the queues
+                                            {
+                                                Filling.addIDToList(shuttle.shuttleID); // We add this ID to the filling station queue, it should only do it once since we replace the task
+                                                PhysicalFillingQueue.addIDToList(shuttle.shuttleID); //AND then physical filling queue
+                                                Filling.updateStationStatus();
+                                            }
+
+                                            break;
+
+                                        case "stoppering":
+                                            break;
+
+                                        case "vision":
+                                            break;
+
+                                        case "runningFilling": //Because we are still in the if-statement of idle shuttles, we can do this here
+
+                                            shuttle.removeTask("runningFilling"); //Remove the task from the shuttle
+                                            Filling.updateStationStatus(); //We update the station station because the shuttle is idle
+
+
+                                            break;
+
+                                        case "done":
+
+                                            PhysicalEndQueue.addIDToList(shuttle.shuttleID);
+                                            shuttle.removeTask("done");
+
+                                            break;
+
+                                    }
                                 }
                             }
+
                         }
                     }
 

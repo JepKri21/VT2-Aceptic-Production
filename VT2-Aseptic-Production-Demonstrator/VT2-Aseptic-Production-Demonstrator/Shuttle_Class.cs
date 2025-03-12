@@ -91,6 +91,11 @@ namespace VT2_Aseptic_Production_Demonstrator
             tasks.AddRange(task);
         }
 
+        public void replaceFirstTask(string task)
+        {
+            tasks[0] = task; 
+        }
+
         public void removeTask(string task)
         {
             tasks.Remove(task);
