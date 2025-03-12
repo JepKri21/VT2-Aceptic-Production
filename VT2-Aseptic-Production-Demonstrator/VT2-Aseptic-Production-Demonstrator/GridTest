@@ -1,21 +1,22 @@
-public class Node
-        {
-            public int X, Y;
-            public bool nodeWalkable;
-            public Node nodeParent;
-            public int gCost, hCost;
-            public int fCost
-            { get { return gCost + hCost; } }
+using System;
 
-            public Node(int x, int y, bool walkable)
-            {
-                X = x;
-                Y = y;
-                nodeWalkable = walkable;
-                nodeParent = null;
-                gCost = hCost = 0;
-            }
-        }
+public class Node
+{
+    public int X, Y;
+    public bool nodeWalkable;
+    public Node nodeParent;
+    public int gCost, hCost;
+    public int fCost { get { return gCost + hCost; } }
+
+    public Node(int x, int y, bool walkable)
+    {
+        X = x;
+        Y = y;
+        nodeWalkable = walkable;
+        nodeParent = null;
+        gCost = hCost = 0;
+    }
+}
 
 public class Grid
 {
@@ -37,14 +38,20 @@ public class Grid
         }
     }
 
-    public Grid ShallowCopy()
+    public Grid DeepCopy()
     {
-        return (Grid)this.MemberwiseClone();
+        Grid copy = new Grid(this.Width, this.Height);
+        for (int x = 0; x < this.Width; x++)
+        {
+            for (int y = 0; y < this.Height; y++)
+            {
+                copy.Nodes[x, y] = new Node(x, y, this.Nodes[x, y].nodeWalkable);
+            }
+        }
+        return copy;
     }
 
-
-
-    public void setObstacle(int x, int y)
+    public void SetObstacle(int x, int y)
     {
         if (x >= 0 && x < Width && y >= 0 && y < Height)
         {
@@ -52,76 +59,69 @@ public class Grid
         }
     }
 
-    public void shuttlePosition(int shuttleNr)
+    public void StaticObstacles()
     {
-        double[,] shuttlePosition = new double[shuttleNr, 2];
-        for (int shuttleID = 1; shuttleID <= shuttleNr; shuttleID++)
+        for (int i = 0; i < Width; i++)
         {
-            XBotStatus pos = _xbotCommand.GetXbotStatus(shuttleID);
-            double[] temPos = pos.FeedbackPositionSI;
-            int positionX = (int)Math.Round(temPos[0]);
-            int positionY = (int)Math.Round(temPos[1]);
-
-            shuttlePosition[shuttleID - 1, 0] = positionX;
-            shuttlePosition[shuttleID - 1, 1] = positionY;
+            SetObstacle(i, 0);
+            SetObstacle(i, Height - 1);
         }
-    }
-
-    Grid gridGlobal = new Grid(720, 960); // Temporary grid size
-    public void staticObstacles()
-    {
-        for (int i = 0; i < gridGlobal.Width; i++)
+        for (int i = 0; i < Height; i++)
         {
-            gridGlobal.setObstacle(i, 0);
-            gridGlobal.setObstacle(i, gridGlobal.Height - 1);
+            SetObstacle(0, i);
+            SetObstacle(Width - 1, i);
         }
-        for (int i = 0; i < gridGlobal.Height; i++)
-        {
-            gridGlobal.setObstacle(0, i);
-            gridGlobal.setObstacle(gridGlobal.Width - 1, i);
-        }
-        //Husk at sætte static obstacles for hvad der kommer til at være i midten.
     }
 
     int shuttleSize = 60; // Shuttle size in mm
-    public void dilateObstacles()
+    public void DilateObstacles()
     {
-        Grid gridGlobalCopy = gridGlobal.ShallowCopy();
+        int shuttleRadius = shuttleSize / 10; // Antal celler
+        Grid gridGlobalCopy = this.DeepCopy();
 
-
-        for (int i = 0; i < gridGlobal.Width; i++)
+        for (int i = 0; i < Width; i++)
         {
-            for (int j = 0; j < gridGlobal.Height; j++)
+            for (int j = 0; j < Height; j++)
             {
-                if (gridGlobalCopy.Nodes[i, j].nodeWalkable == false)
+                if (!gridGlobalCopy.Nodes[i, j].nodeWalkable)
                 {
-                    for (int k = -shuttleSize; k <= shuttleSize; k++)
+                    for (int k = -shuttleRadius; k <= shuttleRadius; k++)
                     {
-                        for (int l = -shuttleSize; l <= shuttleSize; l++)
+                        for (int l = -shuttleRadius; l <= shuttleRadius; l++)
                         {
                             int ni = i + k;
                             int nj = j + l;
-                            if (ni >= 0 && ni < gridGlobal.Width && nj >= 0 && nj < gridGlobal.Height)
+                            if (ni >= 0 && ni < Width && nj >= 0 && nj < Height)
                             {
-                                gridGlobal.Nodes[ni, nj].nodeWalkable = false;
+                                Nodes[ni, nj].nodeWalkable = false;
                             }
                         }
                     }
                 }
             }
         }
-        static void PrintGrid(int[,] grid)
+    }
+
+    public void PrintGrid()
     {
-        int rows = gridGlobal.Width;
-        int cols = gridGlobal.Height;
-        for (int i = 0; i < rows; i++)
+        for (int i = 0; i < Width; i++)
         {
-            for (int j = 0; j < cols; j++)
+            for (int j = 0; j < Height; j++)
             {
-                Console.Write(gridGlobal[i, j] + " ");
+                Console.Write(Nodes[i, j].nodeWalkable ? "0 " : "1 ");
             }
             Console.WriteLine();
         }
     }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Grid gridGlobal = new Grid(72, 96); // Eksempel på grid med 72x96 celler
+        gridGlobal.StaticObstacles();
+        gridGlobal.DilateObstacles();
+        gridGlobal.PrintGrid();
     }
 }
