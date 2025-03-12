@@ -1,12 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "CsMoi05S82Q=",
+  "dgSpecHash": "Va4VGM/BOBE=",
   "success": true,
-  "projectFilePath": "/Users/lucasn.bonde/Documents/GitHub/TreeDetection-P3-Project/VT2-Aceptic-Production/VT2-Aseptic-Production-Demonstrator/VT2-Aseptic-Production-Demonstrator/VT2-Aseptic-Production-Demonstrator.csproj",
-  "expectedPackageFiles": [
-    "/Users/lucasn.bonde/.nuget/packages/microsoft.netcore.app.ref/8.0.13/microsoft.netcore.app.ref.8.0.13.nupkg.sha512",
-    "/Users/lucasn.bonde/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.13/microsoft.aspnetcore.app.ref.8.0.13.nupkg.sha512",
-    "/Users/lucasn.bonde/.nuget/packages/microsoft.netcore.app.host.osx-arm64/8.0.13/microsoft.netcore.app.host.osx-arm64.8.0.13.nupkg.sha512"
-  ],
+  "projectFilePath": "C:\\Users\\Vikto\\Desktop\\AAU\\VT1 Project\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }

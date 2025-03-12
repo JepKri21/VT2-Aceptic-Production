@@ -1,6 +1,4 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using OpenXmlPowerTools;
-using PMCLIB;
+﻿using PMCLIB;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -62,8 +60,6 @@ namespace VT2_Aseptic_Production_Pathfinding
                 {
                     return (Grid)this.MemberwiseClone();
                 }
-       
-
 
             public void setObstacle(int x, int y)
             {
@@ -105,34 +101,46 @@ namespace VT2_Aseptic_Production_Pathfinding
             }
 
             int shuttleSize = 60; // Shuttle size in mm
-            public void dilateObstacles()
+
+            static int[,] createShuttleGrid(int[,] grid, int[] shuttleSize)
             {
-                Grid gridGlobalCopy = gridGlobal.ShallowCopy();
+                int h = shuttleSize[0];
+                int w = shuttleSize[1];
+                int rows = grid.GetLength(0);
+                int cols = grid.GetLength(1);
 
-
-                for (int i = 0; i < gridGlobal.Width; i++)
+                int[,] stucture = new int[h, w];
+                for (int i = 0; i < h; i++)
                 {
-                    for (int j = 0; j < gridGlobal.Height; j++)
+                    for (int j = 0; j < w; j++)
                     {
-                        if (gridGlobalCopy.Nodes[i, j].nodeWalkable == false)
+                        stucture[i, j] = 1;
+                    }
+                }
+                int[,] expandedGrid = (int[,])grid.Clone();
+                for (int i = 0; i < rows; i++)
+                {
+                    for (int j = 0; j < cols; j++)
+                    {
+                        if (grid[i, j] == 1)
                         {
-                            for (int k = -shuttleSize; k <= shuttleSize; k++)
+                            for (int k = -h / 2; k <= h / 2; k++)
                             {
-                                for (int l = -shuttleSize; l <= shuttleSize; l++)
+                                for (int l = -w / 2; l <= w / 2; l++)
                                 {
                                     int ni = i + k;
                                     int nj = j + l;
-                                    if (ni >= 0 && ni < gridGlobal.Width && nj >= 0 && nj < gridGlobal.Height)
+                                    if (ni >= 0 && ni < rows && nj >= 0 && nj < cols)
                                     {
-                                        gridGlobal.Nodes[ni, nj].nodeWalkable = false;
+                                        expandedGrid[ni, nj] = 1;
                                     }
                                 }
                             }
                         }
                     }
                 }
+                return expandedGrid;
             }
-
 
             public List<Node> GetNeighbors(Node node)
             {
