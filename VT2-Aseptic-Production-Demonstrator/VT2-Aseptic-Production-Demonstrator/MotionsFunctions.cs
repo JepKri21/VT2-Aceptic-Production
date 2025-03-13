@@ -81,5 +81,10 @@ namespace VT2_Aseptic_Production_Demonstrator
             
         }
 
+        public ushort RetrunCmdLabel()
+        {
+            return globalCmdLabel;
+        }
+
     }
 }

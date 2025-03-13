@@ -9,9 +9,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 {
     internal class realtime_movement_test
     {
-        private static SystemCommands _systemCommand = new SystemCommands();
-        //this class contains a collection of xbot commands, such as discover xbots, mobility control, linear motion, etc.
-        private static XBotCommands _xbotCommand = new XBotCommands();
+        private static MotionsFunctions motionsFunctions = new MotionsFunctions();
         WaitUntilTriggerParams CMD_params = new WaitUntilTriggerParams();
         int selector = 2;
 
@@ -39,6 +37,8 @@ namespace VT2_Aseptic_Production_Demonstrator
                 case '1':
                     // Wriet code here :)
                     selector = 2;
+
+
 
                     break;
             }
