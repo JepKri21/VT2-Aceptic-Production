@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace VT2_Aseptic_Production_Pathfinding
 {
-    internal class pathfinding
+    internal class Pathfinding
     {
         private static SystemCommands _systemCommand = new SystemCommands();
         //This class holds the pathfinding algorithm.
@@ -20,8 +20,8 @@ namespace VT2_Aseptic_Production_Pathfinding
         public class Node
         {
             public int X, Y;
-            public bool nodeWalkable;
-            public Node nodeParent;
+            public bool Walkable;
+            public Node Parent;
             public int gCost, hCost;
             public int fCost
             { get { return gCost + hCost; } }
@@ -30,44 +30,51 @@ namespace VT2_Aseptic_Production_Pathfinding
             {
                 X = x;
                 Y = y;
-                nodeWalkable = walkable;
-                nodeParent = null;
-                gCost = hCost = 0;
+                Walkable = walkable;
             }
         }
 
         public class Grid
         {
             public int Width, Height;
-            public Node[,] Nodes;
+            public Node[,] grid;
 
             public Grid(int width, int height)
             {
                 Width = width;
                 Height = height;
-                Nodes = new Node[width, height];
+                grid = new Node[width, height];
 
                 for (int x = 0; x < width; x++)
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        Nodes[x, y] = new Node(x, y, true); // Default: walkable
+                        grid[x, y] = new Node(x, y, true); // Default: walkable
                     }
                 }
             }
-
-                public Grid ShallowCopy()
-                {
-                    return (Grid)this.MemberwiseClone();
-                }
 
             public void setObstacle(int x, int y)
             {
                 if (x >= 0 && x < Width && y >= 0 && y < Height)
                 {   
-                    Nodes[x, y].nodeWalkable = false;
+                    grid[x, y].Walkable = false;
                 }
             }
+
+            public void removeObstacle(int x, int y)
+            {
+                for (int i = -shuttleSize; i < shuttleSize; i++)
+                {
+                    for (int j = -shuttleSize; j < shuttleSize; j++)
+                    {
+                        if (x >= 0 && x < Width && y >= 0 && y < Height)
+                        {
+                            grid[x, y].Walkable = true;
+                        }
+                    }
+                }
+            } 
 
             public void shuttlePosition(int shuttleNr)
             {
@@ -102,7 +109,7 @@ namespace VT2_Aseptic_Production_Pathfinding
 
             int shuttleSize = 60; // Shuttle size in mm
 
-            static int[,] createShuttleGrid(int[,] grid, int[] shuttleSize)
+            static int[,] dilateGrid(int[,] grid, int[] shuttleSize)
             {
                 int h = shuttleSize[0];
                 int w = shuttleSize[1];
@@ -117,7 +124,7 @@ namespace VT2_Aseptic_Production_Pathfinding
                         stucture[i, j] = 1;
                     }
                 }
-                int[,] expandedGrid = (int[,])grid.Clone();
+                int[,] dilatedGrid = (int[,])grid.Clone();
                 for (int i = 0; i < rows; i++)
                 {
                     for (int j = 0; j < cols; j++)
@@ -132,14 +139,14 @@ namespace VT2_Aseptic_Production_Pathfinding
                                     int nj = j + l;
                                     if (ni >= 0 && ni < rows && nj >= 0 && nj < cols)
                                     {
-                                        expandedGrid[ni, nj] = 1;
+                                        dilatedGrid[ni, nj] = 1;
                                     }
                                 }
                             }
                         }
                     }
                 }
-                return expandedGrid;
+                return dilatedGrid;
             }
 
             public List<Node> GetNeighbors(Node node)
@@ -156,13 +163,69 @@ namespace VT2_Aseptic_Production_Pathfinding
                         int ny = node.Y + shuttleDirections[i,1];
                     
 
-                    if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && Nodes[nx, ny].nodeWalkable)
+                    if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && grid[nx, ny].Walkable)
                     {
-                        neighbors.Add(Nodes[nx, ny]);
+                        neighbors.Add(grid[nx, ny]);
                     }
                 }
                 return neighbors;
             }
         } 
+
+        public class AStar
+        {
+            public List<Node> findPath(Grid grid, Node startNode, Node goalNode)
+            {
+                PriorityQueue<Node, int> openList = new PriorityQueue<Node, int>();
+                HashSet<Node> closedList = new HashSet<Node>();
+                Dictionary<Node, int> costSoFar = new Dictionary<Node, int>();
+
+                openList.Enqueue(startNode, 0);
+                costSoFar[startNode] = 0;
+
+                while (openList.Count > 0)
+                {
+                    Node currentNode = openList.Dequeue();
+                    if (currentNode == goalNode)
+                    {
+                        return reconstructPath(goalNode);
+                    }
+                    closedList.Add(currentNode);
+                    
+                    foreach (Node neighbor in grid.GetNeighbors(currentNode))
+                    {
+                        if (closedList.Contains(neighbor)) continue;
+
+                        int newG = costSoFar[neighbor] + 1;
+
+                        if (!costSoFar.ContainsKey(neighbor) || newG < costSoFar[neighbor])
+                        {
+                            costSoFar[neighbor] = newG;
+                            neighbor.gCost = newG;
+                            neighbor.hCost = heuristic(neighbor, goalNode);
+                            neighbor.Parent = currentNode;
+                            openList.Enqueue(neighbor, neighbor.fCost);
+                        }
+                    }
+                }
+                return null; // No path found
+            }
+            private static List<Node> reconstructPath(Node node)
+            {
+                List<Node> path = new List<Node>();
+                while (node != null)
+                {
+                    path.Add(node);
+                    node = node.Parent;
+                }
+                path.Reverse();
+                return path;
+            }
+
+            private static int heuristic(Node a, Node b) // Manhattan Distance
+            {
+                return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+            }
+        }
     }
 }
