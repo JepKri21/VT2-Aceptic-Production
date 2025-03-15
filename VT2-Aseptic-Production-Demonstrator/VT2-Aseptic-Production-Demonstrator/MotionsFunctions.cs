@@ -17,12 +17,12 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static XBotCommands _xbotCommand = new XBotCommands();
         private static WaitUntilTriggerParams time_params = new WaitUntilTriggerParams();
 
-        double speedLinar = 0.1;
+        double speedLinar = 0.5;
         double speedRotation = 0.1;
         double speedFinal = 0.0;
         double acclerationMax = 0.1;
-        double rotationVel = 0.1;
-        double rotationAcc = 0.1;
+        double rotationVel = 1;
+        double rotationAcc = 1;
         ushort globalCmdLabel;
 
         public void LinarMotion(ushort cmdLabel, int xbotID, double tagPosX, double tagPosY, string pathType)

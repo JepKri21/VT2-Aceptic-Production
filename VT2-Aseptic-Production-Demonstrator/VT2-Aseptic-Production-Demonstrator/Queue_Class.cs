@@ -13,7 +13,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         //this class contains a collection of xbot commands, such as discover xbots, mobility control, linear motion, etc.
         private static XBotCommands _xbotCommand = new XBotCommands();
 
-        public List<int> physicalQueue = new List<int>();  //Making a queue for the station
+        public List<int> physicalQueue = new List<int>();  //Making a queue list
         public int maxQueueSize;
 
         private Action<int[]>? queuePositions; //Accepting a list of functions 
@@ -38,7 +38,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             }
             else
             {
-                //Console.WriteLine("Physicla queue is full, unable to add");
+                return; //Console.WriteLine("Physicla queue is full, unable to add");
             }
             
         }
@@ -51,7 +51,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             }
             else
             {
-                //Console.WriteLine("No shuttle to remove");
+                return; //Console.WriteLine("No shuttle to remove");
             }
             
         }
@@ -65,12 +65,12 @@ namespace VT2_Aseptic_Production_Demonstrator
         {
             if (physicalQueue.Count > 0 && queuePositions != null)
             {
-                queuePositions(physicalQueue.ToArray()); // Pass all IDs in the queue
+                queuePositions(physicalQueue.ToArray()); // Pass all IDs in the queue to the motions
                 
             }
             else
             {
-                //Console.WriteLine("No positions function assigned or queue is empty.");
+                return; //Console.WriteLine("No positions function assigned or queue is empty.");
             }
         }
 

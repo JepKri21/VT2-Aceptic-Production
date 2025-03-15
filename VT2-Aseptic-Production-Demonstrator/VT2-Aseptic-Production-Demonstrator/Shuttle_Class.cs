@@ -16,6 +16,8 @@ namespace VT2_Aseptic_Production_Demonstrator
         private int ID;
         private int status;
         public int shuttleIdle = 3;
+        public int bufferCount = 0;
+        MotionBufferReturn bufferReturn;
         private List<string> tasks = new List<string>();
         private List<double> position = new List<double>() {0,0,0,0,0,0};
 
@@ -48,6 +50,24 @@ namespace VT2_Aseptic_Production_Demonstrator
             status = Convert.ToInt32(state.XBOTState);
         }
 
+        //--------------------------------Buffer of the Shuttle---------------------------------------
+        //--------------------------------------------------------------------------------------------
+
+
+        public int bufferMotionCount
+        {
+            get
+            {
+                updateBuffer();
+                return bufferCount;
+            }
+        }
+        public void updateBuffer()
+        {
+            bufferReturn = _xbotCommand.MotionBufferControl(ID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+            bufferCount = bufferReturn.motionBufferStatus.bufferedMotionCount;
+        }
+        
         //-----------------------------------------Position of the Shuttle----------------------------
         //--------------------------------------------------------------------------------------------
         public List<double> Position

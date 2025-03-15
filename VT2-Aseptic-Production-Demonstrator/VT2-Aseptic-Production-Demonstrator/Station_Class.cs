@@ -16,18 +16,29 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         public List<int> stationQueue = new List<int>();  //Making a queue for the station
         private bool stationRunning = false; //Making a boolean that says if the station is being used or not
-        private int currentID = 0; //Making a integer of the ID that is currently being used
-        
+        public int currentID = 0; //Making a integer of the ID that is currently being used
+        private int bufferCount = 0;
+        MotionBufferReturn bufferReturn;
+
         private Action<int>? stationFunctions; //Accepting a list of functions 
 
         
-        public void addIDToList(int ID_to_add)
+        public void addIDToList(int IDToAdd)
         {
-            stationQueue.Add(ID_to_add);
+            
+            if (stationQueue.Contains(IDToAdd))
+            {
+                return;  // Exit the function early
+            }
+            else
+            {
+                stationQueue.Add(IDToAdd);
+            }
+
         }
-        public void removeIDFromList(int ID_to_remove)
+        public void removeIDFromList(int IDToRemove)
         {
-            stationQueue.Add(ID_to_remove);
+            stationQueue.Remove(IDToRemove);
         }
 
         public void passingFunctions(Action<int> movements)
@@ -37,9 +48,16 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         public void updateStationStatus()
         {
-            XBotStatus status = _xbotCommand.GetXbotStatus(currentID);
-            Enum state = status.XBOTState;
-            if (Convert.ToInt32(state) == 3)
+            if (currentID == 0)
+            {
+                stationRunning = false;
+                return;
+            }
+            
+            bufferReturn = _xbotCommand.MotionBufferControl(currentID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+            bufferCount = bufferReturn.motionBufferStatus.bufferedMotionCount;
+        
+            if (bufferCount == 0)
             {
                 stationRunning = false;
             }
@@ -59,7 +77,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             if (stationQueue.Count > 0)
             {
                 currentID = stationQueue[0];
-                stationQueue.RemoveAt(0);
+                stationQueue.Remove(currentID);
                 stationFunctions(currentID);
             }            
         }

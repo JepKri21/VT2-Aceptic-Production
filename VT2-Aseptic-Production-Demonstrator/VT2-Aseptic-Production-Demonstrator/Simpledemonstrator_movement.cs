@@ -17,6 +17,14 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static XBotCommands _xbotCommand = new XBotCommands();
         WaitUntilTriggerParams CMD_params = new WaitUntilTriggerParams();
 
+        struct MotionStatusStruct
+        {
+            bool isBufferBlocked;
+            int bufferCount;
+            int firstCmdLabel;
+            int lastCmdLabel;
+            int shuttleID;
+        }
 
         int selector = 2;
 
@@ -37,7 +45,9 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static ShuttleClass Shuttle3 = new ShuttleClass();
         private static ShuttleClass Shuttle4 = new ShuttleClass();
 
-        ShuttleClass[] allShuttles = { Shuttle1, Shuttle2, Shuttle3, Shuttle4 };
+
+        //REMEMBER TO ADD YOUR SHUTTLE HERE
+        ShuttleClass[] allShuttles = { Shuttle1, Shuttle2, Shuttle3};
 
 
         public int setSelectorOne()
@@ -53,7 +63,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             Console.WriteLine("0    Return ");
             Console.WriteLine("1    Setting Initial Positions ");
             Console.WriteLine("2    Run Program");
-            Console.WriteLine("3    ");
+            Console.WriteLine("3    buffer test");
 
             ConsoleKeyInfo keyInfo = Console.ReadKey();
             switch (keyInfo.KeyChar)
@@ -66,19 +76,24 @@ namespace VT2_Aseptic_Production_Demonstrator
                 case '1':
                     //Starting the initial position process--------------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
-                    int[] initialXbots = { 1, 2, 3, 4 };
+                    int[] initialXbots = { 1, 2, 3}; //You could make this dynamic so that you don't have to specify how many you are using.
                     double[] initalX = { 0.600, 0.360, 0.120, 0.120 };
                     double[] initialY = { 0.840, 0.840, 0.840, 0.600 };
 
                     //Drive to initial positions
-                    _xbotCommand.AutoDrivingMotionSI(4, ASYNCOPTIONS.MOVEALL, initialXbots, initalX, initialY);
+                    _xbotCommand.AutoDrivingMotionSI(initialXbots.Length, ASYNCOPTIONS.MOVEALL, initialXbots, initalX, initialY);
+
+                    for (int i = 0; i<= initialXbots.Length; i++)
+                    {
+                        MF.RotateMotion(0, i, 0, "CW");
+                    }
 
                     //Motion Functions of the physical filling queue-----------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
                     Action<int[]> physicalFillingQueuePos = (ids) =>
                     {
-                        double[] fillingQueuePosX = { 0.540, 0.420, 0.300, 0.180 };
-                        double[] fillingQueuePosY = { 0.900, 0.900, 0.900, 0.900 };
+                        double[] fillingQueuePosX = { 0.420, 0.300, 0.180 }; //0.540
+                        double[] fillingQueuePosY = { 0.900, 0.900, 0.900 }; //0.900
 
 
                         for (int i = 0; i < ids.Length; i++)
@@ -87,7 +102,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                         }
                     };
 
-                    //Motion Functions of the physical temp queue--------------------------------------------------------
+                    //Motion Functions of the physical stoppering queue--------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
                     Action<int[]> physicalStopperingQueuePos = (ids) =>
                     {
@@ -101,26 +116,26 @@ namespace VT2_Aseptic_Production_Demonstrator
                         }
                     };
 
-                    //Motion Functions of the physical temp queue--------------------------------------------------------
+                    //Motion Functions of the physical vision queue------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
                     Action<int[]> physicalVisionQueuePos = (ids) =>
                     {
-                        double[] visionQueuePosX = { 0.180, 0.300, 0.420, 0.540 };
-                        double[] visionQueuePosY = { 0.300, 0.300, 0.300, 0.300 };
+                        double[] visionQueuePosX = { 0.300, 0.300, 0.300, 0.420 };
+                        double[] visionQueuePosY = { 0.300, 0.180, 0.060, 0.060 };
 
 
                         for (int i = 0; i < ids.Length; i++)
                         {
-                            MF.LinarMotion(0, ids[i], visionQueuePosX[i], visionQueuePosY[i], "YX");
+                            MF.LinarMotion(0, ids[i], visionQueuePosX[i], visionQueuePosY[i], "XY");
                         }
                     };
 
-                    //Motion Functions of the physical temp queue--------------------------------------------------------
+                    //Motion Functions of the physical End queue---------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
                     Action<int[]> physicalEndQueuePos = (ids) =>
                     {
                         double[] endQueuePosX = { 0.060, 0.060, 0.060, 0.060 };
-                        double[] endQueuePosY = { 0.420, 0.540, 0.660, 0.780 };
+                        double[] endQueuePosY = { 0.780, 0.660, 0.540, 0.420 };
 
 
                         for (int i = 0; i < ids.Length; i++)
@@ -134,16 +149,17 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Action<int> fillingMovements = (id) =>
                     {
                         //Moving through the filling steps
-                        MF.LinarMotion(0, id, 0.660, 0.880, "XY");
-                        MF.Stationairy(1, id);
+                        MF.LinarMotion(0, id, 0.660, 0.880, "YX");
+                        MF.Stationairy(3, id);
                         MF.LinarMotion(0, id, 0.660, 0.860, "XY");
-                        MF.Stationairy(1, id);
+                        MF.Stationairy(3, id);
                         MF.LinarMotion(0, id, 0.660, 0.840, "XY");
-                        MF.Stationairy(1, id);
+                        MF.Stationairy(3, id);
                         MF.LinarMotion(0, id, 0.660, 0.820, "XY");
-                        MF.Stationairy(1, id);
+                        MF.Stationairy(3, id);
                         MF.LinarMotion(0, id, 0.660, 0.800, "XY");
-                        MF.Stationairy(1, id);
+                        MF.Stationairy(3, id);
+                        MF.LinarMotion(0, id, 0.660, 0.660, "YX");
 
 
                     };
@@ -153,16 +169,17 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                     Action<int> stopperingMovements = (id) =>
                     {
-                        MF.LinarMotion(0, id, 0.660, 0.160, "XY");
-                        MF.Stationairy(2, id);
+                        MF.LinarMotion(0, id, 0.660, 0.160, "YX");
+                        MF.Stationairy(5, id);
                         MF.LinarMotion(0, id, 0.660, 0.140, "XY");
-                        MF.Stationairy(2, id);
+                        MF.Stationairy(5, id);
                         MF.LinarMotion(0, id, 0.660, 0.120, "XY");
-                        MF.Stationairy(2, id);
+                        MF.Stationairy(5, id);
                         MF.LinarMotion(0, id, 0.660, 0.100, "XY");
-                        MF.Stationairy(2, id);
+                        MF.Stationairy(5, id);
                         MF.LinarMotion(0, id, 0.660, 0.080, "XY");
-                        MF.Stationairy(2, id);
+                        MF.Stationairy(5, id);
+                        MF.LinarMotion(0, id, 0.540, 0.060, "YX");
                     };
 
                     //Motion Functions of the vision line----------------------------------------------------------------
@@ -171,9 +188,11 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Action<int> visionMovements = (id) =>
                     {
                         MF.LinarMotion(0, id, 0.120, 0.120, "YX");
-                        MF.Stationairy(2, id);
+                        MF.Stationairy(1, id);
                         MF.RotateMotion(0, id, 180, "CW");
-                        MF.Stationairy(2, id);
+                        MF.Stationairy(1, id);
+                        MF.RotateMotion(0, id, 0, "CW");
+                        MF.LinarMotion(0, id, 0.060, 0.180, "XY");
 
                     };
 
@@ -205,7 +224,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Shuttle3.shuttleID = 3;
                     Shuttle4.shuttleID = 4;
 
-                    string[] tasksArray = { "filling", "done" };
+                    string[] tasksArray = { "filling","stoppering", "vision", "filling", "stoppering", "vision", "filling", "stoppering", "vision", "done" };
                      
 
                     foreach (ShuttleClass shuttle in allShuttles)
@@ -222,6 +241,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                     while (true)
                     {
+                        Console.WriteLine("----------------------------------------------------------------------------");
 
                         //---------------------- First we update the queues-----------------------------------------------------------------------
                         //------------------------------------------------------------------------------------------------------------------------
@@ -229,57 +249,115 @@ namespace VT2_Aseptic_Production_Demonstrator
                         PhysicalStopperingQueue.updatingQueue();
                         PhysicalVisionQueue.updatingQueue();
                         PhysicalEndQueue.updatingQueue();
-                        
+
+                        //Updating stations
+                        Filling.updateStationStatus();
+                        Stoppering.updateStationStatus();
+                        Vision.updateStationStatus();
+
                         //---------------------- Second we check if a shuttle is idle, then we check the tasks of the shuttles---------------------
                         //------------------------------------------------------------------------------------------------------------------------
                         foreach (ShuttleClass shuttle in allShuttles)
                         {
-                            if (shuttle.Status == shuttle.shuttleIdle) 
-                                //If the shuttle is moving, aka not idle, then we don't want to do anything to it, other than check for errors
-                            {
-                                if (shuttle.Tasks.Count > 0) //If the shuttle has any tasks
-                                {
+                            Console.Write("Shuttle ");
+                            Console.Write(shuttle.shuttleID);
+                            Console.Write(" has these tasks ");
+                            Console.WriteLine(string.Join(", ", shuttle.Tasks));
+                            
 
-                                    switch (shuttle.Tasks[0]) //Checking what the first task is.
+                            if (shuttle.bufferMotionCount == 0) //If the shuttle doesn't have any movements in its buffer
+                                                                // then we want to look at that shuttles tasks, else we don't want to do naything, yet
+                            {
+                                
+                                if (shuttle.Tasks.Count > 0) //If the shuttle has any tasks
+                                                             // then we check what task is next for the shuttle
+                                {
+                                    
+
+                                    switch (shuttle.Tasks[0]) //Checking what the shuttle task is
                                     {
+                                        
 
                                         case "filling": // If the first task of the shuttle is filling
 
-                                            Console.WriteLine(Filling.stationStatus());
+                                            Filling.addIDToList(shuttle.shuttleID); //add the shuttle ID to the queue of the station (it will not be added if it is already there)
 
-                                            if (Filling.stationStatus() == false) //filling is NOT running, so we start it
-
+                                            if (Filling.stationStatus() == false) //If filling is NOT running
                                             {
-
-
-                                                PhysicalFillingQueue.removeIDFromList(shuttle.shuttleID); //Here we should add it so that it removes it from the queue that the shuttle is in, not always the filling queue
-                                                Filling.addIDToList(shuttle.shuttleID); //add the shuttle ID to the queue of the station
+                                                PhysicalFillingQueue.removeIDFromList(shuttle.shuttleID); //Here we should remove it from the queue that the shuttle is in, not always the filling queue
                                                 Filling.runMovement(); //We then give the shuttle the movements AND remove it from the station queue
                                                 shuttle.replaceFirstTask("runningFilling"); //Then we replace the filling task with a running filling status
                                                 Filling.updateStationStatus();
-
                                             }
 
-                                            else if (Filling.stationStatus() == true) //Filling IS running, so we add this one to the queues
+                                            else if (Filling.stationStatus() == true) //If filling IS running
                                             {
-                                                Filling.addIDToList(shuttle.shuttleID); // We add this ID to the filling station queue, it should only do it once since we replace the task
-                                                PhysicalFillingQueue.addIDToList(shuttle.shuttleID); //AND then physical filling queue
-                                                Filling.updateStationStatus();
+                                                PhysicalFillingQueue.addIDToList(shuttle.shuttleID); //Then add it to the physical filling queue
                                             }
 
                                             break;
 
                                         case "stoppering":
+
+                                            Stoppering.addIDToList(shuttle.shuttleID); //add the shuttle ID to the queue of the station (it will not be added if it is already there)
+
+                                            if (Stoppering.stationStatus() == false) //If filling is NOT running
+                                            {
+                                                PhysicalStopperingQueue.removeIDFromList(shuttle.shuttleID); //Here we should remove it from the queue that the shuttle is in, not always the filling queue
+                                                Stoppering.runMovement(); //We then give the shuttle the movements AND remove it from the station queue
+                                                shuttle.replaceFirstTask("runningStoppering"); //Then we replace the filling task with a running filling status
+                                                Stoppering.updateStationStatus();
+                                            }
+
+                                            else if (Stoppering.stationStatus() == true) //If filling IS running
+                                            {
+                                                PhysicalStopperingQueue.addIDToList(shuttle.shuttleID); //Then add it to the physical filling queue
+                                            }
+
                                             break;
 
                                         case "vision":
+
+                                            Vision.addIDToList(shuttle.shuttleID); //add the shuttle ID to the queue of the station (it will not be added if it is already there)
+
+                                            if (Vision.stationStatus() == false) //If filling is NOT running
+                                            {
+                                                PhysicalVisionQueue.removeIDFromList(shuttle.shuttleID); //Here we should remove it from the queue that the shuttle is in, not always the filling queue
+                                                Vision.runMovement(); //We then give the shuttle the movements AND remove it from the station queue
+                                                shuttle.replaceFirstTask("runningVision"); //Then we replace the filling task with a running filling status
+                                                Vision.updateStationStatus();
+                                            }
+
+                                            else if (Vision.stationStatus() == true) //If filling IS running
+                                            {
+                                                PhysicalVisionQueue.addIDToList(shuttle.shuttleID); //Then add it to the physical filling queue
+                                            }
+
                                             break;
+
+                                        
 
                                         case "runningFilling": //Because we are still in the if-statement of idle shuttles, we can do this here
 
+                                            
+                                            Filling.currentID = 0;
                                             shuttle.removeTask("runningFilling"); //Remove the task from the shuttle
-                                            Filling.updateStationStatus(); //We update the station station because the shuttle is idle
+                                            Filling.updateStationStatus(); //We update the station status because the shuttle is idle
 
+                                            break;
+
+                                        case "runningStoppering":
+                                            Stoppering.currentID = 0;
+                                            shuttle.removeTask("runningStoppering"); //Remove the task from the shuttle
+                                            Stoppering.updateStationStatus(); //We update the station status because the shuttle is idle
+
+                                            break;
+
+                                        case "runningVision":
+
+                                            Vision.currentID = 0;
+                                            shuttle.removeTask("runningVision"); //Remove the task from the shuttle
+                                            Vision.updateStationStatus(); //We update the station status because the shuttle is idle
 
                                             break;
 
@@ -295,11 +373,40 @@ namespace VT2_Aseptic_Production_Demonstrator
                             }
 
                         }
+                        
                     }
 
                     break;
 
                 case '3':
+
+                    int xbotID = 1;  // Replace with your actual XBot ID
+
+                    MF.LinarMotion(0, xbotID, 0.660, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.060, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.660, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.060, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.660, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.060, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.660, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.060, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.660, 0.780, "XY");
+                    MF.LinarMotion(0, xbotID, 0.060, 0.780, "XY");
+
+                    
+
+
+
+                    while (true)
+                    {
+                        MotionBufferReturn bufferReturn = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                        int count = bufferReturn.motionBufferStatus.bufferedMotionCount;
+
+                        Console.Write(count);
+                        Console.WriteLine(" left in the buffer");
+                    }
+                    
+
 
                     break; 
                 
