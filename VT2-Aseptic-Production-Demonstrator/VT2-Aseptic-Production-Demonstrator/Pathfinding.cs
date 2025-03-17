@@ -23,16 +23,24 @@ namespace VT2_Aseptic_Production_Demonstrator
         {
             public int X, Y;
             public bool Walkable;
+            public bool Initial;
+            public bool InitialWall;
+            public bool ShuttleCenter;
+            public bool DilatedWall;
             public Node Parent;
             public int gCost, hCost;
             public int fCost
             { get { return gCost + hCost; } }
 
-            public Node(int x, int y, bool walkable)
+            public Node(int x, int y, bool walkable, bool wall, bool dilatedWall, bool shuttleCenter)
             {
                 X = x;
                 Y = y;
                 Walkable = walkable;
+                InitialWall = wall;
+                ShuttleCenter = shuttleCenter;
+                DilatedWall = dilatedWall;
+                Parent = null;
             }
         }
 
@@ -51,16 +59,21 @@ namespace VT2_Aseptic_Production_Demonstrator
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        grid[x, y] = new Node(x, y, true); // Default: walkable
+                        grid[x, y] = new Node(x, y, true, false, false, false); 
+                        //  walkable, no-lwall, no-dilatedwall, no-shuttlecenter
                     }
                 }
             }
 
-            public void setObstacle(int x, int y)
+            public void setObstacle(int x, int y, bool initial)
             {
                 if (x >= 0 && x < Width && y >= 0 && y < Height)
                 {   
                     grid[x, y].Walkable = false;
+                    if (initial)
+                    {
+                        grid[x, y].Initial = true;
+                    }
                 }
             }
 
@@ -73,7 +86,10 @@ namespace VT2_Aseptic_Production_Demonstrator
                     {
                         if (x >= 0 && x < Width && y >= 0 && y < Height)
                         {
-                            grid[x, y].Walkable = true;
+                            if (!grid[x, y].Initial || !grid[x, y].DilatedWall)
+                            {
+                                grid[x, y].Walkable = true;
+                            }
                         }
                     }
                 }
@@ -96,73 +112,61 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                     shuttlePosition[shuttleID - 1, 0] = positionX;
                     shuttlePosition[shuttleID - 1, 1] = positionY;
+                    grid[positionX, positionY].ShuttleCenter = true;
                 }
             }
 
-            Grid gridGlobal = new Grid(720, 960); // Temporary grid size
-            public void staticObstacles()
+            public void staticObstacles(Grid gridGlobal)
             {
                 for(int i = 0; i < gridGlobal.Width; i++)
                 {
-                    gridGlobal.setObstacle(i, 0);
-                    gridGlobal.setObstacle(i, gridGlobal.Height - 1);
+                    gridGlobal.setObstacle(i, 0, true);
+                    gridGlobal.setObstacle(i, gridGlobal.Height - 1, true);
                 }
                 for(int i = 0; i < gridGlobal.Height; i++)
                 {
-                    gridGlobal.setObstacle(0, i);
-                    gridGlobal.setObstacle(gridGlobal.Width - 1, i);
+                    gridGlobal.setObstacle(0, i, true);
+                    gridGlobal.setObstacle(gridGlobal.Width - 1, i, true);
                 }
                 //Husk at sætte static obstacles for hvad der kommer til at være i midten.
             }
 
-            
 
-            static int[,] dilateGrid(int[,] grid)
+            public void dilateGrid()
             {
                 int shuttleSize = 60; // Shuttle size in mm
-                int h = shuttleSize;
-                int w = shuttleSize;
-                int rows = grid.GetLength(0);
-                int cols = grid.GetLength(1);
-
-                int[,] stucture = new int[h, w];
-                for (int i = 0; i < h; i++)
+                int rows = Height;
+                int cols = Width;
+                for (int i = 0; i < cols; i++)
                 {
-                    for (int j = 0; j < w; j++)
+                    for (int j = 0; j < rows; j++)
                     {
-                        stucture[i, j] = 1;
-                    }
-                }
-                int[,] dilatedGrid = (int[,])grid.Clone();
-                for (int i = 0; i < rows; i++)
-                {
-                    for (int j = 0; j < cols; j++)
-                    {
-                        if (grid[i, j] == 1)
+                        if (grid[i, j].Initial || grid[i, j].ShuttleCenter)
                         {
-                            for (int k = -h / 2; k <= h / 2; k++)
+                            for (int k = -shuttleSize; k <= shuttleSize; k++)
                             {
-                                for (int l = -w / 2; l <= w / 2; l++)
+                                for (int l = -shuttleSize; l <= shuttleSize; l++)
                                 {
                                     int ni = i + k;
                                     int nj = j + l;
-                                    if (ni >= 0 && ni < rows && nj >= 0 && nj < cols)
+                                    if (ni >= 0 && ni < cols && nj >= 0 && nj < rows && grid[ni, nj].Walkable)
                                     {
-                                        dilatedGrid[ni, nj] = 1;
+                                        grid[ni, nj].Walkable = false;
+                                        if (grid[ni, nj].Initial)
+                                        {
+                                            grid[ni, nj].DilatedWall = true;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-                return dilatedGrid;
             }
 
             public List<Node> GetNeighbors(Node node)
             {
                 List<Node> neighbors = new List<Node>();
-
-                
 
                 int[,] shuttleDirections = { { 0, 1 }, { 1, 0 }, { 0, -1 }, {-1, 0 } }; // 4-way movement
 
@@ -172,7 +176,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                         int ny = node.Y + shuttleDirections[i,1];
                     
 
-                    if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && grid[nx, ny].Walkable)
+                    if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && grid[nx, ny].Walkable && !grid[nx, ny].DilatedWall && !grid[nx, ny].Initial)
                     {
                         neighbors.Add(grid[nx, ny]);
                     }
@@ -237,11 +241,13 @@ namespace VT2_Aseptic_Production_Demonstrator
             }
         }
 
-        public void runPathfinder(Node startNode , Node endNode)
+        public void runPathfinder(Node startNode, Node endNode)
         {
-            Grid grid = new(50, 50);
+            Grid gridGlobal = new(50, 50);  // Create Grid
+            gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
+            gridGlobal.dilateGrid(); // Dilate the grid
             AStar aStar = new();
-            List<Node> path = aStar.findPath(grid, startNode, endNode);
+            List<Node> path = aStar.findPath(gridGlobal, startNode, endNode);
             if (path != null)
             {
                 foreach (Node node in path)
