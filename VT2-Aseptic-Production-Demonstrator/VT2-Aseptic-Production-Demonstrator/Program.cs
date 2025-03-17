@@ -14,7 +14,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         //Add diffrendce classes neede for the program here:
         private static XBotCommands xBotCommands = new XBotCommands();
         private connection_handler connectionHandler = new connection_handler();
-        private realtime_movement_test realtimeMovement = new realtime_movement_test();
+        private Pathfinding pathfinding = new();
 
 
 
@@ -27,6 +27,8 @@ namespace VT2_Aseptic_Production_Demonstrator
         // XBot Ids
         // Change depending on the number of XBot's in the system
         public int[] xbot_ids = {1, 2, 3, 4};
+
+        
 
 
         string title = @"
@@ -77,13 +79,6 @@ ____________________________________________________________________| ";
                         case '1':
                             selector = 2;
                             break;
-
-
-
-
-
-
-
                         case '\u001b': //escape key
                             return;
                         default:
@@ -95,8 +90,7 @@ ____________________________________________________________________| ";
                 
                 while(selector == 2) 
                 {
-                    realtimeMovement.runRealtimeMovementTest(xbot_ids);
-                    selector = realtimeMovement.setSelectorOne();
+                    
                 }
 
             } while (true);

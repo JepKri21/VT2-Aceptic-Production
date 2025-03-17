@@ -7,15 +7,17 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
-namespace VT2_Aseptic_Production_Pathfinding
+namespace VT2_Aseptic_Production_Demonstrator
 {
     internal class Pathfinding
     {
+        /*
         private static SystemCommands _systemCommand = new SystemCommands();
         //This class holds the pathfinding algorithm.
         private static XBotCommands _xbotCommand = new XBotCommands();
         WaitUntilTriggerParams CMD_params = new WaitUntilTriggerParams();
         int selector = 2;
+        */ // Uncomment when using the code in the actual program
 
         public class Node
         {
@@ -64,6 +66,7 @@ namespace VT2_Aseptic_Production_Pathfinding
 
             public void removeObstacle(int x, int y)
             {
+                int shuttleSize = 60; // Shuttle size in mm
                 for (int i = -shuttleSize; i < shuttleSize; i++)
                 {
                     for (int j = -shuttleSize; j < shuttleSize; j++)
@@ -78,13 +81,18 @@ namespace VT2_Aseptic_Production_Pathfinding
 
             public void shuttlePosition(int shuttleNr)
             {
+                shuttleNr = 1; // Number of shuttles // Change to actual number of shuttles
                 double[,] shuttlePosition = new double[shuttleNr, 2];
                 for (int shuttleID = 1; shuttleID <= shuttleNr; shuttleID++)
                 {
+                    /*
                     XBotStatus pos = _xbotCommand.GetXbotStatus(shuttleID);
                     double[] temPos = pos.FeedbackPositionSI;
                     int positionX = (int)Math.Round(temPos[0]);
                     int positionY = (int)Math.Round(temPos[1]);
+                    */
+                    int positionX = 10; // Temporary position
+                    int positionY = 10; // Temporary position
 
                     shuttlePosition[shuttleID - 1, 0] = positionX;
                     shuttlePosition[shuttleID - 1, 1] = positionY;
@@ -107,12 +115,13 @@ namespace VT2_Aseptic_Production_Pathfinding
                 //Husk at sætte static obstacles for hvad der kommer til at være i midten.
             }
 
-            int shuttleSize = 60; // Shuttle size in mm
+            
 
-            static int[,] dilateGrid(int[,] grid, int[] shuttleSize)
+            static int[,] dilateGrid(int[,] grid)
             {
-                int h = shuttleSize[0];
-                int w = shuttleSize[1];
+                int shuttleSize = 60; // Shuttle size in mm
+                int h = shuttleSize;
+                int w = shuttleSize;
                 int rows = grid.GetLength(0);
                 int cols = grid.GetLength(1);
 
@@ -225,6 +234,24 @@ namespace VT2_Aseptic_Production_Pathfinding
             private static int heuristic(Node a, Node b) // Manhattan Distance
             {
                 return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+            }
+        }
+
+        public void runPathfinder(Node startNode , Node endNode)
+        {
+            Grid grid = new(50, 50);
+            AStar aStar = new();
+            List<Node> path = aStar.findPath(grid, startNode, endNode);
+            if (path != null)
+            {
+                foreach (Node node in path)
+                {
+                    Console.WriteLine(node.X + " " + node.Y);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No path found");
             }
         }
     }
