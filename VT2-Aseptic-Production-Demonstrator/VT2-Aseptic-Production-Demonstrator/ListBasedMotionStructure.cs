@@ -51,6 +51,9 @@ namespace VT2_Aseptic_Production_Demonstrator
                     double[] startPostion2 = { 0.600, 0.120 };
                     double[] targetPostion2 = { 0.360, 0.360 };
 
+                    _xbotCommand.MotionBufferControl(1, MOTIONBUFFEROPTIONS.CLEARBUFFER);
+                    _xbotCommand.MotionBufferControl(2, MOTIONBUFFEROPTIONS.CLEARBUFFER);
+
                     motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
                     motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
 
@@ -136,11 +139,238 @@ namespace VT2_Aseptic_Production_Demonstrator
                         }
                     }
                     break;
+
+                case '4':
+                    int[] xbotIDs4 = { 1,2 };
+                    int maxLength4 = trajectories.Values.Max(t => t.Count);
+
+                    foreach (var xbotID in xbotIDs4)
+                    {
+                        if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
+                        {
+                            // Add the first two motions to the buffer
+                            double[] point = trajectories[xbotID][0];
+                            double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
+                            Console.WriteLine($"Adding first point to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+                            if (nextPoint != null)
+                            {
+                                Console.WriteLine($"Adding second point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                                motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
+                            }
+
+                            for (int i = 2; i < trajectories[xbotID].Count; i++)
+                            {
+                                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                // Print the initial buffer count
+                                Console.WriteLine($"Initial buffer count for xbotID {xbotID}: {bufferCount}");
+
+                                // Wait until there is only 1 motion left in the buffer
+                                while (bufferCount > 1)
+                                {
+                                    BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                    bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                    // Print the buffer count during the wait
+                                    Console.WriteLine($"Buffer count for xbotID {xbotID} during wait: {bufferCount}");
+                                }
+
+                                // Add the next motion to the buffer
+                                point = trajectories[xbotID][i];
+                                Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                                motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+
+                                _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                            }
+                        }
+                    }
+                    break;
+
+                case '5':
+                    int[] xbotIDs5 = { 1, 2 };
+                    int maxLength5 = trajectories.Values.Max(t => t.Count);
+                    int bufferThreshold = 2; // Set a threshold for the buffer count
+
+                    foreach (var xbotID in xbotIDs5)
+                    {
+                        if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
+                        {
+                            // Add the first two motions to the buffer
+                            double[] point = trajectories[xbotID][0];
+                            double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
+                            Console.WriteLine($"Adding first point to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+                            if (nextPoint != null)
+                            {
+                                Console.WriteLine($"Adding second point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                                motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
+                            }
+                        }
+                    }
+
+                    for (int i = 2; i < maxLength5; i++)
+                    {
+                        List<Task> tasks = new List<Task>();
+
+                        foreach (var xbotID in xbotIDs5)
+                        {
+                            if (trajectories.ContainsKey(xbotID) && i < trajectories[xbotID].Count)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    while (true)
+                                    {
+                                        MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                        int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                        // Print the buffer count
+                                        Console.WriteLine($"Buffer count for xbotID {xbotID}: {bufferCount}");
+
+                                        // Add the next motion to the buffer if the buffer count drops below the threshold
+                                        if (bufferCount < bufferThreshold)
+                                        {
+                                            double[] point = trajectories[xbotID][i];
+                                            Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+
+                                            _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                            break;
+                                        }
+
+                                        // Add a small delay to avoid busy-waiting
+                                        System.Threading.Thread.Sleep(50);
+                                    }
+                                }));
+                            }
+                        }
+
+                        Task.WaitAll(tasks.ToArray());
+                    }
+                    break;
+
+
+
+                case '6':
+                    int[] xbotIDs6 = { 1, 2 };
+                    int maxLength6 = trajectories.Values.Max(t => t.Count);
+
+                    List<Task> tasks6 = new List<Task>();
+
+                    foreach (var xbotID in xbotIDs6)
+                    {
+                        if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
+                        {
+                            tasks6.Add(Task.Run(() =>
+                            {
+                                // Add the first two motions to the buffer
+                                double[] point = trajectories[xbotID][0];
+                                double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
+                                //Console.WriteLine($"Adding first point to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                                motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+                                if (nextPoint != null)
+                                {
+                                    //Console.WriteLine($"Adding second point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                                    motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
+                                }
+
+                                for (int i = 2; i < trajectories[xbotID].Count; i++)
+                                {
+                                    MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                    int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                    // Print the initial buffer count
+                                    Console.WriteLine($"Initial buffer count for xbotID {xbotID}: {bufferCount}");
+
+                                    // Wait until there is only 1 motion left in the buffer
+                                    while (bufferCount > 1)
+                                    {
+                                        BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                        bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                        // Print the buffer count during the wait
+                                        Console.WriteLine($"Buffer count for xbotID {xbotID} during wait: {bufferCount}");
+                                    }
+
+                                    // Add the next motion to the buffer
+                                    point = trajectories[xbotID][i];
+                                    Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                                    motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+
+                                    _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                }
+                            }));
+                        }
+                    }
+
+                    Task.WaitAll(tasks6.ToArray());
+                    break;
+
+
+
+
+
+
+
             }
         }
 
 
+        public void runPathPlan(int[] xbotIDs, Dictionary<int, List<double[]>> pathPlan)
+        {
+            //int maxLength = trajectories.Values.Max(t => t.Count);
 
+            List<Task> tasks = new List<Task>();
+
+            foreach (var xbotID in xbotIDs)
+            {
+                if (pathPlan.ContainsKey(xbotID) && pathPlan[xbotID].Count > 0)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        // Add the first two motions to the buffer
+                        double[] point = pathPlan[xbotID][0];
+                        double[] nextPoint = pathPlan[xbotID].Count > 1 ? pathPlan[xbotID][1] : null;// if there is no next point, set it to null
+                        //Console.WriteLine($"Adding first point to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                        motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+                        if (nextPoint != null)
+                        {
+                            //Console.WriteLine($"Adding second point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                            motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
+                        }
+
+                        for (int i = 2; i < trajectories[xbotID].Count; i++)
+                        {
+                            MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                            int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount; // get the buffer count
+
+                            // Print the initial buffer count
+                            //Console.WriteLine($"Initial buffer count for xbotID {xbotID}: {bufferCount}");
+
+                            // Wait until there is only 1 motion left in the buffer
+                            while (bufferCount > 1)
+                            {
+                                BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                // Print the buffer count during the wait
+                                //Console.WriteLine($"Buffer count for xbotID {xbotID} during wait: {bufferCount}");
+                            }
+
+                            // Add the next motion to the buffer
+                            point = trajectories[xbotID][i];
+                            //Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
+                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+
+                            
+                        }
+                    }));
+                }
+            }
+
+            //Task.WaitAll(tasks.ToArray()); //Make sure all tasks are finished before continuing 
+        }
 
     }
     

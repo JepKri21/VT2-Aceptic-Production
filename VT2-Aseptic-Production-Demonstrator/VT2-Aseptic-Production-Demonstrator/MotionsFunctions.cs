@@ -15,7 +15,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static SystemCommands _systemCommand = new SystemCommands();
         private static XBotCommands _xbotCommand = new XBotCommands();
 
-        double speedLinar = 0.1;
+        double speedLinar = 0.5;
         double speedRotation = 0.1;
         double speedFinal = 0.0;
         double acclerationMax = 0.1;
