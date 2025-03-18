@@ -29,7 +29,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             public bool InitialWall;
             public bool ShuttleCenter;
             public bool DilatedWall;
-            public Node Parent;
+            public Node? Parent;
             public int gCost, hCost;
             public int fCost
             { get { return gCost + hCost; } }
@@ -214,7 +214,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         public class AStar
         {
-            public List<Node> findPath(Grid grid, Node startNode, Node goalNode)
+            public List<Node>? findPath(Grid grid, Node startNode, Node goalNode)
             {
                 PriorityQueue<Node, int> openList = new PriorityQueue<Node, int>();
                 HashSet<Node> closedList = new HashSet<Node>();
@@ -250,7 +250,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                 }
                 return null; // No path found
             }
-            private static List<Node> reconstructPath(Node node)
+            private static List<Node> reconstructPath(Node? node)
             {
                 List<Node> path = new List<Node>();
                 while (node != null)
@@ -277,24 +277,24 @@ namespace VT2_Aseptic_Production_Demonstrator
                 Grid gridGlobal = new(50, 50);  // Create Grid
                 gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
                 gridGlobal.dilateGrid(); // Dilate the grid
-                Dictionary<int, (List<Node>, List<int>)> paths = new();
                 bool conflictExists = true;
 
                 while (conflictExists)
                 {
+                    Dictionary<int, (List<Node>, List<int>)> paths = new();
                     foreach (int shuttleID in xbot_ids)
                     {
                         AStar aStar = new();
                         List<Node> Path = new();
-                        List<Node> path = aStar.findPath(gridGlobal, startNode[shuttleID - 1], endNode[shuttleID - 1]);
+                        List<Node>? path = aStar.findPath(gridGlobal, startNode[shuttleID - 1], endNode[shuttleID - 1]);
                         if (path != null)
                         {
                             paths[shuttleID] = (path, Enumerable.Range(0, path.Count).ToList());
-                        }
+                        } else { Console.WriteLine($"No path available for shuttleID: {shuttleID}"); }
                         
                     }
                     // Check for conflicts
-                    List<(int, int, Node)> conflicts = ConflictSearcher(paths);
+                    List<(int, int, Node, int)> conflicts = ConflictSearcher(paths);
                     if (conflicts.Count == 0)
                     {
                         conflictExists = false;
@@ -304,19 +304,20 @@ namespace VT2_Aseptic_Production_Demonstrator
                     {
                         foreach (var conflict in conflicts)
                         {
-                            int shuttleID = conflict.Item1;
-                            int step = conflict.Item2;
+                            int shuttleID1 = conflict.Item1;
+                            int shuttleID2 = conflict.Item2;
                             Node node = conflict.Item3;
+                            int step = conflict.Item4;
                             gridGlobal.setObstacle(node.X, node.Y, false, true);
                             gridGlobal.dilateGrid();
-                            Console.WriteLine($"Conflict at step {step} for shuttle {shuttleID} in node {node}");
+                            Console.WriteLine($"Conflict at step {step} for shuttle {shuttleID1} and {shuttleID2} in node {node}");
                         }
                     }
                 }
             }
-            public List<(int, int, Node)> ConflictSearcher(Dictionary<int, (List<Node>, List<int>)> paths)
+            public List<(int, int, Node, int)> ConflictSearcher(Dictionary<int, (List<Node>, List<int>)> paths)
             {
-                List<(int, int, Node)> conflicts = new();
+                List<(int, int, Node, int)> conflicts = new();
 
                 foreach (var path1 in paths)
                 {
@@ -327,19 +328,19 @@ namespace VT2_Aseptic_Production_Demonstrator
                         int minSteps = Math.Min(path1.Value.Item1.Count, path2.Value.Item1.Count);
                         for (int t = 0; t < minSteps; t++)
                         {
-                            // 1️⃣ Check direct conflict (same position, same time)
+                            // Check direct conflict (same position, same time)
                             if (path1.Value.Item1[t] == path2.Value.Item1[t])
                             {
-                                conflicts.Add((path1.Key, path2.Key, path1.Value.Item1[t]));
+                                conflicts.Add((path1.Key, path2.Key, path1.Value.Item1[t], path1.Value.Item2[t]));
                             }
 
-                            // 2️⃣ Check swap conflict (A moves to B’s previous position & B moves to A’s previous position)
+                            // Check swap conflict (A moves to B’s previous position & B moves to A’s previous position)
                             if (t > 0) // Swaps can only happen from step 1 onward
                             {
                                 if (path1.Value.Item1[t] == path2.Value.Item1[t - 1] &&
                                     path2.Value.Item1[t] == path1.Value.Item1[t - 1])
                                 {
-                                    conflicts.Add((path1.Key, path2.Key, path1.Value.Item1[t]));
+                                    conflicts.Add((path1.Key, path2.Key, path1.Value.Item1[t], path1.Value.Item2[t]));
                                 }
                             }
                         }
@@ -347,7 +348,6 @@ namespace VT2_Aseptic_Production_Demonstrator
                 }
                 return conflicts;
             }
-
         }
     }
 }
