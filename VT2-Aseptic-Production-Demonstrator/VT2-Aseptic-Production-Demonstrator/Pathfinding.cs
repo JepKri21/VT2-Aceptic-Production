@@ -11,6 +11,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 {
     internal class Pathfinding
     {
+        private Program program = new();
         /*
         private static SystemCommands _systemCommand = new SystemCommands();
         //This class holds the pathfinding algorithm.
@@ -24,6 +25,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             public int X, Y;
             public bool Walkable;
             public bool Initial;
+            public bool Temp;
             public bool InitialWall;
             public bool ShuttleCenter;
             public bool DilatedWall;
@@ -32,7 +34,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             public int fCost
             { get { return gCost + hCost; } }
 
-            public Node(int x, int y, bool walkable, bool wall, bool dilatedWall, bool shuttleCenter)
+            public Node(int x, int y, bool walkable, bool wall, bool dilatedWall, bool shuttleCenter, bool temp, bool initial)
             {
                 X = x;
                 Y = y;
@@ -41,6 +43,8 @@ namespace VT2_Aseptic_Production_Demonstrator
                 ShuttleCenter = shuttleCenter;
                 DilatedWall = dilatedWall;
                 Parent = null;
+                Temp = temp;
+                Initial = initial;
             }
         }
 
@@ -59,32 +63,51 @@ namespace VT2_Aseptic_Production_Demonstrator
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        grid[x, y] = new Node(x, y, true, false, false, false); 
-                        //  walkable, no-lwall, no-dilatedwall, no-shuttlecenter
+                        grid[x, y] = new Node(x, y, true, false, false, false, false, false);
                     }
                 }
             }
 
-            public void setObstacle(int x, int y, bool initial)
+            public void setObstacle(int x, int y, bool initial, bool temp)
             {
                 if (x >= 0 && x < Width && y >= 0 && y < Height)
-                {   
+                {
                     grid[x, y].Walkable = false;
                     if (initial)
                     {
                         grid[x, y].Initial = true;
+                    }
+                    if (temp)
+                    {
+                        grid[x, y].ShuttleCenter = true;
+                    }
+                }
+            }
+
+            public void removeTemps()
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    for (int y = 0; y < Height; y++)
+                    {
+                        if (grid[x, y].Temp || grid[x, y].ShuttleCenter)
+                        {
+                            grid[x, y].Walkable = true;
+                            grid[x, y].Temp = false;
+                            grid[x, y].ShuttleCenter = false;
+                        }
                     }
                 }
             }
 
             public void removeObstacle(int x, int y)
             {
-                int shuttleSize = 60; // Shuttle size in mm
-                for (int i = -shuttleSize; i < shuttleSize; i++)
+                const int shuttleSize = 60; // Shuttle size in mm
+                for (int i = -shuttleSize; i <= shuttleSize; i++)
                 {
-                    for (int j = -shuttleSize; j < shuttleSize; j++)
+                    for (int j = -shuttleSize; j <= shuttleSize; j++)
                     {
-                        if (x >= 0 && x < Width && y >= 0 && y < Height)
+                        if (x+i >= 0 && x+i < Width && y+j >= 0 && y+j < Height)
                         {
                             if (!grid[x, y].Initial || !grid[x, y].DilatedWall)
                             {
@@ -93,7 +116,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                         }
                     }
                 }
-            } 
+            }
 
             public void shuttlePosition(int shuttleNr)
             {
@@ -118,15 +141,15 @@ namespace VT2_Aseptic_Production_Demonstrator
 
             public void staticObstacles(Grid gridGlobal)
             {
-                for(int i = 0; i < gridGlobal.Width; i++)
+                for (int i = 0; i < gridGlobal.Width; i++)
                 {
-                    gridGlobal.setObstacle(i, 0, true);
-                    gridGlobal.setObstacle(i, gridGlobal.Height - 1, true);
+                    gridGlobal.setObstacle(i, 0, true, false);
+                    gridGlobal.setObstacle(i, gridGlobal.Height - 1, true, false);
                 }
-                for(int i = 0; i < gridGlobal.Height; i++)
+                for (int i = 0; i < gridGlobal.Height; i++)
                 {
-                    gridGlobal.setObstacle(0, i, true);
-                    gridGlobal.setObstacle(gridGlobal.Width - 1, i, true);
+                    gridGlobal.setObstacle(0, i, true, false);
+                    gridGlobal.setObstacle(gridGlobal.Width - 1, i, true, false);
                 }
                 //Husk at sætte static obstacles for hvad der kommer til at være i midten.
             }
@@ -134,7 +157,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
             public void dilateGrid()
             {
-                int shuttleSize = 60; // Shuttle size in mm
+                const int shuttleSize = 60; // Shuttle size in mm
                 int rows = Height;
                 int cols = Width;
                 for (int i = 0; i < cols; i++)
@@ -152,9 +175,13 @@ namespace VT2_Aseptic_Production_Demonstrator
                                     if (ni >= 0 && ni < cols && nj >= 0 && nj < rows && grid[ni, nj].Walkable)
                                     {
                                         grid[ni, nj].Walkable = false;
-                                        if (grid[ni, nj].Initial)
+                                        if (grid[i, j].Initial)
                                         {
                                             grid[ni, nj].DilatedWall = true;
+                                        }
+                                        if (grid[i, j].ShuttleCenter)
+                                        {
+                                            grid[ni, nj].Temp = true;
                                         }
                                     }
                                 }
@@ -168,13 +195,13 @@ namespace VT2_Aseptic_Production_Demonstrator
             {
                 List<Node> neighbors = new List<Node>();
 
-                int[,] shuttleDirections = { { 0, 1 }, { 1, 0 }, { 0, -1 }, {-1, 0 } }; // 4-way movement
+                int[,] shuttleDirections = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }; // 4-way movement
 
                 for (int i = 0; i < 4; i++)
-                    {
-                        int nx = node.X + shuttleDirections[i,0];
-                        int ny = node.Y + shuttleDirections[i,1];
-                    
+                {
+                    int nx = node.X + shuttleDirections[i, 0];
+                    int ny = node.Y + shuttleDirections[i, 1];
+
 
                     if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && grid[nx, ny].Walkable && !grid[nx, ny].DilatedWall && !grid[nx, ny].Initial)
                     {
@@ -183,7 +210,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                 }
                 return neighbors;
             }
-        } 
+        }
 
         public class AStar
         {
@@ -204,12 +231,12 @@ namespace VT2_Aseptic_Production_Demonstrator
                         return reconstructPath(goalNode);
                     }
                     closedList.Add(currentNode);
-                    
+
                     foreach (Node neighbor in grid.GetNeighbors(currentNode))
                     {
                         if (closedList.Contains(neighbor)) continue;
 
-                        int newG = costSoFar[neighbor] + 1;
+                        int newG = costSoFar[currentNode] + 1;
 
                         if (!costSoFar.ContainsKey(neighbor) || newG < costSoFar[neighbor])
                         {
@@ -239,26 +266,88 @@ namespace VT2_Aseptic_Production_Demonstrator
             {
                 return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
             }
-        }
-
-        public void runPathfinder(Node startNode, Node endNode)
-        {
-            Grid gridGlobal = new(50, 50);  // Create Grid
-            gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
-            gridGlobal.dilateGrid(); // Dilate the grid
-            AStar aStar = new();
-            List<Node> path = aStar.findPath(gridGlobal, startNode, endNode);
-            if (path != null)
+            public void CBS()
             {
-                foreach (Node node in path)
+                // CBS algorithm
+                Dictionary<int, List<Node>> constraints = new Dictionary<int, List<Node>>();
+            }
+
+            public void runPathfinder(List<int> xbot_ids, List<Node> startNode, List<Node> endNode)
+            {
+                Grid gridGlobal = new(50, 50);  // Create Grid
+                gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
+                gridGlobal.dilateGrid(); // Dilate the grid
+                Dictionary<int, (List<Node>, List<int>)> paths = new();
+                bool conflictExists = true;
+
+                while (conflictExists)
                 {
-                    Console.WriteLine(node.X + " " + node.Y);
+                    foreach (int shuttleID in xbot_ids)
+                    {
+                        AStar aStar = new();
+                        List<Node> Path = new();
+                        List<Node> path = aStar.findPath(gridGlobal, startNode[shuttleID - 1], endNode[shuttleID - 1]);
+                        if (path != null)
+                        {
+                            paths[shuttleID] = (path, Enumerable.Range(0, path.Count).ToList());
+                        }
+                        
+                    }
+                    // Check for conflicts
+                    List<(int, int, Node)> conflicts = ConflictSearcher(paths);
+                    if (conflicts.Count == 0)
+                    {
+                        conflictExists = false;
+                        gridGlobal.removeTemps();
+                    }
+                    else
+                    {
+                        foreach (var conflict in conflicts)
+                        {
+                            int shuttleID = conflict.Item1;
+                            int step = conflict.Item2;
+                            Node node = conflict.Item3;
+                            gridGlobal.setObstacle(node.X, node.Y, false, true);
+                            gridGlobal.dilateGrid();
+                            Console.WriteLine($"Conflict at step {step} for shuttle {shuttleID} in node {node}");
+                        }
+                    }
                 }
             }
-            else
+            public List<(int, int, Node)> ConflictSearcher(Dictionary<int, (List<Node>, List<int>)> paths)
             {
-                Console.WriteLine("No path found");
+                List<(int, int, Node)> conflicts = new();
+
+                foreach (var path1 in paths)
+                {
+                    foreach (var path2 in paths)
+                    {
+                        if (path1.Key >= path2.Key) continue; // Avoid duplicate comparisons
+
+                        int minSteps = Math.Min(path1.Value.Item1.Count, path2.Value.Item1.Count);
+                        for (int t = 0; t < minSteps; t++)
+                        {
+                            // 1️⃣ Check direct conflict (same position, same time)
+                            if (path1.Value.Item1[t] == path2.Value.Item1[t])
+                            {
+                                conflicts.Add((path1.Key, path2.Key, path1.Value.Item1[t]));
+                            }
+
+                            // 2️⃣ Check swap conflict (A moves to B’s previous position & B moves to A’s previous position)
+                            if (t > 0) // Swaps can only happen from step 1 onward
+                            {
+                                if (path1.Value.Item1[t] == path2.Value.Item1[t - 1] &&
+                                    path2.Value.Item1[t] == path1.Value.Item1[t - 1])
+                                {
+                                    conflicts.Add((path1.Key, path2.Key, path1.Value.Item1[t]));
+                                }
+                            }
+                        }
+                    }
+                }
+                return conflicts;
             }
+
         }
     }
 }
