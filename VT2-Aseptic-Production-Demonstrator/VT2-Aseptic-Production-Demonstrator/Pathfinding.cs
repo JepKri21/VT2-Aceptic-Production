@@ -272,16 +272,18 @@ namespace VT2_Aseptic_Production_Demonstrator
                 Dictionary<int, List<Node>> constraints = new Dictionary<int, List<Node>>();
             }
 
-            public void runPathfinder(List<int> xbot_ids, List<Node> startNode, List<Node> endNode)
+            public Dictionary<int, (List<Node>, List<int>)> runPathfinder(List<int> xbot_ids, List<Node> startNode, List<Node> endNode)
             {
                 Grid gridGlobal = new(50, 50);  // Create Grid
                 gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
                 gridGlobal.dilateGrid(); // Dilate the grid
                 bool conflictExists = true;
+                Dictionary<int, (List<Node>, List<int>)> paths = new();
 
                 while (conflictExists)
                 {
-                    Dictionary<int, (List<Node>, List<int>)> paths = new();
+                    paths.Clear();
+
                     foreach (int shuttleID in xbot_ids)
                     {
                         AStar aStar = new();
@@ -290,8 +292,9 @@ namespace VT2_Aseptic_Production_Demonstrator
                         if (path != null)
                         {
                             paths[shuttleID] = (path, Enumerable.Range(0, path.Count).ToList());
-                        } else { Console.WriteLine($"No path available for shuttleID: {shuttleID}"); }
-                        
+                        }
+                        else { Console.WriteLine($"No path available for shuttleID: {shuttleID}"); }
+
                     }
                     // Check for conflicts
                     List<(int, int, Node, int)> conflicts = ConflictSearcher(paths);
@@ -314,6 +317,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                         }
                     }
                 }
+                return paths;
             }
             public List<(int, int, Node, int)> ConflictSearcher(Dictionary<int, (List<Node>, List<int>)> paths)
             {
