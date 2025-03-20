@@ -16,6 +16,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private connection_handler connectionHandler = new connection_handler();
         private realtime_movement_test realtimeMovement = new realtime_movement_test();
         private ListBasedMotionStructure listBasedMotionStructure = new ListBasedMotionStructure();
+        private Pathfinding pathfinding = new();
 
 
 
@@ -27,7 +28,9 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         // XBot Ids
         // Change depending on the number of XBot's in the system
-        public int[] xbot_ids = { 1 , 2 , 3,4,5,6,7,8};
+        public int[] xbot_ids = {1, 2, 3, 4};
+
+        
 
 
         string title = @"
@@ -100,8 +103,7 @@ ____________________________________________________________________| ";
                 
                 while(selector == 2) 
                 {
-                    realtimeMovement.runRealtimeMovementTest(xbot_ids);
-                    selector = realtimeMovement.setSelectorOne();
+                    
                 }
                 while(selector == 3)
                 {

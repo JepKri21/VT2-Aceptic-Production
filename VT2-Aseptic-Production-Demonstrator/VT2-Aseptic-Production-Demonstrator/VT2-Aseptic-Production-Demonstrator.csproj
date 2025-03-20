@@ -10,7 +10,11 @@
 
   <ItemGroup>
     <Reference Include="PMCLIB">
+<<<<<<< HEAD
       <HintPath>..\..\..\..\..\..\Downloads\OneDrive_2025-03-07\Software 2024-10-10\C# Example and Library\Library\PMCLIB.dll</HintPath>
+=======
+      <HintPath>..\..\..\..\..\..\Downloads\PMI_Simple_Demo\Library\PMCLIB.dll</HintPath>
+>>>>>>> origin/Pathfinding
     </Reference>
   </ItemGroup>
 
