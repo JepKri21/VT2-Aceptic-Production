@@ -11,10 +11,10 @@ namespace VT2_Aseptic_Production_Demonstrator
     {
         public List<(int, double[])> trajectory;
 
-        public TrajectoryGenerator(int xbotId, double[] startPostion, double[] tagetPostion, int numPoints, string movement)
+        public TrajectoryGenerator(int _xbotId, double[] _startPostion, double[] _tagetPostion, int _numPoints, string _movement)
         {
             trajectory = new List<(int, double[])>();
-            GenerateTrajectory(xbotId, startPostion, tagetPostion, numPoints, movement);
+            GenerateTrajectory(_xbotId, _startPostion, _tagetPostion, _numPoints, _movement);
         }
         private void GenerateTrajectory(int xbotId, double[] startPostion, double[] tagetPostion, int numPoints, string movement)
         {

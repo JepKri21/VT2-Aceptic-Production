@@ -18,8 +18,6 @@ namespace VT2_Aseptic_Production_Demonstrator
     {
         private static MotionsFunctions motionsFunctions = new MotionsFunctions();
         private static XBotCommands _xbotCommand = new XBotCommands();
-
-        WaitUntilTriggerParams CMD_params = new WaitUntilTriggerParams();
         int selector = 3;
 
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -29,13 +27,13 @@ namespace VT2_Aseptic_Production_Demonstrator
             return selector;
         }
 
-        public void runListBasedMotion()
+        public void runListBasedMotion(int[] xbotIDs)
         {
             //Console.Clear();
             Console.WriteLine(" List based motions structure");
             Console.WriteLine("0    Return ");
-            Console.WriteLine("1    Run Code ");
-            Console.WriteLine("2    Print Trajectories");
+            Console.WriteLine("1    Generate Trajectories ");
+            Console.WriteLine("2    ");
 
             ConsoleKeyInfo keyInfo = Console.ReadKey();
             switch (keyInfo.KeyChar)
@@ -46,209 +44,82 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                 case '1':
                     // Generate trajectories form the start postions to the target postions
-                    double[] startPostion1 = { 0.120, 0.120 };
-                    double[] targetPostion1 = { 0.600, 0.840 };
-                    double[] startPostion2 = { 0.600, 0.120 };
-                    double[] targetPostion2 = { 0.360, 0.360 };
+                    double[] startPostion1 = { 0.060, 0.060 };
+                    double[] targetPostion1 = { 0.660, 0.400 };
+                    double[] startPostion2 = { 0.600, 0.400 };
+                    double[] targetPostion2 = { 0.120, 0.120 };
+                    double[] startPostion3 = { 0.360, 0.360 };
+                    double[] targetPostion3 = { 0.600, 0.520 };
+                    double[] startPostion4 = { 0.200, 0.200 };
+                    double[] targetPostion4 = { 0.200, 0.600 };
+                    double[] startPostion5 = { 0.080, 0.300 };
+                    double[] targetPostion5 = { 0.600, 0.840 };
+                    double[] startPostion6 = { 0.600, 0.860 };
+                    double[] targetPostion6 = { 0.200, 0.660 };
+                    double[] startPostion7 = { 0.360, 0.800 };
+                    double[] targetPostion7 = { 0.600, 0.640 };
+                    double[] startPostion8 = { 0.600, 0.660 };
+                    double[] targetPostion8 = { 0.360, 0.720 };
+
 
                     _xbotCommand.MotionBufferControl(1, MOTIONBUFFEROPTIONS.CLEARBUFFER);
                     _xbotCommand.MotionBufferControl(2, MOTIONBUFFEROPTIONS.CLEARBUFFER);
 
                     motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
                     motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
+                    motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
+                    motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
+                    motionsFunctions.LinarMotion(0, 5, startPostion5[0], startPostion5[1], "xy");
+                    motionsFunctions.LinarMotion(0, 6, startPostion6[0], startPostion6[1], "yx"); 
+                    motionsFunctions.LinarMotion(0, 7, startPostion7[0], startPostion7[1], "xy");
+                    motionsFunctions.LinarMotion(0, 8, startPostion8[0], startPostion8[1], "xy");
 
-                    TrajectoryGenerator traj1 = new TrajectoryGenerator(1, startPostion1, targetPostion1, 20, "YX");
+                    TrajectoryGenerator traj1 = new TrajectoryGenerator(1, startPostion1, targetPostion1, 20, "XY");
                     //Console.WriteLine("Trajectory 1:");
-                    traj1.PrintTrajectory();
+                    //traj1.PrintTrajectory();
                     trajectories[traj1.trajectory.First().Item1] = traj1.trajectory.Select(t => t.Item2).ToList();
 
                     TrajectoryGenerator traj2 = new TrajectoryGenerator(2, startPostion2, targetPostion2, 30, "XY");
                     //Console.WriteLine("\n Trajectory 2:");
-                    traj2.PrintTrajectory();
+                    //traj2.PrintTrajectory();
                     trajectories[traj2.trajectory.First().Item1] = traj2.trajectory.Select(t => t.Item2).ToList();
 
+                    TrajectoryGenerator traj3 = new TrajectoryGenerator(3, startPostion3, targetPostion3, 30, "YX");
+                    //Console.WriteLine("\n Trajectory 2:");
+                    //traj3.PrintTrajectory();
+                    trajectories[traj3.trajectory.First().Item1] = traj3.trajectory.Select(t => t.Item2).ToList();
+
+                    TrajectoryGenerator traj4 = new TrajectoryGenerator(4, startPostion4, targetPostion4, 20, "YX");
+                    //Console.WriteLine("Trajectory 1:");
+                    //traj1.PrintTrajectory();
+                    trajectories[traj4.trajectory.First().Item1] = traj4.trajectory.Select(t => t.Item2).ToList();
+
+                    TrajectoryGenerator traj5 = new TrajectoryGenerator(5, startPostion5, targetPostion5, 30, "YX");
+                    //Console.WriteLine("\n Trajectory 2:");
+                    //traj2.PrintTrajectory();
+                    trajectories[traj5.trajectory.First().Item1] = traj5.trajectory.Select(t => t.Item2).ToList();
+
+                    TrajectoryGenerator traj6 = new TrajectoryGenerator(6, startPostion6, targetPostion6, 30, "XY");
+                    //Console.WriteLine("\n Trajectory 2:");
+                    //traj3.PrintTrajectory();
+                    trajectories[traj6.trajectory.First().Item1] = traj6.trajectory.Select(t => t.Item2).ToList();
+
+                    TrajectoryGenerator traj7 = new TrajectoryGenerator(7, startPostion7, targetPostion7, 20, "YX");
+                    //Console.WriteLine("Trajectory 1:");
+                    //traj1.PrintTrajectory();
+                    trajectories[traj7.trajectory.First().Item1] = traj7.trajectory.Select(t => t.Item2).ToList();
+
+                    TrajectoryGenerator traj8 = new TrajectoryGenerator(8, startPostion8, targetPostion8, 30, "YX");
+                    //Console.WriteLine("\n Trajectory 2:");
+                    //traj2.PrintTrajectory();
+                    trajectories[traj8.trajectory.First().Item1] = traj8.trajectory.Select(t => t.Item2).ToList();
+
+
                     break;
 
-                case '2':
-                    int[] xbotIDs2 = { 1 };
-                    int maxLength = trajectories.Values.Max(t => t.Count);
+              
 
-                    for (int i = 0; i < maxLength; i++)
-                    {
-                        foreach (var xbotID in xbotIDs2)
-                        {
-                            if (trajectories.ContainsKey(xbotID) && i < trajectories[xbotID].Count)
-                            {
-                                double[] point = trajectories[xbotID][i];
-                                double[] nextPoint = i + 1 < trajectories[xbotID].Count ? trajectories[xbotID][i + 1] : null;
-                                double[] currentPos = new double[2];
-                                while (Math.Round(currentPos[0], 3) != Math.Round(point[0], 3) || Math.Round(currentPos[1], 3) != Math.Round(point[1], 3))
-                                {
-                                    XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
-                                    currentPos = status.FeedbackPositionSI;
-
-                                    Console.WriteLine($"Current Position for xbotID {xbotID}: {string.Join(", ", currentPos.Select(p => Math.Round(p, 3)))}");
-                                    motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
-                                    if (nextPoint != null)
-                                    {
-                                        motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
-                                    }
-                                }
-                                Console.WriteLine($"Entry {i + 1} for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-                            }
-                        }
-                    }
-
-                    break;
                 
-                case '3':
-
-                    int[] xbotIDs3 = { 1 ,2 };
-                    int maxLength3 = trajectories.Values.Max(t => t.Count);
-                    double tolerance = 0.005; // Tolerance for position check
-
-                    for (int i = 0; i < maxLength3; i++)
-                    {
-                        foreach (var xbotID in xbotIDs3)
-                        {
-                            if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
-                            {
-                                double[] currentPos = new double[2];
-                                double[] point = trajectories[xbotID].First();
-                                double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
-
-                                Console.WriteLine($"The next point is {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-                                while (Math.Abs(currentPos[0] - point[0]) > tolerance || Math.Abs(currentPos[1] - point[1]) > tolerance)
-                                {
-                                    XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
-                                    currentPos = status.FeedbackPositionSI;
-                                    Console.WriteLine($"Going to {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-                                    Console.WriteLine($"Current Position for xbotID {xbotID}: {string.Join(", ", currentPos.Select(p => Math.Round(p, 3)))}");
-                                    motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
-
-                                    // Add a small delay to give the xbot time to move
-                                    System.Threading.Thread.Sleep(100);
-                                }
-                                Console.WriteLine($"Reached point for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-
-                                if (nextPoint != null)
-                                {
-                                    trajectories[xbotID].RemoveAt(0);
-                                }
-                            }
-                        }
-                    }
-                    break;
-
-                case '4':
-                    int[] xbotIDs4 = { 1,2 };
-                    int maxLength4 = trajectories.Values.Max(t => t.Count);
-
-                    foreach (var xbotID in xbotIDs4)
-                    {
-                        if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
-                        {
-                            // Add the first two motions to the buffer
-                            double[] point = trajectories[xbotID][0];
-                            double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
-                            Console.WriteLine($"Adding first point to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
-                            if (nextPoint != null)
-                            {
-                                Console.WriteLine($"Adding second point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
-                                motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
-                            }
-
-                            for (int i = 2; i < trajectories[xbotID].Count; i++)
-                            {
-                                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
-
-                                // Print the initial buffer count
-                                Console.WriteLine($"Initial buffer count for xbotID {xbotID}: {bufferCount}");
-
-                                // Wait until there is only 1 motion left in the buffer
-                                while (bufferCount > 1)
-                                {
-                                    BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                    bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
-
-                                    // Print the buffer count during the wait
-                                    Console.WriteLine($"Buffer count for xbotID {xbotID} during wait: {bufferCount}");
-                                }
-
-                                // Add the next motion to the buffer
-                                point = trajectories[xbotID][i];
-                                Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-                                motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
-
-                                _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                            }
-                        }
-                    }
-                    break;
-
-                case '5':
-                    int[] xbotIDs5 = { 1, 2 };
-                    int maxLength5 = trajectories.Values.Max(t => t.Count);
-                    int bufferThreshold = 2; // Set a threshold for the buffer count
-
-                    foreach (var xbotID in xbotIDs5)
-                    {
-                        if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
-                        {
-                            // Add the first two motions to the buffer
-                            double[] point = trajectories[xbotID][0];
-                            double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
-                            Console.WriteLine($"Adding first point to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
-                            if (nextPoint != null)
-                            {
-                                Console.WriteLine($"Adding second point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
-                                motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
-                            }
-                        }
-                    }
-
-                    for (int i = 2; i < maxLength5; i++)
-                    {
-                        List<Task> tasks = new List<Task>();
-
-                        foreach (var xbotID in xbotIDs5)
-                        {
-                            if (trajectories.ContainsKey(xbotID) && i < trajectories[xbotID].Count)
-                            {
-                                tasks.Add(Task.Run(() =>
-                                {
-                                    while (true)
-                                    {
-                                        MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                        int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
-
-                                        // Print the buffer count
-                                        Console.WriteLine($"Buffer count for xbotID {xbotID}: {bufferCount}");
-
-                                        // Add the next motion to the buffer if the buffer count drops below the threshold
-                                        if (bufferCount < bufferThreshold)
-                                        {
-                                            double[] point = trajectories[xbotID][i];
-                                            Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
-                                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
-
-                                            _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                            break;
-                                        }
-
-                                        // Add a small delay to avoid busy-waiting
-                                        System.Threading.Thread.Sleep(50);
-                                    }
-                                }));
-                            }
-                        }
-
-                        Task.WaitAll(tasks.ToArray());
-                    }
-                    break;
 
 
 
@@ -308,7 +179,9 @@ namespace VT2_Aseptic_Production_Demonstrator
                     break;
 
 
-
+                case '7':
+                    runPathPlan(xbotIDs, trajectories);
+                    break;
 
 
 

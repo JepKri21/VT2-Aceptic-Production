@@ -27,7 +27,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         // XBot Ids
         // Change depending on the number of XBot's in the system
-        public int[] xbot_ids = { 1, 2};
+        public int[] xbot_ids = { 1 , 2 , 3,4,5,6,7,8};
 
 
         string title = @"
@@ -105,7 +105,7 @@ ____________________________________________________________________| ";
                 }
                 while(selector == 3)
                 {
-                    listBasedMotionStructure.runListBasedMotion();
+                    listBasedMotionStructure.runListBasedMotion(xbot_ids);
                         selector = listBasedMotionStructure.setSelectorOne();
                 }
 
