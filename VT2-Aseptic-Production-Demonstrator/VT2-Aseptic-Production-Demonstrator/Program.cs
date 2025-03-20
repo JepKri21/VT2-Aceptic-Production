@@ -1,6 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using PMCLIB;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Security.Cryptography;
@@ -10,110 +9,31 @@ namespace VT2_Aseptic_Production_Demonstrator
 {
     class Program
     {
-
-        //Add diffrendce classes neede for the program here:
-        private static XBotCommands xBotCommands = new XBotCommands();
-        private connection_handler connectionHandler = new connection_handler();
-        private realtime_movement_test realtimeMovement = new realtime_movement_test();
-
-
-
-
-
-        //
-        // Global variables:
-        private int selector = 0;
-
-        // XBot Ids
-        // Change depending on the number of XBot's in the system
-        public int[] xbot_ids = { 1, 2};
-
-
-        string title = @"
-                         _   _        __  __                        |
-    /\                  | | (_)      |  \/  |                       |
-   /  \   ___  ___ _ __ | |_ _  ___  | \  / | _____   _____ _ __    |
-  / /\ \ / __|/ _ \ '_ \| __| |/ __| | |\/| |/ _ \ \ / / _ \ '__|   |
- / ____ \\__ \  __/ |_) | |_| | (__  | |  | | (_) \ V /  __/ |      | 
-/_/    \_\___/\___| .__/ \__|_|\___| |_|  |_|\___/ \_/ \___|_|      |
-                  | |                                               |
-                  |_|                                               |
-____________________________________________________________________| ";
-
-        public async void Run()
+        static async Task Main(string[] args)
         {
-            do
-            {
-                Console.Title = "Aseptic Planar Technology";
-                Console.WriteLine("DEMO Program V 1.1");
+            string broker = "localhost";  // Use your broker's address (e.g., "localhost" or "192.168.1.100")
+            int port = 1883;  // Default Mosquitto port
+            string topic = "test/topic";  // Topic to publish and subscribe to
 
-                while (selector == 0)
-                {
-                    // Connection to the PMC and aquire mastership
-                    Console.Clear();
-                    //CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-                    //Console.WriteLine(status);
-                    
+            // Create and start the MqttSubscriber (to receive messages)
+            var subscriber = new MQTTSubscriber(broker, port, topic);
+            await subscriber.StartAsync();
 
-                    selector = 1;
-                }
+            // Create and start the MqttPublisher (to send messages)
+            var publisher = new MQTTPublisher(broker, port, topic);
+            await publisher.StartAsync();
 
-                while (selector == 1)
-                {
-                    Console.Clear();
-                    Console.WriteLine(title);
-                    Console.WriteLine("Choose program by entering the appropriate number: ");
-                    Console.WriteLine("0:   Run Calibration again");
-                    Console.WriteLine("1:   Run the Aseptic Production Demonstrator");
-                    Console.WriteLine("ESC: Exit program");
-                    ConsoleKeyInfo keyinfo = Console.ReadKey();
+            // Publish a few messages
+            await publisher.PublishMessageAsync("Hello, MQTT! This is a test message.");
+            await publisher.PublishMessageAsync("Second message to the topic.");
 
-                    switch (keyinfo.KeyChar)
-                    {
-                        case '0':
-                            selector = 0;
-                            break;
+            // Allow time for subscriber to receive messages
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
 
-                        case '1':
-                            selector = 2;
-                            break;
-
-
-
-
-
-
-
-                        case '\u001b': //escape key
-                            return;
-                        default:
-                            Console.WriteLine("Invalid input");
-                            selector = 1;
-                            break;
-                    }
-                }
-                
-                while(selector == 2) 
-                {
-                    realtimeMovement.runRealtimeMovementTest(xbot_ids);
-                    selector = realtimeMovement.setSelectorOne();
-                }
-
-            } while (true);
-
-        }
-
-
-        static void Main(string[] args)
-        {
-            
-            Program program = new Program();
-            
-            Console.WriteLine("Hello User, hope you make something good! :) :)");
-
-            Thread thread1 = new Thread(new ThreadStart(program.Run));
-
-            thread1.Start();
+            // Stop both publisher and subscriber
+            await subscriber.StopAsync();
+            await publisher.StopAsync();
         }
     }
 }
