@@ -17,6 +17,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private int status;
         public int shuttleIdle = 3;
         public int bufferCount = 0;
+        private string placedInQueue;
         MotionBufferReturn bufferReturn;
         private List<string> tasks = new List<string>();
         private List<double> position = new List<double>() {0,0,0,0,0,0};
@@ -30,6 +31,8 @@ namespace VT2_Aseptic_Production_Demonstrator
             set { ID = value; }
         }
 
+        
+
         //--------------------------------Status of the Shuttle---------------------------------------
         //--------------------------------------------------------------------------------------------
 
@@ -42,6 +45,12 @@ namespace VT2_Aseptic_Production_Demonstrator
                 return status; 
             }
 
+        }
+
+        public string shuttleInQueue
+        {
+            get { return placedInQueue; }
+            set { placedInQueue = value; }
         }
 
         public void updateStatus()

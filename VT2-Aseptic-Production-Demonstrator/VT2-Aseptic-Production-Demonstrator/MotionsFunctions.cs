@@ -18,7 +18,6 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static WaitUntilTriggerParams time_params = new WaitUntilTriggerParams();
 
         double speedLinar = 0.5;
-        double speedRotation = 0.1;
         double speedFinal = 0.0;
         double acclerationMax = 0.1;
         double rotationVel = 1;

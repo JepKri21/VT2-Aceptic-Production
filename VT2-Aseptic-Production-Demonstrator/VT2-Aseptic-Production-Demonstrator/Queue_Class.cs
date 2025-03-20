@@ -9,20 +9,32 @@ namespace VT2_Aseptic_Production_Demonstrator
 {
     class Queue_Class
     {
-        private static SystemCommands _systemCommand = new SystemCommands();
-        //this class contains a collection of xbot commands, such as discover xbots, mobility control, linear motion, etc.
-        private static XBotCommands _xbotCommand = new XBotCommands();
+        private static MotionsFunctions MF = new MotionsFunctions();
 
         public List<int> physicalQueue = new List<int>();  //Making a queue list
-        public int maxQueueSize;
+        private string queueName_string;
 
-        private Action<int[]>? queuePositions; //Accepting a list of functions 
+        private double[] queuePosX; //Accepting an array of x positions
+        private double[] queuePosY; //Accepting an array of y positions
+        private string queueDirection = "D"; //Direction to move to the queue, direct is set a deafult
 
-        //Maybe add a function that checks if it is full or not and return it
-        public void defineSize(int size)
+        public int queueSize; //Size of the queue is dependent on how many queue positions are given
+
+        //----------------------------------Give Name to Queue----------------------------------------
+        //--------------------------------------------------------------------------------------------
+        public string queueName
         {
-            maxQueueSize = size;
+            get { return queueName_string; }
+
+            set
+            {
+                queueName_string = value;
+            }
+
         }
+
+        //----------------------------------Functions for Adding and removing to Queue----------------
+        //--------------------------------------------------------------------------------------------
 
         public void addIDToList(int IDToAdd)
         {
@@ -32,7 +44,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                 return;  // Exit the function early
             }
 
-            if (physicalQueue.Count < maxQueueSize)
+            if (physicalQueue.Count < queueSize)
             {
                 physicalQueue.Add(IDToAdd);
             }
@@ -56,23 +68,40 @@ namespace VT2_Aseptic_Production_Demonstrator
             
         }
 
-        public void passingFunctions(Action<int[]> positions)
+        //----------------------------------Set Queue Positions and Direction-------------------------
+        //--------------------------------------------------------------------------------------------
+
+        public void passingStationQueuePositions(double[] queuePositionsX, double[] queuePositionsY)
         {
-            queuePositions = positions;
+            queuePosX = queuePositionsX;
+            queuePosY = queuePositionsY;
+            queueSize = queuePositionsX.Length;
         }
 
-        public void updatingQueue()
+        public string setQueueDirection
         {
-            if (physicalQueue.Count > 0 && queuePositions != null)
+            set { queueDirection = value; }
+        }
+
+        //----------------------------------Updating Queue--------------------------------------------
+        //--------------------------------------------------------------------------------------------
+
+        public void updateQueuePositions() //When we get a bit further, this should instead just send coordinates to the path planner for each shuttle
+        {
+            if (physicalQueue.Count > 0)
             {
-                queuePositions(physicalQueue.ToArray()); // Pass all IDs in the queue to the motions
-                
+                for (int i = 0; i < physicalQueue.Count; i++)
+                {
+                    MF.LinarMotion(0, physicalQueue[i], queuePosX[i], queuePosY[i], queueDirection);
+                }
             }
             else
             {
-                return; //Console.WriteLine("No positions function assigned or queue is empty.");
+                return;
             }
+
         }
+
 
     }
 }

@@ -8,24 +8,47 @@ using System.Threading.Tasks;
 
 namespace VT2_Aseptic_Production_Demonstrator
 {
-    class Station_Class
+    class Station_Class //AT SOME POINT MAKE SOME IF-STATEMENTS THAT CHECK IF ALL THE CORRECT THINGS HAVE BEEN SET!!!
     {
-        private static SystemCommands _systemCommand = new SystemCommands();
-        //this class contains a collection of xbot commands, such as discover xbots, mobility control, linear motion, etc.
-        private static XBotCommands _xbotCommand = new XBotCommands();
+        private static MotionsFunctions MF = new MotionsFunctions();
+        
+        private string taskName;
+        public string runningTaskName;
+
+        private bool stationOccupancy = false; //Making a boolean that says if the station is being used or not
+        public int currentID = 0; //Making an integer of the ID that is currently being used
 
         public List<int> stationQueue = new List<int>();  //Making a queue for the station
-        private bool stationRunning = false; //Making a boolean that says if the station is being used or not
-        public int currentID = 0; //Making a integer of the ID that is currently being used
-        private int bufferCount = 0;
-        MotionBufferReturn bufferReturn;
-
         private Action<int>? stationFunctions; //Accepting a list of functions 
 
-        
-        public void addIDToList(int IDToAdd)
+        private double[] queuePosX; //Accepting an array of x positions
+        private double[] queuePosY; //Accepting an array of y positions
+        private string queueDirection = "D";
+
+        public int queueSize; //Size of the queue is dependent on how many queue positions are given
+
+
+        //----------------------------------Give Name to Station--------------------------------------
+        //--------------------------------------------------------------------------------------------
+
+        public string stationTaskName
         {
-            
+            get { return taskName; }
+
+            set
+            {
+                taskName = value;
+                runningTaskName = "running" + value;
+            }
+
+        }
+
+        //----------------------------------Add and Remove From Queue---------------------------------
+        //--------------------------------------------------------------------------------------------
+
+        public void addIDToQueue(int IDToAdd)
+        {
+
             if (stationQueue.Contains(IDToAdd))
             {
                 return;  // Exit the function early
@@ -36,49 +59,67 @@ namespace VT2_Aseptic_Production_Demonstrator
             }
 
         }
-        public void removeIDFromList(int IDToRemove)
+        public void removeIDFromQueue(int IDToRemove)
         {
             stationQueue.Remove(IDToRemove);
         }
 
-        public void passingFunctions(Action<int> movements)
+        //----------------------------------Give Station movements and queue positions----------------
+        //--------------------------------------------------------------------------------------------
+        public void passingStationMovement(Action<int> movements)
         {
             stationFunctions = movements;
         }
 
-        public void updateStationStatus()
+        public void passingStationQueuePositions(double[] queuePositionsX, double[] queuePositionsY)
         {
-            if (currentID == 0)
-            {
-                stationRunning = false;
-                return;
-            }
-            
-            bufferReturn = _xbotCommand.MotionBufferControl(currentID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-            bufferCount = bufferReturn.motionBufferStatus.bufferedMotionCount;
-        
-            if (bufferCount == 0)
-            {
-                stationRunning = false;
-            }
-            else
-            {
-                stationRunning = true;
-            }
+            queuePosX = queuePositionsX;
+            queuePosY = queuePositionsY;
+            queueSize = queuePositionsX.Length;
         }
 
-        public bool stationStatus()
+        //----------------------------------Updating Station Queue------------------------------------
+        //--------------------------------------------------------------------------------------------
+
+        public string setQueueDirection
         {
-            return stationRunning;
+            set { queueDirection = value; }
         }
 
-        public void runMovement()
+        public void updateStationQueue() //When we get a bit further, this should instead just send coordinates to the path planner for each shuttle
         {
             if (stationQueue.Count > 0)
             {
-                currentID = stationQueue[0];
-                stationQueue.Remove(currentID);
-                stationFunctions(currentID);
+                for (int i = 0; i < stationQueue.Count; i++)
+                {
+                    MF.LinarMotion(0, stationQueue[i], queuePosX[i], queuePosY[i], queueDirection);
+                }
+            }
+            else
+            {
+                return;
+            }
+            
+        }
+
+
+        //----------------------------------Control Station Occupancy---------------------------------
+        //--------------------------------------------------------------------------------------------
+        public bool stationOccupied
+        {
+            get {return stationOccupancy;}
+            set { stationOccupancy = value; }
+         
+        }
+
+        //----------------------------------Run the movements of the station--------------------------
+        //--------------------------------------------------------------------------------------------
+
+        public void runMovement(int id)
+        {
+            if (stationQueue.Count > 0)
+            {
+                stationFunctions(id);
             }            
         }
 
