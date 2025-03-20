@@ -100,6 +100,16 @@ namespace VT2_Aseptic_Production_Demonstrator
                 }
             }
 
+            public void removeMovingShuttles(List<Node> centersToRemove)
+            {
+                foreach (Node node in centersToRemove)
+                {
+                    grid[node.X, node.Y].Walkable = true;
+                    grid[node.X, node.Y].ShuttleCenter = false;
+                }
+            }
+
+
             public void removeObstacle(int x, int y)
             {
                 const int shuttleSize = 60; // Shuttle size in mm
@@ -118,11 +128,10 @@ namespace VT2_Aseptic_Production_Demonstrator
                 }
             }
 
-            public void shuttlePosition(int shuttleNr)
+            public List<(int, Node)> shuttlePosition(List<int> xbot_IDs)
             {
-                shuttleNr = 1; // Number of shuttles // Change to actual number of shuttles
-                double[,] shuttlePosition = new double[shuttleNr, 2];
-                for (int shuttleID = 1; shuttleID <= shuttleNr; shuttleID++)
+                List<(int, Node)> startPos = new();
+                foreach (int shuttleID in xbot_IDs)
                 {
                     /*
                     XBotStatus pos = _xbotCommand.GetXbotStatus(shuttleID);
@@ -133,10 +142,10 @@ namespace VT2_Aseptic_Production_Demonstrator
                     int positionX = 10; // Temporary position
                     int positionY = 10; // Temporary position
 
-                    shuttlePosition[shuttleID - 1, 0] = positionX;
-                    shuttlePosition[shuttleID - 1, 1] = positionY;
                     grid[positionX, positionY].ShuttleCenter = true;
+                    startPos.Add((shuttleID, grid[positionX, positionY]));
                 }
+                return startPos;
             }
 
             public void staticObstacles(Grid gridGlobal)
@@ -272,30 +281,40 @@ namespace VT2_Aseptic_Production_Demonstrator
                 Dictionary<int, List<Node>> constraints = new Dictionary<int, List<Node>>();
             }
 
-            public Dictionary<int, (List<Node>, List<int>)> runPathfinder(List<int> xbot_ids, List<Node> startNode, List<Node> endNode)
+            public Dictionary<int, (List<Node>, List<int>)> runPathfinder(List<int> xbot_IDs, List<(int, Node)> moving_Xbot_IDs)
             {
                 Grid gridGlobal = new(50, 50);  // Create Grid
                 gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
+                List<(int, Node)> startPos = gridGlobal.shuttlePosition(xbot_IDs); // Set shuttle position
+                List<(int, Node)> movingStartPos = gridGlobal.shuttlePosition(moving_Xbot_IDs.Select(item => item.Item1).ToList()); // Set moving shuttle position
+                gridGlobal.removeMovingShuttles(movingStartPos.Select(item => item.Item2).ToList()); // Remove moving shuttle's centers
+
                 gridGlobal.dilateGrid(); // Dilate the grid
                 bool conflictExists = true;
                 Dictionary<int, (List<Node>, List<int>)> paths = new();
+                Dictionary<int, Node> movingStartDict = movingStartPos.ToDictionary(item => item.Item1, item => item.Item2);
+                Dictionary<int, Node> endNodeDict = moving_Xbot_IDs.ToDictionary(item => item.Item1, item => item.Item2);
+
 
                 while (conflictExists)
                 {
                     paths.Clear();
 
-                    foreach (int shuttleID in xbot_ids)
+                    foreach (int shuttleID in moving_Xbot_IDs.Select(item => item.Item1).ToList())
                     {
                         AStar aStar = new();
-                        List<Node> Path = new();
-                        List<Node>? path = aStar.findPath(gridGlobal, startNode[shuttleID - 1], endNode[shuttleID - 1]);
+                        List<Node>? path = aStar.findPath(gridGlobal, movingStartDict[shuttleID], endNodeDict[shuttleID]);
+
                         if (path != null)
                         {
                             paths[shuttleID] = (path, Enumerable.Range(0, path.Count).ToList());
                         }
-                        else { Console.WriteLine($"No path available for shuttleID: {shuttleID}"); }
-
+                        else
+                        {
+                            Console.WriteLine($"No path available for shuttleID: {shuttleID}");
+                        }
                     }
+
                     // Check for conflicts
                     List<(int, int, Node, int)> conflicts = ConflictSearcher(paths);
                     if (conflicts.Count == 0)
