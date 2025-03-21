@@ -288,11 +288,10 @@ namespace VT2_Aseptic_Production_Demonstrator
                 gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
             }
 
-            public Dictionary<int, double[]> runPathfinder(List<int> xbot_IDs, List<(int, double, double)> ID_X_Y_END, Grid grid)
-
+            public Dictionary<int, List<double[]>> runPathfinder(List<int> xbot_IDs, List<(int, double, double)> ID_X_Y_END, Grid grid)
             {
                 Grid gridGlobal = grid;
-                List<(int, Node)> moving_Xbot_IDs = ID_X_Y_END.Select(item => (Convert.ToInt32(item.Item1 * 1000), gridGlobal.grid[Convert.ToInt32(item.Item2 * 1000), Convert.ToInt32(item.Item3 * 1000)])).ToList();
+                List<(int, Node)> moving_Xbot_IDs = ID_X_Y_END.Select(item => (item.Item1, gridGlobal.grid[(int)(item.Item2 * 1000), (int)(item.Item3 * 1000)])).ToList();
 
                 List<(int, Node)> startPos = gridGlobal.shuttlePosition(xbot_IDs); // Set shuttle position
                 List<(int, Node)> movingStartPos = gridGlobal.shuttlePosition(moving_Xbot_IDs.Select(item => item.Item1).ToList()); // Set moving shuttle position
@@ -303,7 +302,6 @@ namespace VT2_Aseptic_Production_Demonstrator
                 Dictionary<int, (List<Node>, List<int>)> paths = new();
                 Dictionary<int, Node> movingStartDict = movingStartPos.ToDictionary(item => item.Item1, item => item.Item2);
                 Dictionary<int, Node> endNodeDict = moving_Xbot_IDs.ToDictionary(item => item.Item1, item => item.Item2);
-
 
                 while (conflictExists)
                 {
@@ -347,8 +345,8 @@ namespace VT2_Aseptic_Production_Demonstrator
                 }
                 return paths.ToDictionary(
                     kvp => kvp.Key,
-                    kvp => new double[] { kvp.Value.Item1.Last().X / 1000.0, kvp.Value.Item1.Last().Y / 1000.0 }
-                    );
+                    kvp => kvp.Value.Item1.Select(node => new double[] { node.X / 1000.0, node.Y / 1000.0 }).ToList()
+                );
             }
             public List<(int, int, Node, int)> ConflictSearcher(Dictionary<int, (List<Node>, List<int>)> paths)
             {
