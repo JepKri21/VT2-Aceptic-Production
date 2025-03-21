@@ -133,7 +133,8 @@ namespace VT2_Aseptic_Production_Demonstrator
                 List<(int, Node)> startPos = new();
                 foreach (int shuttleID in xbot_IDs)
                 {
-                    /*
+                    /* Uncomment when using the code in the actual program
+                     * Get commucation from UNS server.
                     XBotStatus pos = _xbotCommand.GetXbotStatus(shuttleID);
                     double[] temPos = pos.FeedbackPositionSI;
                     int positionX = (int)Math.Round(temPos[0]);
@@ -281,10 +282,18 @@ namespace VT2_Aseptic_Production_Demonstrator
                 Dictionary<int, List<Node>> constraints = new Dictionary<int, List<Node>>();
             }
 
-            public Dictionary<int, (List<Node>, List<int>)> runPathfinder(List<int> xbot_IDs, List<(int, Node)> moving_Xbot_IDs)
+            public void gridInitializer(int width, int height)
             {
-                Grid gridGlobal = new(50, 50);  // Create Grid
+                Grid gridGlobal = new(width, height);  // Create Grid
                 gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
+            }
+
+            public Dictionary<int, double[]> runPathfinder(List<int> xbot_IDs, List<(int, double, double)> ID_X_Y_END, Grid grid)
+
+            {
+                Grid gridGlobal = grid;
+                List<(int, Node)> moving_Xbot_IDs = ID_X_Y_END.Select(item => (Convert.ToInt32(item.Item1 * 1000), gridGlobal.grid[Convert.ToInt32(item.Item2 * 1000), Convert.ToInt32(item.Item3 * 1000)])).ToList();
+
                 List<(int, Node)> startPos = gridGlobal.shuttlePosition(xbot_IDs); // Set shuttle position
                 List<(int, Node)> movingStartPos = gridGlobal.shuttlePosition(moving_Xbot_IDs.Select(item => item.Item1).ToList()); // Set moving shuttle position
                 gridGlobal.removeMovingShuttles(movingStartPos.Select(item => item.Item2).ToList()); // Remove moving shuttle's centers
@@ -336,7 +345,10 @@ namespace VT2_Aseptic_Production_Demonstrator
                         }
                     }
                 }
-                return paths;
+                return paths.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => new double[] { kvp.Value.Item1.Last().X / 1000.0, kvp.Value.Item1.Last().Y / 1000.0 }
+                    );
             }
             public List<(int, int, Node, int)> ConflictSearcher(Dictionary<int, (List<Node>, List<int>)> paths)
             {
