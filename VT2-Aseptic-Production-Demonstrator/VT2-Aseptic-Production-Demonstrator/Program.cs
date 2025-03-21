@@ -16,7 +16,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private connection_handler connectionHandler = new connection_handler();
         private realtime_movement_test realtimeMovement = new realtime_movement_test();
         private ListBasedMotionStructure listBasedMotionStructure = new ListBasedMotionStructure();
-
+        //private Pathfinding pathfinding = new Pathfinding();
 
 
 
@@ -100,8 +100,8 @@ ____________________________________________________________________| ";
                 
                 while(selector == 2) 
                 {
-                    realtimeMovement.runRealtimeMovementTest(xbot_ids);
-                    selector = realtimeMovement.setSelectorOne();
+                    //realtimeMovement.runRealtimeMovementTest(xbot_ids);
+                    //selector = realtimeMovement.setSelectorOne();
                 }
                 while(selector == 3)
                 {

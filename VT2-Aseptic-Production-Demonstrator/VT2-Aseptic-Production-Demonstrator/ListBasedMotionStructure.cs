@@ -19,6 +19,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static MotionsFunctions motionsFunctions = new MotionsFunctions();
         private static XBotCommands _xbotCommand = new XBotCommands();
         int selector = 3;
+        private static Pathfinding pathfinding = new Pathfinding();
 
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
 
@@ -52,15 +53,24 @@ namespace VT2_Aseptic_Production_Demonstrator
                     double[] targetPostion3 = { 0.600, 0.520 };
                     double[] startPostion4 = { 0.200, 0.200 };
                     double[] targetPostion4 = { 0.200, 0.600 };
-                    double[] startPostion5 = { 0.080, 0.300 };
-                    double[] targetPostion5 = { 0.600, 0.840 };
-                    double[] startPostion6 = { 0.600, 0.860 };
-                    double[] targetPostion6 = { 0.200, 0.660 };
-                    double[] startPostion7 = { 0.360, 0.800 };
-                    double[] targetPostion7 = { 0.600, 0.640 };
-                    double[] startPostion8 = { 0.600, 0.660 };
-                    double[] targetPostion8 = { 0.360, 0.720 };
 
+
+                    Pathfinding.Grid grid = new(50, 50);
+                    grid.staticObstacles(grid);
+                    grid.dilateGrid();
+
+
+
+                    /*
+double[] startPostion5 = { 0.080, 0.300 };
+double[] targetPostion5 = { 0.600, 0.840 };
+double[] startPostion6 = { 0.600, 0.860 };
+double[] targetPostion6 = { 0.200, 0.660 };
+double[] startPostion7 = { 0.360, 0.800 };
+double[] targetPostion7 = { 0.600, 0.640 };
+double[] startPostion8 = { 0.600, 0.660 };
+double[] targetPostion8 = { 0.360, 0.720 };
+*/
 
                     _xbotCommand.MotionBufferControl(1, MOTIONBUFFEROPTIONS.CLEARBUFFER);
                     _xbotCommand.MotionBufferControl(2, MOTIONBUFFEROPTIONS.CLEARBUFFER);
@@ -69,31 +79,32 @@ namespace VT2_Aseptic_Production_Demonstrator
                     motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
                     motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
                     motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
+                    /*
                     motionsFunctions.LinarMotion(0, 5, startPostion5[0], startPostion5[1], "xy");
                     motionsFunctions.LinarMotion(0, 6, startPostion6[0], startPostion6[1], "yx"); 
                     motionsFunctions.LinarMotion(0, 7, startPostion7[0], startPostion7[1], "xy");
                     motionsFunctions.LinarMotion(0, 8, startPostion8[0], startPostion8[1], "xy");
-
+                    */
                     TrajectoryGenerator traj1 = new TrajectoryGenerator(1, startPostion1, targetPostion1, 20, "XY");
-                    //Console.WriteLine("Trajectory 1:");
-                    //traj1.PrintTrajectory();
+                    Console.WriteLine("Trajectory 1:");
+                    traj1.PrintTrajectory();
                     trajectories[traj1.trajectory.First().Item1] = traj1.trajectory.Select(t => t.Item2).ToList();
 
                     TrajectoryGenerator traj2 = new TrajectoryGenerator(2, startPostion2, targetPostion2, 30, "XY");
-                    //Console.WriteLine("\n Trajectory 2:");
-                    //traj2.PrintTrajectory();
+                    Console.WriteLine("\n Trajectory 2:");
+                    traj2.PrintTrajectory();
                     trajectories[traj2.trajectory.First().Item1] = traj2.trajectory.Select(t => t.Item2).ToList();
 
                     TrajectoryGenerator traj3 = new TrajectoryGenerator(3, startPostion3, targetPostion3, 30, "YX");
-                    //Console.WriteLine("\n Trajectory 2:");
-                    //traj3.PrintTrajectory();
+                    Console.WriteLine("\n Trajectory 2:");
+                    traj3.PrintTrajectory();
                     trajectories[traj3.trajectory.First().Item1] = traj3.trajectory.Select(t => t.Item2).ToList();
 
                     TrajectoryGenerator traj4 = new TrajectoryGenerator(4, startPostion4, targetPostion4, 20, "YX");
-                    //Console.WriteLine("Trajectory 1:");
-                    //traj1.PrintTrajectory();
+                    Console.WriteLine("Trajectory 1:");
+                    traj1.PrintTrajectory();
                     trajectories[traj4.trajectory.First().Item1] = traj4.trajectory.Select(t => t.Item2).ToList();
-
+                    /*
                     TrajectoryGenerator traj5 = new TrajectoryGenerator(5, startPostion5, targetPostion5, 30, "YX");
                     //Console.WriteLine("\n Trajectory 2:");
                     //traj2.PrintTrajectory();
@@ -113,7 +124,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     //Console.WriteLine("\n Trajectory 2:");
                     //traj2.PrintTrajectory();
                     trajectories[traj8.trajectory.First().Item1] = traj8.trajectory.Select(t => t.Item2).ToList();
-
+                    */
 
                     break;
 
@@ -124,7 +135,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
 
                 case '6':
-                    int[] xbotIDs6 = { 1, 2 };
+                    int[] xbotIDs6 = { 1, 2 ,3,4};
                     int maxLength6 = trajectories.Values.Max(t => t.Count);
 
                     List<Task> tasks6 = new List<Task>();

@@ -17,10 +17,10 @@ namespace VT2_Aseptic_Production_Demonstrator
         {
             return selector;
         }
-
+        
         public void runRealtimeMovementTest(int[] xbot_ids)
         {
-            selector = 1;
+            //selector = 2;
             Console.Clear();
             Console.WriteLine(" Realtime Movement Test");
             Console.WriteLine("0    Return ");
