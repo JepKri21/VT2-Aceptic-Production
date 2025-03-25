@@ -282,10 +282,11 @@ namespace VT2_Aseptic_Production_Demonstrator
                 Dictionary<int, List<Node>> constraints = new Dictionary<int, List<Node>>();
             }
 
-            public void gridInitializer(int width, int height)
+            public Grid gridInitializer(int width, int height)
             {
                 Grid gridGlobal = new(width, height);  // Create Grid
                 gridGlobal.staticObstacles(gridGlobal); // Set initial obstacles
+                return gridGlobal;
             }
 
             public Dictionary<int, List<double[]>> runPathfinder(List<int> xbot_IDs, List<(int, double, double)> ID_X_Y_END, Grid grid)

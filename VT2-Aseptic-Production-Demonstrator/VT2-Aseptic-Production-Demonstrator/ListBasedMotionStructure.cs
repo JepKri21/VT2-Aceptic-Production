@@ -19,7 +19,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static MotionsFunctions motionsFunctions = new MotionsFunctions();
         private static XBotCommands _xbotCommand = new XBotCommands();
         int selector = 3;
-        private static Pathfinding pathfinding = new Pathfinding();
+        private static Pathfinding.AStar pathfinding = new Pathfinding.AStar();
 
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
 
@@ -54,37 +54,26 @@ namespace VT2_Aseptic_Production_Demonstrator
                     double[] startPostion4 = { 0.200, 0.200 };
                     double[] targetPostion4 = { 0.200, 0.600 };
 
-
-                    Pathfinding.Grid grid = new(50, 50);
-                    grid.staticObstacles(grid);
-                    grid.dilateGrid();
-
-
+                    List<(int, double, double)> targetPositions = new List<(int, double, double)>
+                    {
+                        (1, targetPostion1[0], targetPostion1[1]),
+                        (2, targetPostion2[0], targetPostion2[1]),
+                        (3, targetPostion3[0], targetPostion3[1]),
+                        (4, targetPostion4[0], targetPostion4[1])
+                    };
+                    List<int> xbotIDer = new List<int>
+                    {
+                        1,2,3,4
+                    };
+                    Pathfinding.Grid grid = pathfinding.gridInitializer(720, 960);
+                    trajectories = pathfinding.runPathfinder(xbotIDer, targetPositions, grid);
 
                     /*
-double[] startPostion5 = { 0.080, 0.300 };
-double[] targetPostion5 = { 0.600, 0.840 };
-double[] startPostion6 = { 0.600, 0.860 };
-double[] targetPostion6 = { 0.200, 0.660 };
-double[] startPostion7 = { 0.360, 0.800 };
-double[] targetPostion7 = { 0.600, 0.640 };
-double[] startPostion8 = { 0.600, 0.660 };
-double[] targetPostion8 = { 0.360, 0.720 };
-*/
-
-                    _xbotCommand.MotionBufferControl(1, MOTIONBUFFEROPTIONS.CLEARBUFFER);
-                    _xbotCommand.MotionBufferControl(2, MOTIONBUFFEROPTIONS.CLEARBUFFER);
-
                     motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
                     motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
                     motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
                     motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
                     /*
-                    motionsFunctions.LinarMotion(0, 5, startPostion5[0], startPostion5[1], "xy");
-                    motionsFunctions.LinarMotion(0, 6, startPostion6[0], startPostion6[1], "yx"); 
-                    motionsFunctions.LinarMotion(0, 7, startPostion7[0], startPostion7[1], "xy");
-                    motionsFunctions.LinarMotion(0, 8, startPostion8[0], startPostion8[1], "xy");
-                    */
                     TrajectoryGenerator traj1 = new TrajectoryGenerator(1, startPostion1, targetPostion1, 20, "XY");
                     Console.WriteLine("Trajectory 1:");
                     traj1.PrintTrajectory();
@@ -104,38 +93,11 @@ double[] targetPostion8 = { 0.360, 0.720 };
                     Console.WriteLine("Trajectory 1:");
                     traj1.PrintTrajectory();
                     trajectories[traj4.trajectory.First().Item1] = traj4.trajectory.Select(t => t.Item2).ToList();
-                    /*
-                    TrajectoryGenerator traj5 = new TrajectoryGenerator(5, startPostion5, targetPostion5, 30, "YX");
-                    //Console.WriteLine("\n Trajectory 2:");
-                    //traj2.PrintTrajectory();
-                    trajectories[traj5.trajectory.First().Item1] = traj5.trajectory.Select(t => t.Item2).ToList();
-
-                    TrajectoryGenerator traj6 = new TrajectoryGenerator(6, startPostion6, targetPostion6, 30, "XY");
-                    //Console.WriteLine("\n Trajectory 2:");
-                    //traj3.PrintTrajectory();
-                    trajectories[traj6.trajectory.First().Item1] = traj6.trajectory.Select(t => t.Item2).ToList();
-
-                    TrajectoryGenerator traj7 = new TrajectoryGenerator(7, startPostion7, targetPostion7, 20, "YX");
-                    //Console.WriteLine("Trajectory 1:");
-                    //traj1.PrintTrajectory();
-                    trajectories[traj7.trajectory.First().Item1] = traj7.trajectory.Select(t => t.Item2).ToList();
-
-                    TrajectoryGenerator traj8 = new TrajectoryGenerator(8, startPostion8, targetPostion8, 30, "YX");
-                    //Console.WriteLine("\n Trajectory 2:");
-                    //traj2.PrintTrajectory();
-                    trajectories[traj8.trajectory.First().Item1] = traj8.trajectory.Select(t => t.Item2).ToList();
                     */
-
                     break;
 
-              
-
-                
-
-
-
                 case '6':
-                    int[] xbotIDs6 = { 1, 2 ,3,4};
+                    int[] xbotIDs6 = { 1, 2, 3, 4 };
                     int maxLength6 = trajectories.Values.Max(t => t.Count);
 
                     List<Task> tasks6 = new List<Task>();
@@ -149,11 +111,9 @@ double[] targetPostion8 = { 0.360, 0.720 };
                                 // Add the first two motions to the buffer
                                 double[] point = trajectories[xbotID][0];
                                 double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
-                                //Console.WriteLine($"Adding first point to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
                                 motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
                                 if (nextPoint != null)
                                 {
-                                    //Console.WriteLine($"Adding second point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
                                     motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
                                 }
 
@@ -189,14 +149,9 @@ double[] targetPostion8 = { 0.360, 0.720 };
                     Task.WaitAll(tasks6.ToArray());
                     break;
 
-
                 case '7':
                     runPathPlan(xbotIDs, trajectories);
                     break;
-
-
-
-
             }
         }
 
