@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="PMCLIB">
       <HintPath>..\..\..\..\..\..\Downloads\OneDrive_2025-03-07\Software 2024-10-10\C# Example and Library\Library\PMCLIB.dll</HintPath>
     </Reference>

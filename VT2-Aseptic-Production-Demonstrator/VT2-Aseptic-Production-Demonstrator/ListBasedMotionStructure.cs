@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace VT2_Aseptic_Production_Demonstrator
@@ -20,13 +21,145 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static XBotCommands _xbotCommand = new XBotCommands();
         int selector = 3;
         private static Pathfinding.AStar pathfinding = new Pathfinding.AStar();
+        private MQTTSubscriber mqttSubscriber;
+        private MQTTPublisher mqttPublisher;
+        string brokerIP = "localhost";
+        int port = 1883;
+
 
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
+
+        Dictionary<int, double[]> lastKnownTargetPositions = new Dictionary<int, double[]>();
 
         public int setSelectorOne()
         {
             return selector;
         }
+
+
+        #region MqttConnections
+
+        public ListBasedMotionStructure()
+        {
+            //MqttConnections();
+            InitializeMqttSubscriber();
+            InitializeMqttPublisher();
+
+        }
+
+        private async void InitializeMqttSubscriber()
+        {
+            mqttSubscriber = new MQTTSubscriber(brokerIP, 1883, "Acopos6D/#");
+            mqttSubscriber.MessageReceived += TargetPostionChange;
+            await mqttSubscriber.StartAsync();
+        }
+        private async void InitializeMqttPublisher()
+        {
+            mqttPublisher = new MQTTPublisher(brokerIP, port);
+            await mqttPublisher.StartAsync();
+        }
+        private async void TargetPostionChange(string topic, string message)
+        {
+            Console.WriteLine($"Received message on topic {topic}: {message}");
+            try
+            {
+                var targetPosition = JsonSerializer.Deserialize<double[]>(message);
+                // Split the topic into segments
+                string[] segments = topic.Split('/');
+
+                // Find the segment that starts with "xbot" and extract the numeric part
+                string xbotSegment = segments.FirstOrDefault(s => s.StartsWith("xbot"));
+                if (xbotSegment != null)
+                {
+                    int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
+
+                    // Check if the new target position is different from the last known target position
+                    if (lastKnownTargetPositions.ContainsKey(xbotId) && lastKnownTargetPositions[xbotId].SequenceEqual(targetPosition))
+                    {
+                        Console.WriteLine($"Target position for xbot {xbotId} has not changed.");
+                        return;
+                    }
+
+                    // Update the last known target position
+                    lastKnownTargetPositions[xbotId] = targetPosition;
+
+                    // Update the target positions for the corresponding xbot
+                    if (trajectories.ContainsKey(xbotId))
+                    {
+                        trajectories[xbotId].Add(targetPosition);
+                    }
+                    else
+                    {
+                        trajectories[xbotId] = new List<double[]> { targetPosition };
+                    }
+
+                    Console.WriteLine($"Received target position for xbot {xbotId}: {string.Join(", ", targetPosition)}");
+
+                    // Generate a new trajectory using the retrieved target positions
+                    if (trajectories.ContainsKey(xbotId))
+                    {
+                        var targetPositions = trajectories[xbotId];
+                        if (targetPositions.Count > 0)
+                        {
+                            double[] startPosition = { 0.060, 0.060 }; // Example start position
+                            double[] newTargetPosition = targetPositions.Last(); // Use the last received target position
+
+                            TrajectoryGenerator traj = new TrajectoryGenerator(xbotId, startPosition, newTargetPosition, 20, "XY");
+                            Console.WriteLine($"Trajectory for xbot {xbotId}:");
+                            traj.PrintTrajectory();
+                            trajectories[traj.trajectory.First().Item1] = traj.trajectory.Select(t => t.Item2).ToList();
+
+                            // Serialize the trajectory and publish it to the topic
+                            var trajectoryMessage = JsonSerializer.Serialize(traj.trajectory.Select(t => t.Item2).ToList());
+                            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbot{xbotId}/trajectory", trajectoryMessage);
+                            Console.WriteLine($"Published trajectory for xbot {xbotId}: {trajectoryMessage}");
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("No xbot topic segment found in the Broker.");
+                }
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Failed to deserialize message: {message}");
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+        
+
+        public async Task PublishTargetPositionsAsync()
+        {
+            double[] targetPosition1 = { 0.660, 0.400 };
+            double[] targetPosition2 = { 0.120, 0.120 };
+            double[] targetPosition3 = { 0.600, 0.520 };
+            double[] targetPosition4 = { 0.200, 0.600 };
+
+            var targetPositions = new Dictionary<int, double[]>
+            {
+                { 1, targetPosition1 },
+                { 2, targetPosition2 },
+                { 3, targetPosition3 },
+                { 4, targetPosition4 }
+            };
+
+            foreach (var targetPosition in targetPositions)
+            {
+                var message = JsonSerializer.Serialize(targetPosition.Value);
+                await mqttPublisher.PublishMessageAsync($"Acopos6D/xbot{targetPosition.Key}/targetPosition", message);
+                Console.WriteLine($"Published target position for xbot {targetPosition.Key}: {string.Join(", ", targetPosition.Value)}");
+            }
+        }
+
+        public async Task PublishPositionAsync(int xbotId, double[] position)
+        {
+            var message = JsonSerializer.Serialize(position);
+            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbot{xbotId}/position", message);
+            Console.WriteLine($"Published position for xbot {xbotId}: {string.Join(", ", position)}");
+        }
+        #endregion
+
 
         public void runListBasedMotion(int[] xbotIDs)
         {
@@ -42,9 +175,29 @@ namespace VT2_Aseptic_Production_Demonstrator
                 case '0':
                     selector = 1;
                     break;
+                // Generate trajectories form the start postions to the target postions
 
+                /*
+                List<(int, double, double)> targetPositions = new List<(int, double, double)>
+                {
+                    (1, targetPostion1[0], targetPostion1[1]),
+                    (2, targetPostion2[0], targetPostion2[1]),
+                    (3, targetPostion3[0], targetPostion3[1]),
+                    (4, targetPostion4[0], targetPostion4[1])
+                };
+                List<int> xbotIDer = new List<int>
+                {
+                    1,2,3,4
+                };
+                Pathfinding.Grid grid = pathfinding.gridInitializer(720, 960);
+                trajectories = pathfinding.runPathfinder(xbotIDer, targetPositions, grid);
+
+                /*
+                
+                */
                 case '1':
-                    // Generate trajectories form the start postions to the target postions
+                    // Publish the target positions
+                    PublishTargetPositionsAsync().Wait();
                     double[] startPostion1 = { 0.060, 0.060 };
                     double[] targetPostion1 = { 0.660, 0.400 };
                     double[] startPostion2 = { 0.600, 0.400 };
@@ -54,46 +207,39 @@ namespace VT2_Aseptic_Production_Demonstrator
                     double[] startPostion4 = { 0.200, 0.200 };
                     double[] targetPostion4 = { 0.200, 0.600 };
 
-                    List<(int, double, double)> targetPositions = new List<(int, double, double)>
-                    {
-                        (1, targetPostion1[0], targetPostion1[1]),
-                        (2, targetPostion2[0], targetPostion2[1]),
-                        (3, targetPostion3[0], targetPostion3[1]),
-                        (4, targetPostion4[0], targetPostion4[1])
-                    };
-                    List<int> xbotIDer = new List<int>
-                    {
-                        1,2,3,4
-                    };
-                    Pathfinding.Grid grid = pathfinding.gridInitializer(720, 960);
-                    trajectories = pathfinding.runPathfinder(xbotIDer, targetPositions, grid);
-
-                    /*
                     motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
                     motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
                     motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
                     motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
-                    /*
-                    TrajectoryGenerator traj1 = new TrajectoryGenerator(1, startPostion1, targetPostion1, 20, "XY");
-                    Console.WriteLine("Trajectory 1:");
-                    traj1.PrintTrajectory();
-                    trajectories[traj1.trajectory.First().Item1] = traj1.trajectory.Select(t => t.Item2).ToList();
+                    break;
 
-                    TrajectoryGenerator traj2 = new TrajectoryGenerator(2, startPostion2, targetPostion2, 30, "XY");
-                    Console.WriteLine("\n Trajectory 2:");
-                    traj2.PrintTrajectory();
-                    trajectories[traj2.trajectory.First().Item1] = traj2.trajectory.Select(t => t.Item2).ToList();
 
-                    TrajectoryGenerator traj3 = new TrajectoryGenerator(3, startPostion3, targetPostion3, 30, "YX");
-                    Console.WriteLine("\n Trajectory 2:");
-                    traj3.PrintTrajectory();
-                    trajectories[traj3.trajectory.First().Item1] = traj3.trajectory.Select(t => t.Item2).ToList();
+                case '2':
+                    // Wait for a short period to allow messages to be received
+                    Task.Delay(2000).Wait();
 
-                    TrajectoryGenerator traj4 = new TrajectoryGenerator(4, startPostion4, targetPostion4, 20, "YX");
-                    Console.WriteLine("Trajectory 1:");
-                    traj1.PrintTrajectory();
-                    trajectories[traj4.trajectory.First().Item1] = traj4.trajectory.Select(t => t.Item2).ToList();
-                    */
+                    // Generate trajectories using the retrieved target positions
+                    foreach (var xbotID in xbotIDs)
+                    {
+                        if (trajectories.ContainsKey(xbotID))
+                        {
+                            var targetPositions = trajectories[xbotID];
+                            if (targetPositions.Count > 0)
+                            {
+                                double[] startPosition = { 0.060, 0.060 }; // Example start position
+                                double[] targetPosition = targetPositions.Last(); // Use the last received target position
+
+                                TrajectoryGenerator traj = new TrajectoryGenerator(xbotID, startPosition, targetPosition, 20, "XY");
+                                Console.WriteLine($"Trajectory for xbot {xbotID}:");
+                                traj.PrintTrajectory();
+                                trajectories[traj.trajectory.First().Item1] = traj.trajectory.Select(t => t.Item2).ToList();
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"No target positions received for xbot {xbotID}.");
+                        }
+                    }
                     break;
 
                 case '6':
@@ -121,6 +267,14 @@ namespace VT2_Aseptic_Production_Demonstrator
                                 {
                                     MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
                                     int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                    
+                                    XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
+                                    double[] position = status.FeedbackPositionSI;
+                                    position = position.Select(p => Math.Round(p, 3)).ToArray();
+                                    
+
+                                    PublishPositionAsync(xbotID, position);
 
                                     // Print the initial buffer count
                                     Console.WriteLine($"Initial buffer count for xbotID {xbotID}: {bufferCount}");
@@ -210,6 +364,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
             //Task.WaitAll(tasks.ToArray()); //Make sure all tasks are finished before continuing 
         }
+        
 
     }
     

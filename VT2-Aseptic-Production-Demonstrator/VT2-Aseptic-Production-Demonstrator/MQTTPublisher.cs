@@ -16,11 +16,10 @@ namespace VT2_Aseptic_Production_Demonstrator
         private readonly MqttClientOptions _options;
         private readonly string _topic;
 
-        public MQTTPublisher(string broker, int port, string topic)
+        public MQTTPublisher(string broker, int port)
         {
             var factory = new MqttFactory();
-            _mqttClient = factory.CreateMqttClient();
-            _topic = topic;
+            _mqttClient = factory.CreateMqttClient();            
 
             // Setup MQTT connection options
             _options = new MqttClientOptionsBuilder()
@@ -58,13 +57,13 @@ namespace VT2_Aseptic_Production_Demonstrator
             await _mqttClient.ConnectAsync(_options);
         }
 
-        public async Task PublishMessageAsync(string message)
+        public async Task PublishMessageAsync(string topic, string message)
         {
             if (_mqttClient.IsConnected)
             {
                 // Create the MQTT message
                 var mqttMessage = new MqttApplicationMessageBuilder()
-                    .WithTopic(_topic)
+                    .WithTopic(topic)
                     .WithPayload(message)  // Set the message payload
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)  // Set QoS to Exactly Once
                     .WithRetainFlag()  // Optionally retain the message
@@ -72,7 +71,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                 // Publish the message to the broker
                 await _mqttClient.PublishAsync(mqttMessage);
-                Console.WriteLine($"Message published to topic '{_topic}': {message}");
+                Console.WriteLine($"Message published to topic '{topic}': {message}");
             }
             else
             {

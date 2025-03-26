@@ -16,6 +16,10 @@ namespace VT2_Aseptic_Production_Demonstrator
         private readonly MqttClientOptions _options;
         private readonly string _topic;
 
+        // Define the MessageReceived event
+        public event Action<string, string> MessageReceived;
+
+
         public MQTTSubscriber(string broker, int port, string topic)
         {
             var factory = new MqttFactory();
@@ -49,6 +53,9 @@ namespace VT2_Aseptic_Production_Demonstrator
             string payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
 
             Console.WriteLine($"Received message on topic '{topic}': {payload}");
+
+            // Raise the MessageReceived event
+            MessageReceived?.Invoke(topic, payload);
         }
 
         private async Task ConnectedHandler(MqttClientConnectedEventArgs e)
