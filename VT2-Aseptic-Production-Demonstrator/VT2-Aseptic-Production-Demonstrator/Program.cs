@@ -52,8 +52,8 @@ ____________________________________________________________________| ";
                 {
                     // Connection to the PMC and aquire mastership
                     Console.Clear();
-                    CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-                    Console.WriteLine(status);
+                    //CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+                    //Console.WriteLine(status);
                     
 
                     selector = 1;

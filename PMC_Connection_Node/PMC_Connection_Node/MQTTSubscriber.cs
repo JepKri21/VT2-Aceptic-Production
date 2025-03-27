@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
 
-namespace VT2_Aseptic_Production_Demonstrator
+namespace PMC_Connection_Node
 {
     class MQTTSubscriber
     {
@@ -45,12 +45,6 @@ namespace VT2_Aseptic_Production_Demonstrator
         public async Task StopAsync()
         {
             await _mqttClient.DisconnectAsync();
-        }
-
-        public async Task SubscribeAsync(string topic)
-        {
-            await _mqttClient.SubscribeAsync(topic, MqttQualityOfServiceLevel.AtLeastOnce);
-            Console.WriteLine($"Subscribed to topic: {topic}");
         }
 
         private async Task MessageReceivedHandler(MqttApplicationMessageReceivedEventArgs e)

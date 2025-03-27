@@ -49,7 +49,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         private async void InitializeMqttSubscriber()
         {
-            mqttSubscriber = new MQTTSubscriber(brokerIP, 1883, "Acopos6D/#");
+            mqttSubscriber = new MQTTSubscriber(brokerIP, port, "Acopos6D/#");
             mqttSubscriber.MessageReceived += TargetPostionChange;
             await mqttSubscriber.StartAsync();
         }
@@ -68,7 +68,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                 string[] segments = topic.Split('/');
 
                 // Find the segment that starts with "xbot" and extract the numeric part
-                string xbotSegment = segments.FirstOrDefault(s => s.StartsWith("xbot"));
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("xbot"));
                 if (xbotSegment != null)
                 {
                     int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
@@ -111,7 +111,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                             // Serialize the trajectory and publish it to the topic
                             var trajectoryMessage = JsonSerializer.Serialize(traj.trajectory.Select(t => t.Item2).ToList());
-                            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbot{xbotId}/trajectory", trajectoryMessage);
+                            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{xbotId}/trajectory", trajectoryMessage);
                             Console.WriteLine($"Published trajectory for xbot {xbotId}: {trajectoryMessage}");
                         }
                     }
@@ -147,7 +147,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             foreach (var targetPosition in targetPositions)
             {
                 var message = JsonSerializer.Serialize(targetPosition.Value);
-                await mqttPublisher.PublishMessageAsync($"Acopos6D/xbot{targetPosition.Key}/targetPosition", message);
+                await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{targetPosition.Key}/targetPosition", message);
                 Console.WriteLine($"Published target position for xbot {targetPosition.Key}: {string.Join(", ", targetPosition.Value)}");
             }
         }
@@ -155,7 +155,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         public async Task PublishPositionAsync(int xbotId, double[] position)
         {
             var message = JsonSerializer.Serialize(position);
-            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbot{xbotId}/position", message);
+            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{xbotId}/position", message);
             Console.WriteLine($"Published position for xbot {xbotId}: {string.Join(", ", position)}");
         }
         #endregion
@@ -248,7 +248,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                     List<Task> tasks6 = new List<Task>();
 
-                    foreach (var xbotID in xbotIDs6)
+                    foreach (var xbotID in xbotIDs6)s
                     {
                         if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
                         {
