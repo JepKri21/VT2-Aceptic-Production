@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35806.99 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathPlanerNode", "PathPlanerNode\PathPlanerNode.csproj", "{7B046084-9963-46C1-80C6-579E66243C54}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7B046084-9963-46C1-80C6-579E66243C54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B046084-9963-46C1-80C6-579E66243C54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B046084-9963-46C1-80C6-579E66243C54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B046084-9963-46C1-80C6-579E66243C54}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8C1AE2FF-47AE-470C-BEE0-43715F21F873}
+	EndGlobalSection
+EndGlobal

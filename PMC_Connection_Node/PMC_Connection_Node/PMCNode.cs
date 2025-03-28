@@ -29,13 +29,10 @@ namespace PMC
         {
 
             CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-            Console.WriteLine(status);
-            
-
+            Console.WriteLine(status);         
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
-            XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
-            xbotsID = xBotIDs.XBotIDsArray;
+            PublishXbotIDAsync();
             SendPostions();
         }
 
@@ -66,6 +63,24 @@ namespace PMC
             }
         }
 
+        private async void SendPostionsINF()
+        {
+            while (true)
+            {
+                foreach (var xbot in xbotsID)
+                {
+                    XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
+                    double[] position = status.FeedbackPositionSI;
+                    position = position.Select(p => Math.Round(p, 3)).ToArray();
+                    double[] positionXY = { position[0], position[1] };
+
+                    //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
+                    PublishPositionAsync(xbot, positionXY);
+                }
+                await Task.Delay(1000); 
+            }
+        }
+
         public void PrintTrajectories()
         {
             foreach (var kvp in trajectories)
@@ -79,6 +94,7 @@ namespace PMC
                     Console.WriteLine($"({point[0]:F3}, {point[1]:F3})");
                 }
             }
+            
         }
         public async void messageHandler(string topic, string message)
         {
@@ -90,7 +106,7 @@ namespace PMC
                 Console.WriteLine($"Received messages topics is: {segments[2]}");
                 switch ( segments[2])
                 {
-                    case "status":
+                    case "PathPlan":
                         if (message == "ready")
                         {
                             Console.WriteLine("Xbots is ready");
@@ -133,7 +149,7 @@ namespace PMC
                                 GetTrajectories(segments, message);
                                 
 
-                                RunTrajectory();
+                                //RunTrajectory();
                                 break;
                             case "position":
 
@@ -160,6 +176,14 @@ namespace PMC
             var message = JsonSerializer.Serialize(position);
             await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{xbotId}/position", message);
             Console.WriteLine($"Published position for xbot {xbotId}: {string.Join(", ", position)}");
+        }
+
+        public async Task PublishXbotIDAsync()
+        {
+            XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
+            xbotsID = xBotIDs.XBotIDsArray;
+            var message = JsonSerializer.Serialize(xbotsID);
+            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/IDs", message);
         }
 
 
@@ -232,7 +256,7 @@ namespace PMC
                             Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", point.Select(p => Math.Round(p, 3)))}");
                             motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
 
-                            _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+
                         }
                         lock (trajectories)
                         {
@@ -243,8 +267,10 @@ namespace PMC
                 }
             }
 
-            Task.WaitAll(tasks.ToArray());
+            //Task.WaitAll(tasks.ToArray());
         }
+
+        
 
         public static async Task Main(string[] args) // Change return type to Task
         {
@@ -252,8 +278,10 @@ namespace PMC
             PMC_Connection_Node client = new PMC_Connection_Node();
 
 
-            //Thread thread1 = new Thread(new ThreadStart(client.Run));
-            //thread1.Start();
+            Thread thread1 = new Thread(new ThreadStart(client.SendPostionsINF));
+
+            
+            thread1.Start();
             await Task.Delay(-1); // Keep the main thread alive
         }
     }
