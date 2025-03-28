@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using MQTTnet.Protocol;
 using MQTTnet.Formatter;
 
-namespace VT2_Aseptic_Production_Demonstrator
+namespace PathPlaningNode
 {
     class MQTTSubscriber
     {
