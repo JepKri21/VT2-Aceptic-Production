@@ -26,6 +26,10 @@ namespace VT2_Aseptic_Production_Demonstrator
         string brokerIP = "localhost";
         int port = 1883;
 
+        Dictionary<int, double[]> postions = new Dictionary<int, double[]>();
+
+        
+        
 
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
 
@@ -44,13 +48,24 @@ namespace VT2_Aseptic_Production_Demonstrator
             //MqttConnections();
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
+            InitializePositions();
 
         }
-
+        public void InitializePositions()
+        {
+            postions[1] = new double[] { 0.060, 0.060 };
+            postions[2] = new double[] { 0.120, 0.120 };
+            postions[3] = new double[] { 0.180, 0.180 };
+            postions[4] = new double[] { 0.240, 0.240 };
+            postions[5] = new double[] { 0.300, 0.300 };
+            postions[6] = new double[] { 0.360, 0.360 };
+            postions[7] = new double[] { 0.420, 0.420 };
+            postions[8] = new double[] { 0.480, 0.480 };
+        }
         private async void InitializeMqttSubscriber()
         {
             mqttSubscriber = new MQTTSubscriber(brokerIP, port, "Acopos6D/#");
-            mqttSubscriber.MessageReceived += TargetPostionChange;
+            mqttSubscriber.MessageReceived += messageHandler;
             await mqttSubscriber.StartAsync();
         }
         private async void InitializeMqttPublisher()
@@ -74,12 +89,12 @@ namespace VT2_Aseptic_Production_Demonstrator
                     int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
 
                     // Check if the new target position is different from the last known target position
-                    if (lastKnownTargetPositions.ContainsKey(xbotId) && lastKnownTargetPositions[xbotId].SequenceEqual(targetPosition))
+                    /*if (lastKnownTargetPositions.ContainsKey(xbotId) && lastKnownTargetPositions[xbotId].SequenceEqual(targetPosition))
                     {
                         Console.WriteLine($"Target position for xbot {xbotId} has not changed.");
                         return;
                     }
-
+                    */
                     // Update the last known target position
                     lastKnownTargetPositions[xbotId] = targetPosition;
 
@@ -101,10 +116,12 @@ namespace VT2_Aseptic_Production_Demonstrator
                         var targetPositions = trajectories[xbotId];
                         if (targetPositions.Count > 0)
                         {
-                            double[] startPosition = { 0.060, 0.060 }; // Example start position
+                            XBotStatus status = _xbotCommand.GetXbotStatus(xbotId);                                                       
+                            
+                            Console.WriteLine($"StartPostion for xbot {xbotId} is ({postions[xbotId][0]:F3}, {postions[xbotId][1]:F3})");
                             double[] newTargetPosition = targetPositions.Last(); // Use the last received target position
-
-                            TrajectoryGenerator traj = new TrajectoryGenerator(xbotId, startPosition, newTargetPosition, 20, "XY");
+                            
+                            TrajectoryGenerator traj = new TrajectoryGenerator(xbotId, postions[xbotId], newTargetPosition, 20, "XY");
                             Console.WriteLine($"Trajectory for xbot {xbotId}:");
                             traj.PrintTrajectory();
                             trajectories[traj.trajectory.First().Item1] = traj.trajectory.Select(t => t.Item2).ToList();
@@ -160,13 +177,90 @@ namespace VT2_Aseptic_Production_Demonstrator
         }
         #endregion
 
+        public async void messageHandler(string topic, string message)
+        {
+            Console.WriteLine($"Received message on topic {topic}: {message}");
+            try
+            {
+                //var targetPosition = JsonSerializer.Deserialize<double[]>(message);
+                string[] segments = topic.Split('/');
+                Console.WriteLine($"Received messages topics is: {segments[2]}");
+
+                switch (segments[2])
+                {
+                    case "status":
+                        if (message == "ready")
+                        {
+
+                        }
+                        if (message == "home")
+                        {
+
+                        }
+                        if (message == "SendPostions")
+                        {
+
+                        }
+                        else
+                        {
+
+                        }
+                        break;
+                    default:
+
+                        switch (segments[3]) // segments[2] is the third segment of the topic can be changed to the desired topic
+                        {
+                            case "targetPosition":
+                                TargetPostionChange(topic, message);
+                                break;
+                            case "trajectory":
+                                //GetTrajectories(segments, message);
+
+
+                                //RunTrajectory();
+                                break;
+                            case "position":
+                                GetPostions(segments, message);
+                                break;
+                            default:
+                                Console.WriteLine($"Unhandled topic: {topic}");
+                                break;
+                        }
+                    break;
+
+                }
+                // Handle different topics
+
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Failed to deserialize message: {message}");
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+
+        public async void GetPostions(string[] segments, string message)
+        {
+            // Find the segment that starts with "xbot" and extract the numeric part
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("xbot"));
+            if (xbotSegment != null)
+            {
+                int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
+                var pos = JsonSerializer.Deserialize<double[]>(message);
+                
+                Console.WriteLine($"Postion for xbot {xbotId}:");            
+                Console.WriteLine($"({pos[0]:F3}, {pos[1]:F3})");
+                
+                postions[xbotId] = pos;
+            }
+        }
 
         public void runListBasedMotion(int[] xbotIDs)
         {
             //Console.Clear();
             Console.WriteLine(" List based motions structure");
             Console.WriteLine("0    Return ");
-            Console.WriteLine("1    Generate Trajectories ");
+            Console.WriteLine("1    Send Targe Postions");
             Console.WriteLine("2    ");
 
             ConsoleKeyInfo keyInfo = Console.ReadKey();
@@ -207,10 +301,10 @@ namespace VT2_Aseptic_Production_Demonstrator
                     double[] startPostion4 = { 0.200, 0.200 };
                     double[] targetPostion4 = { 0.200, 0.600 };
 
-                    motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
-                    motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
-                    motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
-                    motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
+                    //motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
+                    //motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
+                    //motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
+                    //motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
                     break;
 
 
@@ -226,13 +320,18 @@ namespace VT2_Aseptic_Production_Demonstrator
                             var targetPositions = trajectories[xbotID];
                             if (targetPositions.Count > 0)
                             {
-                                double[] startPosition = { 0.060, 0.060 }; // Example start position
+                                XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
+                                double[] position = status.FeedbackPositionSI;
+                                position = position.Select(p => Math.Round(p, 3)).ToArray();
+                                double[] startPosition = { position[0], position[1] };
                                 double[] targetPosition = targetPositions.Last(); // Use the last received target position
-
+                                Console.WriteLine($"StartPostion for xbot {xbotID} is ({startPosition[0]:F3}, {startPosition[1]:F3})");
+                                
                                 TrajectoryGenerator traj = new TrajectoryGenerator(xbotID, startPosition, targetPosition, 20, "XY");
                                 Console.WriteLine($"Trajectory for xbot {xbotID}:");
                                 traj.PrintTrajectory();
                                 trajectories[traj.trajectory.First().Item1] = traj.trajectory.Select(t => t.Item2).ToList();
+                                
                             }
                         }
                         else
@@ -248,7 +347,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                     List<Task> tasks6 = new List<Task>();
 
-                    foreach (var xbotID in xbotIDs6)s
+                    foreach (var xbotID in xbotIDs6)
                     {
                         if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
                         {

@@ -22,7 +22,7 @@ namespace PMC
         private MQTTPublisher mqttPublisher;
         string brokerIP = "localhost";
         int port = 1883;
-
+        int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
 
         public PMC_Connection_Node()
@@ -30,8 +30,13 @@ namespace PMC
 
             CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
             Console.WriteLine(status);
+            
+
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
+            XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
+            xbotsID = xBotIDs.XBotIDsArray;
+            SendPostions();
         }
 
         private async void InitializeMqttSubscriber()
@@ -45,6 +50,20 @@ namespace PMC
         {
             mqttPublisher = new MQTTPublisher(brokerIP, port);
             await mqttPublisher.StartAsync();
+        }
+
+        private async void SendPostions()
+        {
+            foreach (var xbot in xbotsID)
+            {
+                XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
+                double[] position = status.FeedbackPositionSI;
+                position = position.Select(p => Math.Round(p, 3)).ToArray();
+                double[] positionXY = { position[0], position[1] };
+
+                //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
+                PublishPositionAsync(xbot, positionXY);
+            }
         }
 
         public void PrintTrajectories()
@@ -89,10 +108,14 @@ namespace PMC
                             double[] startPostion4 = { 0.200, 0.200 };
                             
 
-                            motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
+                            motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "yx");
                             motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
                             motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
                             motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
+                        }
+                        if (message == "SendPostions")
+                        {
+                            SendPostions();
                         }
                         else
                         {
@@ -110,7 +133,7 @@ namespace PMC
                                 GetTrajectories(segments, message);
                                 
 
-                                //RunTrajectory();
+                                RunTrajectory();
                                 break;
                             case "position":
 
@@ -211,6 +234,11 @@ namespace PMC
 
                             _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
                         }
+                        lock (trajectories)
+                        {
+                            trajectories.Remove(xbotID);
+                        }
+
                     }));
                 }
             }
