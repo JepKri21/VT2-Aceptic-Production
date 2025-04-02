@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
+//using UnityEngine;
 
 public class Pathfinding
 {
@@ -227,7 +227,7 @@ public class Pathfinding
         int[,] priorityMatrix = getPriorityMatrix(_xBotID_From_To);
         List<(int, List<node>, int)> oldPathList = null;
 
-        Debug.Log("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
+        //Debug.Log("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
         for (int i = 0; i < priorityMatrix.GetLength(0); i++)
         {
             SortedList<int, int> priorityList = new SortedList<int, int>();
@@ -249,7 +249,7 @@ public class Pathfinding
                 oldPathList = newPathList;
             }
         }
-        Debug.Log("Tried: " + priorityMatrix.GetLength(0) + " different priorities.");
+        //Debug.Log("Tried: " + priorityMatrix.GetLength(0) + " different priorities.");
         return oldPathList;
     }
     #endregion
@@ -344,7 +344,7 @@ public class Pathfinding
                 }
                 else
                 {
-                    Debug.Log("No path found for bot " + botID);
+                    //Debug.Log("No path found for bot " + botID);
                 }
             }
 
@@ -401,20 +401,20 @@ public class Pathfinding
                         botWaitingPaths[lowerPriorityBot] = new List<node>();
                     botWaitingPaths[lowerPriorityBot].Add(startNode);
 
-                    Debug.Log($"Bot {lowerPriorityBot} chooses to wait. New wait time: {botWaitTime[lowerPriorityBot]}.");
+                    //Debug.Log($"Bot {lowerPriorityBot} chooses to wait. New wait time: {botWaitTime[lowerPriorityBot]}.");
                 }
                 else
                 {
                     // Choose walk-around option.
                     _grid.makeUnWalkable(conflictNode, lowerPriorityBot, false);
-                    Debug.Log($"Bot {lowerPriorityBot} chooses to walk around the conflict at ({conflictNode.nodePos[0]}, {conflictNode.nodePos[1]}).");
+                    //Debug.Log($"Bot {lowerPriorityBot} chooses to walk around the conflict at ({conflictNode.nodePos[0]}, {conflictNode.nodePos[1]}).");
                 }
             }
 
             iteration++;
         }
 
-        Debug.LogError("No conflict solution found");
+        //Debug.LogError("No conflict solution found");
         return null;
     }
     #endregion

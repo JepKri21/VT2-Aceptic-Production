@@ -20,11 +20,11 @@ namespace PathPlaningNode
         public event Action<string, string> MessageReceived;
 
 
-        public MQTTSubscriber(string broker, int port, string topic)
+        public MQTTSubscriber(string broker, int port)
         {
             var factory = new MqttFactory();
             _mqttClient = factory.CreateMqttClient();
-            _topic = topic;
+            //_topic = topic;
 
             _options = new MqttClientOptionsBuilder()
                 .WithTcpServer(broker, port)
@@ -33,7 +33,7 @@ namespace PathPlaningNode
                 .Build();
 
             _mqttClient.ApplicationMessageReceivedAsync += MessageReceivedHandler;
-            _mqttClient.ConnectedAsync += ConnectedHandler;
+            //_mqttClient.ConnectedAsync += ConnectedHandler;
             _mqttClient.DisconnectedAsync += DisconnectedHandler;
         }
 

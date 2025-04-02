@@ -1,8 +1,8 @@
-﻿using UnityEngine;
+﻿//using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
-
+/*
 public class MainHandler : MonoBehaviour
 {
     public GameObject nodePrefab;
@@ -19,7 +19,7 @@ public class MainHandler : MonoBehaviour
     private bool isMoving = false;
     private float moveSpeed = 200f;
     private float stepTime = 0.075f;
-
+    
     void Start()
     {
         int xbotSize = 12;
@@ -42,7 +42,7 @@ public class MainHandler : MonoBehaviour
             /*(5, new int[] { 0, 30 }, new int[] { 83, 30 }),
             (6, new int[] { 83, 30 }, new int[] { 0, 30 }),
             (7, new int[] { 42, 0 }, new int[] { 42, 59 }),
-            (8, new int[] { 42, 59 }, new int[] { 42, 0 }),*/
+            (8, new int[] { 42, 59 }, new int[] { 42, 0 }),
         };
 
         GeneratePrefabVisual();
@@ -84,7 +84,7 @@ public class MainHandler : MonoBehaviour
     }
 
     void RunPathfinder(List<(int, int[], int[])> _xBotID_From_To, int _xbotSize)
-    {
+    {       
         // Clear dictionaries to prevent duplicate keys from previous runs
         shuttles.Clear();
         shuttlePaths.Clear();
@@ -163,4 +163,5 @@ public class MainHandler : MonoBehaviour
     }
 
 
-}
+}*/
+

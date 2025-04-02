@@ -1,8 +1,8 @@
-﻿using UnityEngine;
+﻿//using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
-
+/*
 public class MainHandler : MonoBehaviour
 {
     public GameObject nodePrefab;
@@ -42,7 +42,7 @@ public class MainHandler : MonoBehaviour
             /*(5, new int[] { 0, 30 }, new int[] { 83, 30 }),
             (6, new int[] { 83, 30 }, new int[] { 0, 30 }),
             (7, new int[] { 42, 0 }, new int[] { 42, 59 }),
-            (8, new int[] { 42, 59 }, new int[] { 42, 0 }),*/
+            (8, new int[] { 42, 59 }, new int[] { 42, 0 }),
         };
 
         GeneratePrefabVisual();
@@ -164,3 +164,4 @@ public class MainHandler : MonoBehaviour
 
 
 }
+*/

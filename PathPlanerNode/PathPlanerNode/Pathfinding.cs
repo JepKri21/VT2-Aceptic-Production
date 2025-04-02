@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
+//using UnityEngine;
 
 namespace PathPlaningNode
 {
@@ -156,21 +156,26 @@ namespace PathPlaningNode
             }
         }
 
-        #endregion
-
-        #region ASTAR Pathfinding
         public (List<node>, int) aStar(int[] _from, int[] _to, grid _grid, int _xbotID)
         {
-            node startNode = _grid.cells[_from[0], _from[1]];
-            node endNode = _grid.cells[_to[0], _to[1]];
+            // Adjust the positions to fit within the grid bounds
+            int[] adjustedFrom = { _from[0] - 60, _from[1] - 60 };
+            int[] adjustedTo = { _to[0] - 60, _to[1] - 60 };
+
+            //Console.WriteLine($"Starting A* from: [{adjustedFrom[0]}, {adjustedFrom[1]}] to: [{adjustedTo[0]}, {adjustedTo[1]}] for bot ID: {_xbotID}");
+            node startNode = _grid.cells[adjustedFrom[0], adjustedFrom[1]];
+            node endNode = _grid.cells[adjustedTo[0], adjustedTo[1]];
 
             List<node> openList = new();
             HashSet<node> closedList = new();
 
             openList.Add(startNode); // Add the start node to the open list
 
+            int iterationCount = 0; // Initialize iteration counter
+
             while (openList.Count > 0)
             {
+                iterationCount++;
                 node currentNode = openList[0];
                 for (int i = 1; i < openList.Count; i++)
                 {
@@ -193,6 +198,8 @@ namespace PathPlaningNode
                         currentNode = currentNode.parent;
                     }
                     path.Reverse();
+
+                    //Console.WriteLine($"A* completed in {iterationCount} iterations."); // Print iteration count
                     return (path, fCost);
                 }
 
@@ -216,9 +223,9 @@ namespace PathPlaningNode
                         }
                     }
                 }
-
             }
-            //Debug.LogError("No A* path found");
+
+            //Console.WriteLine($"A* completed in {iterationCount} iterations."); // Print iteration count even if no path is found
             return (null, 0);
         }
         #endregion
@@ -229,9 +236,10 @@ namespace PathPlaningNode
             int[,] priorityMatrix = getPriorityMatrix(_xBotID_From_To);
             List<(int, List<node>, int)> oldPathList = null;
 
-            Debug.Log("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
+            Console.WriteLine("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
             for (int i = 0; i < priorityMatrix.GetLength(0); i++)
             {
+
                 SortedList<int, int> priorityList = new SortedList<int, int>();
                 for (int j = 0; j < priorityMatrix.GetLength(1); j++)
                 {
@@ -242,29 +250,32 @@ namespace PathPlaningNode
 
                 List<(int, List<node>, int)> newPathList = conflictHandler(_xBotID_From_To, _xbotSize, _grid, priorityList);
 
-                if (i == 0)
+                /*if (i == 0)
                 {
                     oldPathList = newPathList;
+                }*/
+                if (newPathList != null)
+                {
+                    return newPathList;
                 }
-                if (newPathList.Select(x => (long)x.Item3).Sum() < oldPathList.Select(x => (long)x.Item3).Sum())
+                /*if (newPathList.Select(x => (long)x.Item3).Sum() < oldPathList.Select(x => (long)x.Item3).Sum())
                 {
                     oldPathList = newPathList;
-                }
+                }*/
             }
-            Debug.Log("Tried: " + priorityMatrix.GetLength(0) + " different priorities.");
-            return oldPathList;
+            Console.WriteLine("Tried: " + priorityMatrix.GetLength(0) + " different priorities.");
+            return null;
         }
-        #endregion
-
-        #region PathPlan Runner
-        public List<(int, List<(int, int)>)> pathPlanRunner(grid _grid, List<(int, int[], int[])> _xBotID_From_To, int _xbotSize)
+        public Dictionary<int, List<double[]>> pathPlanRunner(grid _grid, List<(int, int[], int[])> _xBotID_From_To, int _xbotSize)
         {
+            Console.WriteLine($"Grid size: Width = {_grid.width}, Height = {_grid.height}");
+            Console.WriteLine($"Calling PriorityPlanner");
             List<(int, List<node>, int)> pathList = priorityPlanner(_grid, _xBotID_From_To, _xbotSize);
-            List<(int, List<(int, int)>)> output = new();
+            Dictionary<int, List<double[]>> output = new();
 
             foreach (var path in pathList)
             {
-                output.Add((path.Item1, path.Item2.Select(x => (x.nodePos[0], x.nodePos[1])).ToList()));
+                output.Add(path.Item1, path.Item2.Select(x => new double[] { x.nodePos[0] + 60, x.nodePos[1] + 60 }).ToList());
             }
             return output;
         }
@@ -320,12 +331,14 @@ namespace PathPlaningNode
             Dictionary<int, int> botWaitTime = new();
             Dictionary<int, List<node>> botWaitingPaths = new(); // Tracks waiting steps for each bot
 
+
             while (iteration < iterationMax)
             {
                 List<(int, List<node>, int)> pathList = new();
                 Dictionary<int, List<node>> botPaths = new();
 
                 // Compute paths for each bot, including any waiting steps
+                //Console.WriteLine($"Total bots to process: {_xBotID_From_To.Count}");
                 foreach (var botTuple in _xBotID_From_To)
                 {
                     int botID = botTuple.Item1;
@@ -346,7 +359,7 @@ namespace PathPlaningNode
                     }
                     else
                     {
-                        Debug.Log("No path found for bot " + botID);
+                        Console.WriteLine("No path found for bot " + botID);
                     }
                 }
 
@@ -403,20 +416,20 @@ namespace PathPlaningNode
                             botWaitingPaths[lowerPriorityBot] = new List<node>();
                         botWaitingPaths[lowerPriorityBot].Add(startNode);
 
-                        Debug.Log($"Bot {lowerPriorityBot} chooses to wait. New wait time: {botWaitTime[lowerPriorityBot]}.");
+                        Console.WriteLine($"Bot {lowerPriorityBot} chooses to wait. New wait time: {botWaitTime[lowerPriorityBot]}.");
                     }
                     else
                     {
                         // Choose walk-around option.
                         _grid.makeUnWalkable(conflictNode, lowerPriorityBot, false);
-                        Debug.Log($"Bot {lowerPriorityBot} chooses to walk around the conflict at ({conflictNode.nodePos[0]}, {conflictNode.nodePos[1]}).");
+                        Console.WriteLine($"Bot {lowerPriorityBot} chooses to walk around the conflict at ({conflictNode.nodePos[0]}, {conflictNode.nodePos[1]}).");
                     }
                 }
 
                 iteration++;
             }
 
-            Debug.LogError("No conflict solution found");
+            Console.WriteLine("No conflict solution found");
             return null;
         }
         #endregion

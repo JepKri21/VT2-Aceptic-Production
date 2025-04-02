@@ -20,7 +20,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static MotionsFunctions motionsFunctions = new MotionsFunctions();
         private static XBotCommands _xbotCommand = new XBotCommands();
         int selector = 3;
-        private static Pathfinding.AStar pathfinding = new Pathfinding.AStar();
+        //private static Pathfinding.AStar pathfinding = new Pathfinding.AStar();
         private MQTTSubscriber mqttSubscriber;
         private MQTTPublisher mqttPublisher;
         string brokerIP = "localhost";
@@ -46,9 +46,10 @@ namespace VT2_Aseptic_Production_Demonstrator
         public ListBasedMotionStructure()
         {
             //MqttConnections();
-            InitializeMqttSubscriber();
+           // InitializeMqttSubscriber();
             InitializeMqttPublisher();
             InitializePositions();
+            
 
         }
         public void InitializePositions()
@@ -116,7 +117,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                         var targetPositions = trajectories[xbotId];
                         if (targetPositions.Count > 0)
                         {
-                            XBotStatus status = _xbotCommand.GetXbotStatus(xbotId);                                                       
+                                                                              
                             
                             Console.WriteLine($"StartPostion for xbot {xbotId} is ({postions[xbotId][0]:F3}, {postions[xbotId][1]:F3})");
                             double[] newTargetPosition = targetPositions.Last(); // Use the last received target position
@@ -151,7 +152,7 @@ namespace VT2_Aseptic_Production_Demonstrator
             double[] targetPosition1 = { 0.660, 0.400 };
             double[] targetPosition2 = { 0.120, 0.120 };
             double[] targetPosition3 = { 0.600, 0.520 };
-            double[] targetPosition4 = { 0.200, 0.600 };
+            double[] targetPosition4 = { 0.200, 0.500 };
 
             var targetPositions = new Dictionary<int, double[]>
             {
@@ -184,9 +185,9 @@ namespace VT2_Aseptic_Production_Demonstrator
             {
                 //var targetPosition = JsonSerializer.Deserialize<double[]>(message);
                 string[] segments = topic.Split('/');
-                Console.WriteLine($"Received messages topics is: {segments[2]}");
+                //Console.WriteLine($"Received messages topics is: {segments[2]}");
 
-                switch (segments[2])
+                switch (segments[1])
                 {
                     case "status":
                         if (message == "ready")
@@ -208,7 +209,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                         break;
                     default:
 
-                        switch (segments[3]) // segments[2] is the third segment of the topic can be changed to the desired topic
+                        switch (segments[2]) // segments[2] is the third segment of the topic can be changed to the desired topic
                         {
                             case "targetPosition":
                                 TargetPostionChange(topic, message);
@@ -299,7 +300,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     double[] startPostion3 = { 0.360, 0.360 };
                     double[] targetPostion3 = { 0.600, 0.520 };
                     double[] startPostion4 = { 0.200, 0.200 };
-                    double[] targetPostion4 = { 0.200, 0.600 };
+                    double[] targetPostion4 = { 0.200, 0.500 };
 
                     //motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "xy");
                     //motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");

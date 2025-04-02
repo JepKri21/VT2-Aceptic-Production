@@ -18,6 +18,7 @@ namespace PMC
         private static MotionsFunctions motionsFunctions = new MotionsFunctions();
         private static XBotCommands _xbotCommand = new XBotCommands();
         private connection_handler connectionHandler = new connection_handler();
+        private Dictionary<string, Action<string, string>> topicHandlers;
         private MQTTSubscriber mqttSubscriber;
         private MQTTPublisher mqttPublisher;
         string brokerIP = "localhost";
@@ -25,16 +26,18 @@ namespace PMC
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
 
-        public PMC_Connection_Node()
+        private PMC_Connection_Node()
         {
-
+            InitializeTopicHandlers();
             CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-            Console.WriteLine(status);         
+            Console.WriteLine(status);
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
             PublishXbotIDAsync();
             SendPostions();
         }
+
+
 
         private async void InitializeMqttSubscriber()
         {
@@ -60,6 +63,108 @@ namespace PMC
 
                 //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
                 PublishPositionAsync(xbot, positionXY);
+            }
+        }
+
+        private void InitializeTopicHandlers()
+        {
+            topicHandlers = new Dictionary<string, Action<string, string>>
+            { 
+            { "Acopos6D/xbots/+/trajectory", GetTrajectories },
+            { "Acopos6D/PathPlan", HandleStatus }
+            };
+        }
+
+        private async void messageHandler(string topic, string message)
+        {
+            Console.WriteLine($"Received message on topic {topic}: {message}");
+            try
+            {
+                foreach (var handler in topicHandlers)
+                {
+                    if (TopicMatches(handler.Key, topic))
+                    {
+                        handler.Value(topic, message);
+                        return;
+                    }
+                }
+                Console.WriteLine($"Unhandled topic: {topic}");
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Failed to deserialize message: {message}");
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+        private bool TopicMatches(string pattern, string topic)
+        {
+            var patternSegments = pattern.Split('/');
+            var topicSegments = topic.Split('/');
+
+            if (patternSegments.Length != topicSegments.Length)
+                return false;
+
+            for (int i = 0; i < patternSegments.Length; i++)
+            {
+                if (patternSegments[i] == "+")
+                    continue;
+
+                if (patternSegments[i] != topicSegments[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        private async void HandleStatus(string topic, string message)
+        {
+
+            if (message == "ready")
+            {
+                Console.WriteLine("Xbots is ready");
+
+                RunTrajectory();
+
+
+            }
+            if (message == "home")
+            {
+                double[] startPostion1 = { 0.060, 0.060 };
+
+                double[] startPostion2 = { 0.600, 0.400 };
+
+                double[] startPostion3 = { 0.360, 0.360 };
+
+                double[] startPostion4 = { 0.200, 0.200 };
+
+
+                motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "yx");
+                motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
+                motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
+                motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
+
+            }
+            if (message == "SendPostions")
+            {
+                SendPostions();
+            }
+            if (message == "runPathPlanner")
+            {
+                /*trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize);
+
+                foreach (var trajectory in trajectories)
+                {
+                    Console.WriteLine($"Trajectory for xbot{trajectory.Key}: {trajectory.Value}");
+                    var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new { x = t[0], y = t[1] }).ToList());
+                    await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{trajectory.Key}/trajectory", trajectoryMessage);
+                    Console.WriteLine($"Published trajectory for xbot {trajectory.Key}: {trajectoryMessage}");
+                }
+
+                */
+            }
+            else
+            {
+                PrintTrajectories();
             }
         }
 
@@ -96,79 +201,7 @@ namespace PMC
             }
             
         }
-        public async void messageHandler(string topic, string message)
-        {
-            Console.WriteLine($"Received message on topic {topic}: {message}");
-            try
-            {
-                //var targetPosition = JsonSerializer.Deserialize<double[]>(message);
-                string[] segments = topic.Split('/');
-                Console.WriteLine($"Received messages topics is: {segments[2]}");
-                switch ( segments[2])
-                {
-                    case "PathPlan":
-                        if (message == "ready")
-                        {
-                            Console.WriteLine("Xbots is ready");
-                            
-                            RunTrajectory();
-                        }
-                        if (message == "home")
-                        {
-                            double[] startPostion1 = { 0.060, 0.060 };
-                            
-                            double[] startPostion2 = { 0.600, 0.400 };
-                           
-                            double[] startPostion3 = { 0.360, 0.360 };
-                            
-                            double[] startPostion4 = { 0.200, 0.200 };
-                            
-
-                            motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "yx");
-                            motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
-                            motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
-                            motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
-                        }
-                        if (message == "SendPostions")
-                        {
-                            SendPostions();
-                        }
-                        else
-                        {
-                            Console.WriteLine("Xbot is not ready");
-                            PrintTrajectories();
-                        }
-                        break;
-                    default:
-                        switch (segments[3]) // segments[2] is the third segment of the topic can be changed to the desired topic
-                        {
-                            case "targetPosition":
-                                Console.WriteLine($"Recived Target Postions");
-                                break;
-                            case "trajectory":
-                                GetTrajectories(segments, message);
-                                
-
-                                //RunTrajectory();
-                                break;
-                            case "position":
-
-                                break;
-                            default:
-                                Console.WriteLine($"Unhandled topic: {topic}");
-                                break;
-                        }
-                        break;
-                }
-                // Handle different topics
-               
-            }
-            catch (JsonException ex)
-            {
-                Console.WriteLine($"Failed to deserialize message: {message}");
-                Console.WriteLine($"Exception: {ex.Message}");
-            }
-        }
+        
 
 
         public async Task PublishPositionAsync(int xbotId, double[] position)
@@ -182,14 +215,16 @@ namespace PMC
         {
             XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
             xbotsID = xBotIDs.XBotIDsArray;
+            Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
             var message = JsonSerializer.Serialize(xbotsID);
             await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/IDs", message);
         }
 
 
-        public async void GetTrajectories(string[] segments, string message )
+        public async void GetTrajectories(string topic, string message )
         {
             // Find the segment that starts with "xbot" and extract the numeric part
+            string[] segments = topic.Split('/');
             string xbotSegment = segments.LastOrDefault(s => s.StartsWith("xbot"));
             if (xbotSegment != null)
             {
