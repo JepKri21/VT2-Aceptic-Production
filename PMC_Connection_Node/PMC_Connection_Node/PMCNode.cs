@@ -33,11 +33,33 @@ namespace PMC
             Console.WriteLine(status);
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
+            PublishTargetPositionsAsync();
             PublishXbotIDAsync();
             SendPostions();
         }
 
+        public async Task PublishTargetPositionsAsync()
+        {
+            double[] targetPosition1 = { 0.660, 0.400 };
+            double[] targetPosition2 = { 0.120, 0.120 };
+            double[] targetPosition3 = { 0.600, 0.520 };
+            double[] targetPosition4 = { 0.200, 0.500 };
 
+            var targetPositions = new Dictionary<int, double[]>
+            {
+                { 1, targetPosition1 },
+                { 2, targetPosition2 },
+                { 3, targetPosition3 },
+                { 4, targetPosition4 }
+            };
+
+            foreach (var targetPosition in targetPositions)
+            {
+                var message = JsonSerializer.Serialize(targetPosition.Value);
+                await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{targetPosition.Key}/targetPosition", message);
+                Console.WriteLine($"Published target position for xbot {targetPosition.Key}: {string.Join(", ", targetPosition.Value)}");
+            }
+        }
 
         private async void InitializeMqttSubscriber()
         {
@@ -239,6 +261,8 @@ namespace PMC
                 trajectories[xbotId] = trajectory;
             }
         }
+
+        /*
         public async void RunTrajectory()
         {
             int maxLength = trajectories.Values.Max(t => t.Count);
@@ -304,8 +328,86 @@ namespace PMC
 
             //Task.WaitAll(tasks.ToArray());
         }
+        */
 
-        
+        public async void RunTrajectory()
+        {
+            int maxLength = trajectories.Values.Max(t => t.Count);
+
+            List<Task> tasks = new List<Task>();
+
+            foreach (var xbotID in trajectories.Keys)
+            {
+                if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        // Add the first two motions to the buffer
+                        double[] point = trajectories[xbotID][0];
+                        double[] nextPoint = trajectories[xbotID].Count > 1 ? trajectories[xbotID][1] : null;
+                        motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+                        if (nextPoint != null)
+                        {
+                            motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
+                        }
+
+                        for (int i = 1; i < trajectories[xbotID].Count - 1; i++)
+                        {
+                            MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                            int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                            XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
+                            double[] position = status.FeedbackPositionSI;
+                            position = position.Select(p => Math.Round(p, 3)).ToArray();
+
+                            PublishPositionAsync(xbotID, position);
+
+                            // Print the initial buffer count
+                            Console.WriteLine($"Initial buffer count for xbotID {xbotID}: {bufferCount}");
+
+                            // Wait until there is only 1 motion left in the buffer
+                            while (bufferCount > 1)
+                            {
+                                BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                // Print the buffer count during the wait
+                                Console.WriteLine($"Buffer count for xbotID {xbotID} during wait: {bufferCount}");
+                            }
+
+                            // Calculate direction vector
+                            double[] currentPoint = trajectories[xbotID][i];
+                            double[] nextPoint = trajectories[xbotID][i + 1];
+                            double[] directionVector = { nextPoint[0] - currentPoint[0], nextPoint[1] - currentPoint[1] };
+
+                            // Check if the direction is consistent
+                            if (i < trajectories[xbotID].Count - 2)
+                            {
+                                double[] nextNextPoint = trajectories[xbotID][i + 2];
+                                double[] nextDirectionVector = { nextNextPoint[0] - nextPoint[0], nextNextPoint[1] - nextPoint[1] };
+                                if (Math.Sign(directionVector[0]) != Math.Sign(nextDirectionVector[0]) || Math.Sign(directionVector[1]) != Math.Sign(nextDirectionVector[1]))
+                                {
+                                    Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
+                                    motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
+                                }
+                            }
+
+                            // Add the next motion to the buffer
+                            Console.WriteLine($"Adding point {i + 1} to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                            
+                        }
+                        lock (trajectories)
+                        {
+                            trajectories.Remove(xbotID);
+                        }
+                    }));
+                }
+            }
+
+            //Task.WaitAll(tasks.ToArray());
+        }
+
+
 
         public static async Task Main(string[] args) // Change return type to Task
         {

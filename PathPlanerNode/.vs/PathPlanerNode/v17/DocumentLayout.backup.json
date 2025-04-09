@@ -63,8 +63,7 @@
               "RelativeToolTip": "PathPlanerNode\\MainHandler.cs",
               "ViewState": "AgIAAA8AAAAAAAAAAAAAABkAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-31T07:27:42.971Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-03-31T07:27:42.971Z"
             },
             {
               "$type": "Document",
@@ -72,9 +71,9 @@
               "Title": "Pathfinding.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\Pathfinding.cs",
               "RelativeDocumentMoniker": "PathPlanerNode\\Pathfinding.cs",
-              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\Pathfinding.cs",
-              "RelativeToolTip": "PathPlanerNode\\Pathfinding.cs",
-              "ViewState": "AgIAAJQBAAAAAAAAAAApwK8BAAAdAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\Pathfinding.cs*",
+              "RelativeToolTip": "PathPlanerNode\\Pathfinding.cs*",
+              "ViewState": "AgIAAIIBAAAAAAAAAIAwwJkBAABaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-03-28T09:48:57.823Z",
               "EditorCaption": ""
@@ -89,8 +88,7 @@
               "RelativeToolTip": "PathPlanerNode\\MQTTSubscriber.cs",
               "ViewState": "AgIAABAAAAAAAAAAAAArwBoAAAAOAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-28T09:48:50.805Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-03-28T09:48:50.805Z"
             },
             {
               "$type": "Document",
@@ -102,8 +100,7 @@
               "RelativeToolTip": "PathPlanerNode\\MQTTPublisher.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-28T09:48:42.598Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-03-28T09:48:42.598Z"
             }
           ]
         },

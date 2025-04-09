@@ -126,7 +126,7 @@ namespace PathPlaningNode
                     cell.occupied.Clear();
                 }
             }
-
+            /*
             public void makeUnWalkable(node _node, int _xbotID, bool _obstacle) // Set node as unwalkable
             {
                 if (_obstacle)
@@ -139,6 +139,32 @@ namespace PathPlaningNode
                         _node.occupied.Add(_xbotID);
                 }
             }
+            */
+            public void makeUnWalkable(node _node, int _xbotID, int _xbotSize, bool _obstacle) // Set nodes as unwalkable
+            {
+                int halfSize = _xbotSize / 2;
+                for (int dx = -halfSize; dx <= halfSize; dx++)
+                {
+                    for (int dy = -halfSize; dy <= halfSize; dy++)
+                    {
+                        int newX = _node.nodePos[0] + dx;
+                        int newY = _node.nodePos[1] + dy;
+                        if (newX >= 0 && newX < width && newY >= 0 && newY < height)
+                        {
+                            if (_obstacle)
+                            {
+                                cells[newX, newY].obstacle = true;
+                            }
+                            else
+                            {
+                                if (!cells[newX, newY].occupied.Contains(_xbotID))
+                                    cells[newX, newY].occupied.Add(_xbotID);
+                            }
+                        }
+                    }
+                }
+            }
+
 
             // Added clone method for simulating changes without affecting the original grid.
             public grid Clone(int _xbotSize)
@@ -236,7 +262,7 @@ namespace PathPlaningNode
             int[,] priorityMatrix = getPriorityMatrix(_xBotID_From_To);
             List<(int, List<node>, int)> oldPathList = null;
 
-            Console.WriteLine("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
+            //Console.WriteLine("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
             for (int i = 0; i < priorityMatrix.GetLength(0); i++)
             {
 
@@ -263,13 +289,13 @@ namespace PathPlaningNode
                     oldPathList = newPathList;
                 }*/
             }
-            Console.WriteLine("Tried: " + priorityMatrix.GetLength(0) + " different priorities.");
+            //Console.WriteLine("Tried: " + priorityMatrix.GetLength(0) + " different priorities.");
             return null;
         }
         public Dictionary<int, List<double[]>> pathPlanRunner(grid _grid, List<(int, int[], int[])> _xBotID_From_To, int _xbotSize)
         {
-            Console.WriteLine($"Grid size: Width = {_grid.width}, Height = {_grid.height}");
-            Console.WriteLine($"Calling PriorityPlanner");
+            //Console.WriteLine($"Grid size: Width = {_grid.width}, Height = {_grid.height}");
+            //Console.WriteLine($"Calling PriorityPlanner");
             List<(int, List<node>, int)> pathList = priorityPlanner(_grid, _xBotID_From_To, _xbotSize);
             Dictionary<int, List<double[]>> output = new();
 
@@ -338,7 +364,7 @@ namespace PathPlaningNode
                 Dictionary<int, List<node>> botPaths = new();
 
                 // Compute paths for each bot, including any waiting steps
-                //Console.WriteLine($"Total bots to process: {_xBotID_From_To.Count}");
+                //,Console.WriteLine($"Total bots to process: {_xBotID_From_To.Count}");
                 foreach (var botTuple in _xBotID_From_To)
                 {
                     int botID = botTuple.Item1;
@@ -359,7 +385,7 @@ namespace PathPlaningNode
                     }
                     else
                     {
-                        Console.WriteLine("No path found for bot " + botID);
+                        //Console.WriteLine("No path found for bot " + botID);
                     }
                 }
 
@@ -391,7 +417,7 @@ namespace PathPlaningNode
 
                     // --- Simulate walk-around option ---
                     grid walkClone = _grid.Clone(_xbotSize);
-                    walkClone.makeUnWalkable(conflictNode, lowerPriorityBot, false);
+                    walkClone.makeUnWalkable(conflictNode, lowerPriorityBot,_xbotSize,  false);
                     (List<node> simWalkPath, int simWalkCost) = aStar(from, to, walkClone, lowerPriorityBot);
                     if (simWalkPath == null || simWalkCost == 0)
                     {
@@ -416,20 +442,20 @@ namespace PathPlaningNode
                             botWaitingPaths[lowerPriorityBot] = new List<node>();
                         botWaitingPaths[lowerPriorityBot].Add(startNode);
 
-                        Console.WriteLine($"Bot {lowerPriorityBot} chooses to wait. New wait time: {botWaitTime[lowerPriorityBot]}.");
+                        //Console.WriteLine($"Bot {lowerPriorityBot} chooses to wait. New wait time: {botWaitTime[lowerPriorityBot]}.");
                     }
                     else
                     {
                         // Choose walk-around option.
-                        _grid.makeUnWalkable(conflictNode, lowerPriorityBot, false);
-                        Console.WriteLine($"Bot {lowerPriorityBot} chooses to walk around the conflict at ({conflictNode.nodePos[0]}, {conflictNode.nodePos[1]}).");
+                        _grid.makeUnWalkable(conflictNode, lowerPriorityBot, _xbotSize ,false);
+                        //Console.WriteLine($"Bot {lowerPriorityBot} chooses to walk around the conflict at ({conflictNode.nodePos[0]}, {conflictNode.nodePos[1]}).");
                     }
                 }
 
                 iteration++;
             }
 
-            Console.WriteLine("No conflict solution found");
+            //Console.WriteLine("No conflict solution found");
             return null;
         }
         #endregion
