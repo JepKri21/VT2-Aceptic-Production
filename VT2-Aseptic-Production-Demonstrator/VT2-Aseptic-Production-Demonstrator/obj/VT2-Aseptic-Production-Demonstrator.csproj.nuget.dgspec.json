@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Vikto\\Desktop\\AAU\\VT1 Project\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj": {}
+    "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Vikto\\Desktop\\AAU\\VT1 Project\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj": {
+    "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Vikto\\Desktop\\AAU\\VT1 Project\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
+        "projectUniqueName": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
         "projectName": "VT2-Aseptic-Production-Demonstrator",
-        "projectPath": "C:\\Users\\Vikto\\Desktop\\AAU\\VT1 Project\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
-        "packagesPath": "C:\\Users\\Vikto\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Vikto\\Desktop\\AAU\\VT1 Project\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\obj\\",
+        "projectPath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
+        "packagesPath": "C:\\Users\\jeppe\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Vikto\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\jeppe\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -49,6 +49,12 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "MQTTnet": {
+              "target": "Package",
+              "version": "[4.3.7.1207, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",

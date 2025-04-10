@@ -15,7 +15,8 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static XBotCommands xBotCommands = new XBotCommands();
         private connection_handler connectionHandler = new connection_handler();
         private realtime_movement_test realtimeMovement = new realtime_movement_test();
-
+        private ListBasedMotionStructure listBasedMotionStructure = new ListBasedMotionStructure();
+        //private Pathfinding pathfinding = new Pathfinding();
 
 
 
@@ -51,8 +52,8 @@ ____________________________________________________________________| ";
                 {
                     // Connection to the PMC and aquire mastership
                     Console.Clear();
-                    CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-                    Console.WriteLine(status);
+                    //CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+                    //Console.WriteLine(status);
                     
 
                     selector = 1;
@@ -65,6 +66,7 @@ ____________________________________________________________________| ";
                     Console.WriteLine("Choose program by entering the appropriate number: ");
                     Console.WriteLine("0:   Run Calibration again");
                     Console.WriteLine("1:   Run the Aseptic Production Demonstrator");
+                    Console.WriteLine("2:   Run List based motion structure");
                     Console.WriteLine("ESC: Exit program");
                     ConsoleKeyInfo keyinfo = Console.ReadKey();
 
@@ -76,6 +78,9 @@ ____________________________________________________________________| ";
 
                         case '1':
                             selector = 2;
+                            break;
+                        case '2':
+                            selector = 3;
                             break;
 
 
@@ -95,8 +100,13 @@ ____________________________________________________________________| ";
                 
                 while(selector == 2) 
                 {
-                    realtimeMovement.runRealtimeMovementTest(xbot_ids);
-                    selector = realtimeMovement.setSelectorOne();
+                    //realtimeMovement.runRealtimeMovementTest(xbot_ids);
+                    //selector = realtimeMovement.setSelectorOne();
+                }
+                while(selector == 3)
+                {
+                    listBasedMotionStructure.runListBasedMotion(xbot_ids);
+                        selector = listBasedMotionStructure.setSelectorOne();
                 }
 
             } while (true);

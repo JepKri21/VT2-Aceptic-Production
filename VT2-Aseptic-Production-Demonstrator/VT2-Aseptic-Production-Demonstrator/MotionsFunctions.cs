@@ -18,6 +18,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private static WaitUntilTriggerParams time_params = new WaitUntilTriggerParams();
 
         double speedLinar = 0.5;
+        double speedRotation = 0.1;
         double speedFinal = 0.0;
         double acclerationMax = 0.1;
         double rotationVel = 1;
@@ -88,6 +89,10 @@ namespace VT2_Aseptic_Production_Demonstrator
         {
             time_params.delaySecs = secs;
             _xbotCommand.WaitUntil(0, xbotID, TRIGGERSOURCE.TIME_DELAY, time_params);
+        }
+        public ushort RetrunCmdLabel()
+        {
+            return globalCmdLabel;
         }
 
     }
