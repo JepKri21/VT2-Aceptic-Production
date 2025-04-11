@@ -23,12 +23,12 @@ namespace PathPlaningNode
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
         Dictionary<int, double[]> targetPostions = new Dictionary<int, double[]>();
         Dictionary<int, double[]> postions = new Dictionary<int, double[]>();
-        int xbotSize = 120;
-        int width = 721;
-        int height = 961;
+        int xbotSize = 12;
+        int width = 72;
+        int height = 96;
         private Pathfinding.grid gridGlobal;
         private Pathfinding pathfinder;
-        List<(int, int[], int[])> xBotID_From_To = new List<(int, int[], int[])>();
+        List<(int, double[], double[])> xBotID_From_To = new List<(int, double[], double[])>();
 
 
 
@@ -50,9 +50,9 @@ namespace PathPlaningNode
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
             {
-                { "Acopos6D/xbots/+/targetPosition", getTargetPostion },
-                { "Acopos6D/xbots/+/position", getPostion },
-                { "Acopos6D/PathPlan", HandleStatus }
+                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPostion },
+                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Position", getPostion },
+                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/PathPlan", HandleStatus }
             };
         }
 
@@ -79,29 +79,32 @@ namespace PathPlaningNode
         #region GetTargetAndPostion    
         public async void getTargetPostion(string topic, string message)
         {
+            Console.WriteLine($"Received target position message on topic {topic}: {message}");
             //Console.WriteLine($"Received message on topic {topic}: {message}");
            
             var targetPosition = JsonSerializer.Deserialize<double[]>(message);
             // Split the topic into segments
             string[] segments = topic.Split('/');
             // Find the segment that starts with "xbot" and extract the numeric part
-            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("xbot")) ?? throw new InvalidOperationException("xbot segment not found");
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
             int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
 
-            targetPostions[xbotId] = targetPosition ?? throw new InvalidOperationException("targetPosition is null");
+            Console.WriteLine($"Updating target position for xbotID {xbotId}: {string.Join(", ", targetPosition)}");
+            targetPostions[xbotId] = targetPosition ?? throw new InvalidOperationException("TargetPosition is null");
             UpdateFromAndTo(xbotId);
         }
 
         public async void getPostion(string topic, string message)
         {
-            //Console.WriteLine($"Received message on topic {topic}: {message}");
-            Console.WriteLine("Hej");
+            Console.WriteLine($"Received message on topic {topic}: {message}");
+            
             var position = JsonSerializer.Deserialize<double[]>(message);
             // Split the topic into segments
             string[] segments = topic.Split('/');
             // Find the segment that starts with "xbot" and extract the numeric part
-            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("xbot")) ?? throw new InvalidOperationException("xbot segment not found");
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException("xbot segment not found");
             int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
+            Console.WriteLine($"Updating position for xbotID {xbotId}: {string.Join(", ", position)}");
 
             postions[xbotId] = position ?? throw new InvalidOperationException("Position is null");
             UpdateFromAndTo(xbotId);
@@ -110,6 +113,10 @@ namespace PathPlaningNode
             // Check if the list already contains a value for the given xbotID
         private async void UpdateFromAndTo(int xbotID)
         {
+            Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
+            Console.WriteLine($"postions contains: {string.Join(", ", postions.Keys)}");
+            Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPostions.Keys)}");
+
             if (postions.ContainsKey(xbotID) && targetPostions.ContainsKey(xbotID))
             {
                 var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
@@ -118,20 +125,15 @@ namespace PathPlaningNode
                 {
                     xBotID_From_To.Remove(existingEntry);
                 }
-                xBotID_From_To.Add((xbotID, ConvertToIntArray(postions[xbotID]), ConvertToIntArray(targetPostions[xbotID])));
+                xBotID_From_To.Add((xbotID, postions[xbotID], targetPostions[xbotID]));
                 PrintXBotIDFromTo();
             }
             else
             {
-                Console.WriteLine($"xbotID {xbotID} not found in postions or targetPostions dictionaries.");
+                Console.WriteLine($"XbotID {xbotID} not found in postions or targetPostions dictionaries.");
             }
+        }
         
-            
-        }
-        private int[] ConvertToIntArray(double[] array)
-        {
-            return array.Select(value => (int)(value * 1000)).ToArray();
-        }
         public void PrintXBotIDFromTo()
         {
             foreach (var entry in xBotID_From_To)
@@ -204,13 +206,14 @@ namespace PathPlaningNode
             {
                 Console.WriteLine("Running Path Planner");
                 PrintGridSize();
-                trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize);
+                trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
+                    .ToDictionary(item => item.Item1, item => item.Item2);
                 
                 foreach (var trajectory in trajectories)
                 {
                     Console.WriteLine($"Trajectory for xbot{trajectory.Key}: {trajectory.Value}");
                     var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList());
-                    await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{trajectory.Key}/trajectory", trajectoryMessage);
+                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{trajectory.Key}/Trajectory", trajectoryMessage);
                     Console.WriteLine($"Published trajectory for xbot {trajectory.Key}: {trajectoryMessage}");
                 }
                 
