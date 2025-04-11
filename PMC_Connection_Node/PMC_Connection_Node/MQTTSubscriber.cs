@@ -20,11 +20,11 @@ namespace PMC_Connection_Node
         public event Action<string, string> MessageReceived;
 
 
-        public MQTTSubscriber(string broker, int port, string topic)
+        public MQTTSubscriber(string broker, int port )
         {
             var factory = new MqttFactory();
             _mqttClient = factory.CreateMqttClient();
-            _topic = topic;
+           
 
             _options = new MqttClientOptionsBuilder()
                 .WithTcpServer(broker, port)
@@ -33,7 +33,7 @@ namespace PMC_Connection_Node
                 .Build();
 
             _mqttClient.ApplicationMessageReceivedAsync += MessageReceivedHandler;
-            _mqttClient.ConnectedAsync += ConnectedHandler;
+            
             _mqttClient.DisconnectedAsync += DisconnectedHandler;
         }
 
@@ -47,6 +47,13 @@ namespace PMC_Connection_Node
             await _mqttClient.DisconnectAsync();
         }
 
+        public async Task SubscribeAsync(string topic)
+        {
+            await _mqttClient.SubscribeAsync(topic, MqttQualityOfServiceLevel.AtLeastOnce);
+            Console.WriteLine($"Subscribed to topic: {topic}");
+        }
+
+
         private async Task MessageReceivedHandler(MqttApplicationMessageReceivedEventArgs e)
         {
             string topic = e.ApplicationMessage.Topic;
@@ -58,12 +65,7 @@ namespace PMC_Connection_Node
             MessageReceived?.Invoke(topic, payload);
         }
 
-        private async Task ConnectedHandler(MqttClientConnectedEventArgs e)
-        {
-            Console.WriteLine("Connected to MQTT broker.");
-            await _mqttClient.SubscribeAsync(_topic, MqttQualityOfServiceLevel.AtLeastOnce);
-            Console.WriteLine($"Subscribed to topic: {_topic}");
-        }
+        
 
         private async Task DisconnectedHandler(MqttClientDisconnectedEventArgs e)
         {

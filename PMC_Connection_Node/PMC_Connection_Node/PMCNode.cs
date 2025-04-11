@@ -35,9 +35,38 @@ namespace PMC
             InitializeMqttPublisher();
             PublishTargetPositionsAsync();
             PublishXbotIDAsync();
-            SendPostions();
+            PublishPostionsAsync();
+        }
+        #region MQTT Initialize
+        private async void InitializeMqttSubscriber()
+        {
+            mqttSubscriber = new MQTTSubscriber(brokerIP, port);
+            mqttSubscriber.MessageReceived += messageHandler;
+            await mqttSubscriber.StartAsync();
+            Console.WriteLine("Connected to MQTT broker.");
+            // Subscribe to each specific topic in the topicHandlers dictionary
+            foreach (var topic in topicHandlers.Keys)
+            {
+                await mqttSubscriber.SubscribeAsync(topic);
+            }
+        }
+        private void InitializeTopicHandlers()
+        {
+            topicHandlers = new Dictionary<string, Action<string, string>>
+            {
+            { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Trajectory", GetTrajectories },
+            { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus }
+            };
         }
 
+        private async void InitializeMqttPublisher()
+        {
+            mqttPublisher = new MQTTPublisher(brokerIP, port);
+            await mqttPublisher.StartAsync();
+        }
+        #endregion
+
+        #region MQTT Publishers
         public async Task PublishTargetPositionsAsync()
         {
             double[] targetPosition1 = { 0.660, 0.400 };
@@ -56,25 +85,11 @@ namespace PMC
             foreach (var targetPosition in targetPositions)
             {
                 var message = JsonSerializer.Serialize(targetPosition.Value);
-                await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{targetPosition.Key}/targetPosition", message);
+                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{targetPosition.Key}/TargetPosition", message);
                 Console.WriteLine($"Published target position for xbot {targetPosition.Key}: {string.Join(", ", targetPosition.Value)}");
             }
         }
-
-        private async void InitializeMqttSubscriber()
-        {
-            mqttSubscriber = new MQTTSubscriber(brokerIP, 1883, "Acopos6D/#");
-            mqttSubscriber.MessageReceived += messageHandler;
-            await mqttSubscriber.StartAsync();
-        }
-
-        private async void InitializeMqttPublisher()
-        {
-            mqttPublisher = new MQTTPublisher(brokerIP, port);
-            await mqttPublisher.StartAsync();
-        }
-
-        private async void SendPostions()
+        private async void PublishPostionsAsync()
         {
             foreach (var xbot in xbotsID)
             {
@@ -88,14 +103,45 @@ namespace PMC
             }
         }
 
-        private void InitializeTopicHandlers()
+        private async void PublishPostionsINFAsync()
         {
-            topicHandlers = new Dictionary<string, Action<string, string>>
-            { 
-            { "Acopos6D/xbots/+/trajectory", GetTrajectories },
-            { "Acopos6D/PathPlan", HandleStatus }
-            };
+            while (true)
+            {
+                foreach (var xbot in xbotsID)
+                {
+                    XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
+                    double[] position = status.FeedbackPositionSI;
+                    position = position.Select(p => Math.Round(p, 3)).ToArray();
+                    double[] positionXY = { position[0], position[1] };
+
+                    //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
+                    PublishPositionAsync(xbot, positionXY);
+                }
+                await Task.Delay(1000);
+            }
         }
+        public async Task PublishPositionAsync(int xbotId, double[] position)
+        {
+            var message = JsonSerializer.Serialize(position);
+            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotId}/Position", message);
+            //Console.WriteLine($"Published position for xbot {xbotId}: {string.Join(", ", position)}");
+        }
+
+        public async Task PublishXbotIDAsync()
+        {
+            XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
+            xbotsID = xBotIDs.XBotIDsArray;
+            Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
+            var message = JsonSerializer.Serialize(xbotsID);
+            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/IDs", message);
+        }
+
+        #endregion
+
+
+
+
+
 
         private async void messageHandler(string topic, string message)
         {
@@ -168,7 +214,7 @@ namespace PMC
             }
             if (message == "SendPostions")
             {
-                SendPostions();
+                PublishPostionsAsync();
             }
             if (message == "runPathPlanner")
             {
@@ -190,23 +236,7 @@ namespace PMC
             }
         }
 
-        private async void SendPostionsINF()
-        {
-            while (true)
-            {
-                foreach (var xbot in xbotsID)
-                {
-                    XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
-                    double[] position = status.FeedbackPositionSI;
-                    position = position.Select(p => Math.Round(p, 3)).ToArray();
-                    double[] positionXY = { position[0], position[1] };
-
-                    //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
-                    PublishPositionAsync(xbot, positionXY);
-                }
-                await Task.Delay(1000); 
-            }
-        }
+        
 
         public void PrintTrajectories()
         {
@@ -226,21 +256,7 @@ namespace PMC
         
 
 
-        public async Task PublishPositionAsync(int xbotId, double[] position)
-        {
-            var message = JsonSerializer.Serialize(position);
-            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{xbotId}/position", message);
-            Console.WriteLine($"Published position for xbot {xbotId}: {string.Join(", ", position)}");
-        }
-
-        public async Task PublishXbotIDAsync()
-        {
-            XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
-            xbotsID = xBotIDs.XBotIDsArray;
-            Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
-            var message = JsonSerializer.Serialize(xbotsID);
-            await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/IDs", message);
-        }
+        
 
 
         public async void GetTrajectories(string topic, string message )
@@ -377,18 +393,18 @@ namespace PMC
 
                             // Calculate direction vector
                             double[] currentPoint = trajectories[xbotID][i];
-                            double[] nextPoint = trajectories[xbotID][i + 1];
+                            double[] nextPointDirection = trajectories[xbotID][i + 1];
                             double[] directionVector = { nextPoint[0] - currentPoint[0], nextPoint[1] - currentPoint[1] };
 
                             // Check if the direction is consistent
                             if (i < trajectories[xbotID].Count - 2)
                             {
                                 double[] nextNextPoint = trajectories[xbotID][i + 2];
-                                double[] nextDirectionVector = { nextNextPoint[0] - nextPoint[0], nextNextPoint[1] - nextPoint[1] };
+                                double[] nextDirectionVector = { nextNextPoint[0] - nextPointDirection[0], nextNextPoint[1] - nextPointDirection[1] };
                                 if (Math.Sign(directionVector[0]) != Math.Sign(nextDirectionVector[0]) || Math.Sign(directionVector[1]) != Math.Sign(nextDirectionVector[1]))
                                 {
                                     Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
-                                    motionsFunctions.LinarMotion(0, xbotID, nextPoint[0], nextPoint[1], "D");
+                                    motionsFunctions.LinarMotion(0, xbotID, nextPointDirection[0], nextPointDirection[1], "D");
                                 }
                             }
 
@@ -415,7 +431,7 @@ namespace PMC
             PMC_Connection_Node client = new PMC_Connection_Node();
 
 
-            Thread thread1 = new Thread(new ThreadStart(client.SendPostionsINF));
+            Thread thread1 = new Thread(new ThreadStart(client.PublishPostionsINFAsync));
 
             
             thread1.Start();

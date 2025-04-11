@@ -1,10 +1,11 @@
-﻿using System;
+﻿using MQTTnet.Protocol;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
-using UnityEngine;
+//using UnityEngine;
 
 
 
@@ -60,7 +61,7 @@ namespace PathPlaningNode
             mqttSubscriber = new MQTTSubscriber(brokerIP, port);
             mqttSubscriber.MessageReceived += messageHandler;
             await mqttSubscriber.StartAsync();
-
+            Console.WriteLine("Connected to MQTT broker.");
             // Subscribe to each specific topic in the topicHandlers dictionary
             foreach (var topic in topicHandlers.Keys)
             {

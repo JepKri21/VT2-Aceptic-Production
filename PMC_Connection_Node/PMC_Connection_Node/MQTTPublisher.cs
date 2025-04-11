@@ -71,7 +71,7 @@ namespace PMC_Connection_Node
 
                 // Publish the message to the broker
                 await _mqttClient.PublishAsync(mqttMessage);
-                Console.WriteLine($"Message published to topic '{topic}': {message}");
+                //Console.WriteLine($"Message published to topic '{topic}': {message}");
             }
             else
             {

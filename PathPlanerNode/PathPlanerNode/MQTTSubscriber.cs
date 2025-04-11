@@ -24,7 +24,7 @@ namespace PathPlaningNode
         {
             var factory = new MqttFactory();
             _mqttClient = factory.CreateMqttClient();
-            //_topic = topic;
+            
 
             _options = new MqttClientOptionsBuilder()
                 .WithTcpServer(broker, port)
@@ -32,8 +32,7 @@ namespace PathPlaningNode
                 .WithProtocolVersion(MqttProtocolVersion.V500)  // Set to MQTT v5.0
                 .Build();
 
-            _mqttClient.ApplicationMessageReceivedAsync += MessageReceivedHandler;
-            //_mqttClient.ConnectedAsync += ConnectedHandler;
+            _mqttClient.ApplicationMessageReceivedAsync += MessageReceivedHandler;            
             _mqttClient.DisconnectedAsync += DisconnectedHandler;
         }
 
@@ -64,12 +63,7 @@ namespace PathPlaningNode
             MessageReceived?.Invoke(topic, payload);
         }
 
-        private async Task ConnectedHandler(MqttClientConnectedEventArgs e)
-        {
-            Console.WriteLine("Connected to MQTT broker.");
-            await _mqttClient.SubscribeAsync(_topic, MqttQualityOfServiceLevel.AtLeastOnce);
-            Console.WriteLine($"Subscribed to topic: {_topic}");
-        }
+        
 
         private async Task DisconnectedHandler(MqttClientDisconnectedEventArgs e)
         {
