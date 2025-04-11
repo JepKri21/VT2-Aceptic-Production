@@ -55,7 +55,7 @@ void loop() {
   }
   client.loop(); // Behandler indgående MQTT-beskeder
 
-  // Send data hver 10. sekund
+  // Send data hver 10. sekund <- Kan fjernes eller ændres til noget andet.
   long now = millis();
   if (now - lastMsg > 10000) {
     lastMsg = now;
