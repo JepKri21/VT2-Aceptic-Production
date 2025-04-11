@@ -3,10 +3,16 @@
 #include <Wire.h>
 #include <WiFi.h>
 
-// WiFi-oplysninger
-const char* ssid = "smart_production_WIFI";
-const char* pass = "aau smart production lab";
-const char* mqtt_serv = "172.20.66.135";
+// WiFi-oplysninger AAU Smart Production
+// const char* ssid = "smart_production_WIFI";
+// const char* pass = "aau smart production lab";
+// const char* mqtt_serv = "172.20.66.135";
+
+// WiFi-oplysninger AAU Smart Production
+const char* ssid = "Lucas - iPhone";
+const char* pass = "LNB12345";
+const char* mqtt_serv = "172.20.10.4";
+
 
 // MQTT Topics
 const char* topic_pub = "ACOPOS/movement";
