@@ -29,13 +29,16 @@ namespace PMC
         private PMC_Connection_Node()
         {
             InitializeTopicHandlers();
-            CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-            Console.WriteLine(status);
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
-            PublishTargetPositionsAsync();
+            
+            CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+            Console.WriteLine(status);
+            
+            
             PublishXbotIDAsync();
-            PublishPostionsAsync();
+            PublishTargetPositionsAsync();
+
         }
         #region MQTT Initialize
         private async void InitializeMqttSubscriber()
@@ -69,7 +72,7 @@ namespace PMC
         #region MQTT Publishers
         public async Task PublishTargetPositionsAsync()
         {
-            double[] targetPosition1 = { 0.660, 0.400 };
+            double[] targetPosition1 = { 0.2, 0.36 };
             double[] targetPosition2 = { 0.120, 0.120 };
             double[] targetPosition3 = { 0.600, 0.520 };
             double[] targetPosition4 = { 0.200, 0.500 };
@@ -218,17 +221,7 @@ namespace PMC
             }
             if (message == "runPathPlanner")
             {
-                /*trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize);
-
-                foreach (var trajectory in trajectories)
-                {
-                    Console.WriteLine($"Trajectory for xbot{trajectory.Key}: {trajectory.Value}");
-                    var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new { x = t[0], y = t[1] }).ToList());
-                    await mqttPublisher.PublishMessageAsync($"Acopos6D/xbots/xbot{trajectory.Key}/trajectory", trajectoryMessage);
-                    Console.WriteLine($"Published trajectory for xbot {trajectory.Key}: {trajectoryMessage}");
-                }
-
-                */
+                
             }
             else
             {
@@ -251,7 +244,6 @@ namespace PMC
                     Console.WriteLine($"({point[0]:F3}, {point[1]:F3})");
                 }
             }
-            
         }
         
 
@@ -275,6 +267,7 @@ namespace PMC
                     Console.WriteLine($"({point[0]:F3}, {point[1]:F3})");
                 }
                 trajectories[xbotId] = trajectory;
+                
             }
         }
 

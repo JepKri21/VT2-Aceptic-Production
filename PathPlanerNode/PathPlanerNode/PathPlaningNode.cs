@@ -52,7 +52,7 @@ namespace PathPlaningNode
             {
                 { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPostion },
                 { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Position", getPostion },
-                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/PathPlan", HandleStatus }
+                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus }
             };
         }
 
