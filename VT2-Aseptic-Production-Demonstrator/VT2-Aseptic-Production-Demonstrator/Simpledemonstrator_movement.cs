@@ -67,56 +67,33 @@ namespace VT2_Aseptic_Production_Demonstrator
                 case '1':
                     //Starting the initial position process--------------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
-                    int[] initialXbots = { 1, 2, 3 }; //You could make this dynamic so that you don't have to specify how many you are using.
-                    double[] initalX = { 0.600, 0.360, 0.120, 0.120 };
-                    double[] initialY = { 0.840, 0.840, 0.840, 0.600 };
-
-                    //Drive to initial positions
-                    _xbotCommand.AutoDrivingMotionSI(initialXbots.Length, ASYNCOPTIONS.MOVEALL, initialXbots, initalX, initialY);
-
-                    for (int i = 0; i <= initialXbots.Length; i++)
-                    {
-                        MF.RotateMotion(0, i, 0, "CW");
-                    }
+                    //int[] initialXbots = { 1, 2, 3 }; //You could make this dynamic so that you don't have to specify how many you are using.
+                    //double[] initalX = { 0.600, 0.360, 0.120, 0.120 };
+                    //double[] initialY = { 0.840, 0.840, 0.840, 0.600 };
+                    //
+                    ////Drive to initial positions
+                    //_xbotCommand.AutoDrivingMotionSI(initialXbots.Length, ASYNCOPTIONS.MOVEALL, initialXbots, initalX, initialY);
+                    //
+                    //for (int i = 0; i <= initialXbots.Length; i++)
+                    //{
+                    //    MF.RotateMotion(0, i, 0, "CW");
+                    //}
 
                     //Motion Functions of the filling line---------------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
-                    Action<int> fillingMovements = (id) =>
-                    {
-                        //Moving through the filling steps
-                        MF.LinarMotion(0, id, 0.660, 0.840, "YX");
-                        MF.Stationairy(3, id);
-                        MF.LinarMotion(0, id, 0.660, 0.839, "XY");
-
-                    };
+                    
+                    double[] fillingAction = [0.660, 0.840];
 
                     //Motion Functions of the stoppering line------------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
 
-                    Action<int> stopperingMovements = (id) =>
-                    {
-                        MF.LinarMotion(0, id, 0.660, 0.120, "YX");
-                        MF.Stationairy(5, id);
-                        MF.LinarMotion(0, id, 0.660, 0.119, "XY");
-
-                    };
+                    double[] stopperingAction = [0.660, 0.120];
 
                     //Motion Functions of the vision line----------------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
 
-                    Action<int> visionMovements = (id) =>
-                    {
-                        MF.LinarMotion(0, id, 0.120, 0.120, "YX");
-                        MF.RotateMotion(0, id, 90, "CCW");
-                        MF.Stationairy(1, id);
-                        MF.RotateMotion(0, id, 180, "CCW");
-                        MF.Stationairy(1, id);
-                        MF.RotateMotion(0, id, 0, "CW");
-                        MF.LinarMotion(0, id, 0.060, 0.180, "XY");
-
-                    };
-
-
+                    double[] visionAction = [0.120, 0.120];
+                   
                     //Passing positions to the queues------------------------------------------------------
                     //---------------------------------------------------------------------------------------------------
                     double[] fillingQueuePosX = { 0.420, 0.300, 0.180 };
@@ -143,9 +120,9 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Vision.stationTaskName = "Vision";
                     PhysicalEndQueue.queueName = "Done";
 
-                    Filling.passingStationMovement(fillingMovements);
-                    Stoppering.passingStationMovement(stopperingMovements);
-                    Vision.passingStationMovement(visionMovements);
+                    Filling.passingStationAction(fillingAction);
+                    Stoppering.passingStationAction(stopperingAction);
+                    Vision.passingStationAction(visionAction);
 
                     Filling.passingStationQueuePositions(fillingQueuePosX, fillingQueuePosY);
                     Stoppering.passingStationQueuePositions(stopperingQueuePosX, stopperingQueuePosY);
@@ -188,10 +165,6 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                         foreach (ShuttleClass shuttle in allShuttles)
                         {
-                            Console.Write("Shuttle ");
-                            Console.Write(shuttle.shuttleID);
-                            Console.Write(" has these tasks ");
-                            Console.WriteLine(string.Join(", ", shuttle.Tasks));
 
                             if (shuttle.bufferMotionCount == 0 && shuttle.Tasks.Count > 0) //If their buffer is empty, meaning they are idle and they have a task to do
                             {

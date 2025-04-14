@@ -51,9 +51,9 @@ ____________________________________________________________________| ";
                 while (selector == 0)
                 {
                     // Connection to the PMC and aquire mastership
-                    Console.Clear();
-                    //CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-                    //Console.WriteLine(status);
+                    //Console.Clear();
+                    CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+                    Console.WriteLine(status);
                     
 
                     selector = 1;
@@ -61,7 +61,7 @@ ____________________________________________________________________| ";
 
                 while (selector == 1)
                 {
-                    Console.Clear();
+                    //Console.Clear();
                     Console.WriteLine(title);
                     Console.WriteLine("Choose program by entering the appropriate number: ");
                     Console.WriteLine("0:   Run Calibration again");
