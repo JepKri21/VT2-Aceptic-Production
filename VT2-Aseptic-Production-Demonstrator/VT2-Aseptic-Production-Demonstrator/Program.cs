@@ -27,7 +27,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
         // XBot Ids
         // Change depending on the number of XBot's in the system
-        public int[] xbot_ids = {1, 2, 3, 4};
+        public int[] xbot_ids = {1};
 
 
         string title = @"
@@ -51,9 +51,9 @@ ____________________________________________________________________| ";
                 while (selector == 0)
                 {
                     // Connection to the PMC and aquire mastership
-                    Console.Clear();
-                    //CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-                    //Console.WriteLine(status);
+                    //Console.Clear();
+                    CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+                    Console.WriteLine(status);
                     
 
                     selector = 1;
@@ -61,7 +61,7 @@ ____________________________________________________________________| ";
 
                 while (selector == 1)
                 {
-                    Console.Clear();
+                    //Console.Clear();
                     Console.WriteLine(title);
                     Console.WriteLine("Choose program by entering the appropriate number: ");
                     Console.WriteLine("0:   Run Calibration again");
