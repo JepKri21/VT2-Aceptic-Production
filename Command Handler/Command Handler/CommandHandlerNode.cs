@@ -42,7 +42,7 @@ namespace CommandHandlerNode
             //Motion Functions of the filling line---------------------------------------------------------------
             //---------------------------------------------------------------------------------------------------
 
-            double[] fillingAction = [0.660, 0.840];
+            double[] fillingAction = [0.660, 0.840];  
 
             //Motion Functions of the stoppering line------------------------------------------------------------
             //---------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ namespace CommandHandlerNode
             //Passing positions to the queues------------------------------------------------------
             //---------------------------------------------------------------------------------------------------
             double[] fillingQueuePosX = { 0.420, 0.300, 0.180 };
-            double[] fillingQueuePosY = { 0.900, 0.900, 0.900 };
+            double[] fillingQueuePosY = { 0.890, 0.890, 0.890 };
 
 
             double[] stopperingQueuePosX = { 0.660, 0.660, 0.660 };
@@ -77,7 +77,7 @@ namespace CommandHandlerNode
             Filling.stationTaskName = "FillingStation";
             Stoppering.stationTaskName = "StopperingStation";
             Vision.stationTaskName = "VisionStation";
-            PhysicalEndQueue.queueName = "Done";
+            PhysicalEndQueue.queueName = "EndQueue";
 
             Filling.passingStationAction(fillingAction);
             Stoppering.passingStationAction(stopperingAction);
@@ -172,6 +172,7 @@ namespace CommandHandlerNode
         {
 
             var command = JsonSerializer.Deserialize<string>(message);
+            //var command = message;
             // Split the topic into segments
             string[] segments = topic.Split('/');
             // Find the segment that starts with "xbot" and extract the numeric part
@@ -193,7 +194,9 @@ namespace CommandHandlerNode
             Console.WriteLine("Now gonna run the command checker");
             commandHandlingCheck();
 
-            //Here I should then add the big function that checks all the commands and sends target positions
+            //Console.WriteLine("Now publishing runPathPlanner");
+            //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+
 
         }
 
@@ -239,6 +242,10 @@ namespace CommandHandlerNode
                 }
             }
             commandHandlingCheck();
+
+            //Console.WriteLine("Now publishing runPathPlanner");
+            //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+
         }
 
 
