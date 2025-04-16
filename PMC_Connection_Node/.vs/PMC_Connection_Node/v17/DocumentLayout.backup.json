@@ -46,8 +46,7 @@
               "RelativeToolTip": "PMC_Connection_Node\\ATrajectory.xml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAPwAAAADAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003576|",
-              "WhenOpened": "2025-04-04T07:06:24.245Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-16T09:40:01.866Z"
             },
             {
               "$type": "Document",
@@ -55,15 +54,11 @@
               "Title": "PMCNode.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\PMCNode.cs",
-              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs*",
-              "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs*",
-<<<<<<< HEAD
-              "ViewState": "AgIAANEBAAAAAAAAAAAuwOMBAAAmAAAAAAAAAA==",
-=======
-              "ViewState": "AgIAAEEAAAAAAAAAAAAgwEwAAAAzAAAAAAAAAA==",
->>>>>>> AddTimeSyncToMotions
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
+              "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs",
+              "ViewState": "AgIAADMAAAAAAAAAAAAQwEwAAAA3AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-26T12:12:51.505Z",
+              "WhenOpened": "2025-04-16T09:40:02.301Z",
               "EditorCaption": ""
             },
             {
@@ -76,7 +71,7 @@
               "RelativeToolTip": "PMC_Connection_Node\\connection_handler.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAD8AAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-26T15:01:22.602Z"
+              "WhenOpened": "2025-04-16T09:40:02.306Z"
             },
             {
               "$type": "Document",
@@ -88,7 +83,7 @@
               "RelativeToolTip": "PMC_Connection_Node\\MQTTSubscriber.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-26T12:19:57.293Z"
+              "WhenOpened": "2025-04-16T09:40:02.31Z"
             }
           ]
         },

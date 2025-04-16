@@ -1,21 +1,21 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\",
+  "WorkspaceRootPath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\silas\\desktop\\manufacturing technology 2\\vt2 project\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\pmcnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\pmcnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\pmcnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\silas\\desktop\\manufacturing technology 2\\vt2 project\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\atrajectory.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\atrajectory.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
       "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\atrajectory.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\silas\\desktop\\manufacturing technology 2\\vt2 project\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\mqttsubscriber.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\mqttsubscriber.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\mqttsubscriber.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\silas\\desktop\\manufacturing technology 2\\vt2 project\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\connection_handler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\connection_handler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\connection_handler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
@@ -30,66 +30,74 @@
           "Children": [
             {
               "$type": "Bookmark",
-              "Name": "ST:0:0:{57d563b6-44a5-47df-85be-f4199ad6b651}"
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+              "Name": "ST:129:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
               "Title": "ATrajectory.xml",
-              "DocumentMoniker": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\ATrajectory.xml",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\ATrajectory.xml",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\ATrajectory.xml",
-              "ToolTip": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\ATrajectory.xml",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\ATrajectory.xml",
               "RelativeToolTip": "PMC_Connection_Node\\ATrajectory.xml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAPwAAAADAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003576|",
-              "WhenOpened": "2025-04-04T07:06:24.245Z"
+              "WhenOpened": "2025-04-16T09:40:01.866Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "PMCNode.cs",
-              "DocumentMoniker": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\PMCNode.cs",
-<<<<<<< HEAD
-              "ToolTip": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
-              "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs",
-              "ViewState": "AgIAAAMAAAAAAAAAAAAwwBIAAABGAAAAAAAAAA==",
-=======
               "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
               "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs",
-              "ViewState": "AgIAALcBAAAAAAAAAAAUwMQBAAAoAAAAAAAAAA==",
->>>>>>> AddTimeSyncToMotions
+              "ViewState": "AgIAADMAAAAAAAAAAAAQwEwAAAA3AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-26T12:12:51.505Z",
+              "WhenOpened": "2025-04-16T09:40:02.301Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
               "Title": "connection_handler.cs",
-              "DocumentMoniker": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\connection_handler.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\connection_handler.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\connection_handler.cs",
-              "ToolTip": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\connection_handler.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\connection_handler.cs",
               "RelativeToolTip": "PMC_Connection_Node\\connection_handler.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAD8AAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-26T15:01:22.602Z"
+              "WhenOpened": "2025-04-16T09:40:02.306Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "MQTTSubscriber.cs",
-              "DocumentMoniker": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\MQTTSubscriber.cs",
-              "ToolTip": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
               "RelativeToolTip": "PMC_Connection_Node\\MQTTSubscriber.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-03-26T12:19:57.293Z"
+              "WhenOpened": "2025-04-16T09:40:02.31Z"
+            }
+          ]
+        },
+        {
+          "DockedWidth": 67,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
             }
           ]
         }
