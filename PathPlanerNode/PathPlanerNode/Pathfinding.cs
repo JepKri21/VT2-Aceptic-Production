@@ -52,10 +52,15 @@ public class Pathfinding
                     cells[x, y] = new node(x, y, false, new());
                 }
             }
-
+/*
             double[,] zone2 = {
                 { (width + _xbotSize) * (1.0 / 3) - _xbotSize, (height + _xbotSize) * (2.0 / 4) - _xbotSize },
                 { (width + _xbotSize) * (2.0 / 3), (height + _xbotSize) * (3.0 / 4) }
+            };
+*/
+            double[,] zone2 = {
+                { 12, 36},
+                { 48, 72 }
             };
 
             // Convert to integers
@@ -74,6 +79,24 @@ public class Pathfinding
                     }
                 }
             }
+        }
+        public void SaveWalkablePointsToFile(int _xbotID, string filePath)
+        {
+            using (StreamWriter writer = new StreamWriter(filePath))
+            {
+                writer.WriteLine("Walkable Points:");
+                for (int x = 0; x <= width; x++)
+                {
+                    for (int y = 0; y <= height; y++)
+                    {
+                        if (isWalkable(cells[x, y], _xbotID))
+                        {
+                            writer.WriteLine($"({x}, {y})");
+                        }
+                    }
+                }
+            }
+            Console.WriteLine($"Walkable points saved to {filePath}");
         }
 
         public List<node> getNeighbors(node _node)
@@ -185,7 +208,7 @@ public class Pathfinding
             node.f = 0;
             node.parent = null;
         }
-
+        
         node startNode = _grid.cells[_from[0], _from[1]];
         node endNode = _grid.cells[_to[0], _to[1]];
 
@@ -254,7 +277,7 @@ public class Pathfinding
         stopwatch.Start();
 
         int[,] priorityMatrix = getPriorityMatrix(_xBotID_From_To);
-
+        
         Console.WriteLine("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
         for (int i = 0; i < priorityMatrix.GetLength(0); i++)
         {
@@ -298,8 +321,12 @@ public class Pathfinding
     {
         Stopwatch stopwatche = new Stopwatch();
         stopwatche.Start();
+        
+
 
         List<(int, int[], int[])> xBotID_From_To = unit_M_To_CM(_xBotID_From_To); // Convert to CM
+
+
         Console.WriteLine("Pathfinder received xBotID_From_To: " + string.Join(", ", xBotID_From_To.Select(p => $"Bot {p.Item1}: From ({p.Item2[0]}, {p.Item2[1]}) To ({p.Item3[0]}, {p.Item3[1]})")));
         List<(int, List<node>, int)> pathList = priorityPlanner(_grid, xBotID_From_To, _xbotSize);
         List<(int, List<(int, int)>)> _output = new();
@@ -320,10 +347,16 @@ public class Pathfinding
         List<(int, int[], int[])> xBotID_From_To = new();
         foreach (var botTuple in _xBotID_From_To)
         {
-            int botID = botTuple.Item1;
-            int[] from = { (int)Math.Round(botTuple.Item2[0] * 100), (int)Math.Round(botTuple.Item2[1] * 100) };
-            int[] to = { (int)Math.Round(botTuple.Item3[0] * 100), (int)Math.Round(botTuple.Item3[1] * 100) };
+            /*int botID = botTuple.Item1;
+            int[] from = { (int)Math.Floor(botTuple.Item2[0] * 100), (int)Math.Floor(botTuple.Item2[1] * 100) };
+            int[] to = { (int)Math.Floor(botTuple.Item3[0] * 100), (int)Math.Floor(botTuple.Item3[1] * 100) };
             xBotID_From_To.Add((botID, from, to));
+            */
+            int botID = botTuple.Item1;
+            int[] from = { (int)Math.Floor(botTuple.Item2[0] * 100-6), (int)Math.Floor(botTuple.Item2[1] * 100-6) };
+            int[] to = { (int)Math.Floor(botTuple.Item3[0] * 100-6), (int)Math.Floor(botTuple.Item3[1] * 100-6) };
+            xBotID_From_To.Add((botID, from, to));
+
         }
         return xBotID_From_To;
     }
@@ -333,7 +366,8 @@ public class Pathfinding
         foreach (var botTuple in output)
         {
             int botID = botTuple.Item1;
-            List<double[]> path = botTuple.Item2.Select(x => new double[] { (double)x.Item1 / 100, (double)x.Item2 / 100 }).ToList();
+            //List<double[]> path = botTuple.Item2.Select(x => new double[] { (double)x.Item1 / 100, (double)x.Item2 / 100 +0.06}).ToList();
+            List<double[]> path = botTuple.Item2.Select(x => new double[] { ((double)x.Item1 / 100) + 0.06, ((double)x.Item2 / 100 + 0.06) }).ToList();
             xBotID_From_To.Add((botID, path));
         }
         return xBotID_From_To;
@@ -405,7 +439,7 @@ public class Pathfinding
 
         Dictionary<int, int> botWaitTime = new();
         Dictionary<int, List<node>> botWaitingPaths = new(); // Tracks waiting steps for each bot
-
+        
         while (iteration < iterationMax)
         {
             List<(int, List<node>, int)> pathList = new();
@@ -577,6 +611,7 @@ public class Pathfinding
         list.SelectMany((item, index) =>
             GetPermutations(list.Where((_, i) => i != index).ToArray())
             .Select(perm => new[] { item }.Concat(perm)));
+    
     #endregion
     #endregion
 }

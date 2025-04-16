@@ -46,7 +46,8 @@
               "RelativeToolTip": "PMC_Connection_Node\\ATrajectory.xml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAPwAAAADAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003576|",
-              "WhenOpened": "2025-04-04T07:06:24.245Z"
+              "WhenOpened": "2025-04-04T07:06:24.245Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -54,9 +55,9 @@
               "Title": "PMCNode.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\PMCNode.cs",
-              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
-              "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs",
-              "ViewState": "AgIAAJUAAAAAAAAAAAAIwK8AAAAdAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs*",
+              "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs*",
+              "ViewState": "AgIAANEBAAAAAAAAAAAuwOMBAAAmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-03-26T12:12:51.505Z",
               "EditorCaption": ""

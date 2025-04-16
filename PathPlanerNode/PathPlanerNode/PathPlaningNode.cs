@@ -17,7 +17,7 @@ namespace PathPlaningNode
         private MQTTPublisher mqttPublisher;
 
         private Dictionary<string, Action<string, string>> topicHandlers;
-        string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -50,9 +50,9 @@ namespace PathPlaningNode
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
             {
-                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPostion },
-                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Position", getPostion },
-                { "AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus }
+                { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPostion },
+                { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Position", getPostion },
+                { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus }
             };
         }
 
@@ -206,18 +206,28 @@ namespace PathPlaningNode
             {
                 Console.WriteLine("Running Path Planner");
                 PrintGridSize();
+
+                // Generate trajectories
                 trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
                     .ToDictionary(item => item.Item1, item => item.Item2);
-                
+
                 foreach (var trajectory in trajectories)
                 {
-                    Console.WriteLine($"Trajectory for xbot{trajectory.Key}: {trajectory.Value}");
-                    var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList());
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{trajectory.Key}/Trajectory", trajectoryMessage);
-                    Console.WriteLine($"Published trajectory for xbot {trajectory.Key}: {trajectoryMessage}");
-                }
-                
+                    int xbotId = trajectory.Key;
+                    gridGlobal.SaveWalkablePointsToFile(xbotId, "walkable_points.txt");
+                    // Append TargetPosition as the last point in the trajectory
+                    if (targetPostions.ContainsKey(xbotId))
+                    {
+                        trajectory.Value.Add(targetPostions[xbotId]);
+                    }
 
+                    //Console.WriteLine($"Trajectory for xbot{xbotId}: {trajectory.Value}");
+                    var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList());
+                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotId}/Trajectory", trajectoryMessage);
+                    Console.WriteLine($"Published trajectory for xbot {xbotId}: {trajectoryMessage}");
+                }
+
+                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "ready");
             }
             else
             {
