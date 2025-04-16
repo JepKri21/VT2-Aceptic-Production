@@ -14,11 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PathPlanerNode")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-<<<<<<< HEAD
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fbfc7926396f06b541e126900e6ade5424e5d7e9")]
-=======
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fe02feaf77d103eea9043e69cda7b58010ecb492")]
->>>>>>> AddTimeSyncToMotions
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6dee197d07d4717f39bc94bcadbfd4d69d93a636")]
 [assembly: System.Reflection.AssemblyProductAttribute("PathPlanerNode")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PathPlanerNode")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
