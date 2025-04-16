@@ -207,13 +207,7 @@ namespace PMC
             if (message == "home")
             {
                 int[] xbot = { 1, 2 };
-                double[] startPostion1 = { 0.12, 0.840 };
-
-                double[] startPostion2 = { 0.600, 0.840 };
-
-                double[] startPostion3 = { 0.360, 0.360 };
-
-                double[] startPostion4 = { 0.200, 0.200 };
+                
 
                 double[] xpostions = { 0.12, 0.6 };
 
@@ -221,10 +215,7 @@ namespace PMC
 
                 _xbotCommand.AutoDrivingMotionSI(2, ASYNCOPTIONS.MOVEALL, xbot, xpostions, ypostions);
                 
-                //motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "yx");
-                //motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
-                motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
-                motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
+                
 
             }
             if (message == "SendPostions")
@@ -291,7 +282,7 @@ namespace PMC
 
         
 
-public async void RunTrajectory()
+        public async void RunTrajectory()
         {
             runTrajectoryCancellationTokenSource = new CancellationTokenSource();
             var cancellationToken = runTrajectoryCancellationTokenSource.Token;
