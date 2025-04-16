@@ -23,8 +23,8 @@ namespace CommandHandlerNode
         public int queueSize; //Size of the queue is dependent on how many queue positions are given
 
         private MQTTPublisher mqttPublisher;
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
 
         public QueueClass()
