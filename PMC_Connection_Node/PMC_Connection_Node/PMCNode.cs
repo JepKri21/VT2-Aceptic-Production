@@ -1,4 +1,5 @@
-﻿using PMC_Connection_Node;
+﻿using MQTTnet;
+using PMC_Connection_Node;
 using PMCLIB;
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -6,6 +7,7 @@ using System.Data;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using VT2_Aseptic_Production_Demonstrator;
@@ -137,7 +139,7 @@ namespace PMC
             xbotsID = xBotIDs.XBotIDsArray;
             Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
             var message = JsonSerializer.Serialize(xbotsID);
-            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/IDs", message);
+            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/IDs", message, true);
         }
 
         #endregion
