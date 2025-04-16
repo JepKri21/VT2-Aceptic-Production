@@ -21,7 +21,8 @@ namespace PMC
         private Dictionary<string, Action<string, string>> topicHandlers;
         private MQTTSubscriber mqttSubscriber;
         private MQTTPublisher mqttPublisher;
-        string brokerIP = "172.20.66.135";
+        //string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -37,7 +38,7 @@ namespace PMC
             
             
             PublishXbotIDAsync();
-            //PublishTargetPositionsAsync();
+            PublishTargetPositionsAsync();
 
         }
         #region MQTT Initialize
@@ -72,8 +73,8 @@ namespace PMC
         #region MQTT Publishers
         public async Task PublishTargetPositionsAsync()
         {
-            double[] targetPosition1 = { 0.2, 0.36 };
-            double[] targetPosition2 = { 0.120, 0.120 };
+            double[] targetPosition1 = { 0.6, 0.78 };
+            double[] targetPosition2 = { 0.120, 0.9 };
             double[] targetPosition3 = { 0.600, 0.520 };
             double[] targetPosition4 = { 0.200, 0.500 };
 
@@ -88,7 +89,7 @@ namespace PMC
             foreach (var targetPosition in targetPositions)
             {
                 var message = JsonSerializer.Serialize(targetPosition.Value);
-                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstæde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{targetPosition.Key}/TargetPosition", message);
+                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{targetPosition.Key}/TargetPosition", message);
                 Console.WriteLine($"Published target position for xbot {targetPosition.Key}: {string.Join(", ", targetPosition.Value)}");
             }
         }
@@ -200,17 +201,23 @@ namespace PMC
             }
             if (message == "home")
             {
-                double[] startPostion1 = { 0.060, 0.060 };
+                int[] xbot = { 1, 2 };
+                double[] startPostion1 = { 0.12, 0.840 };
 
-                double[] startPostion2 = { 0.600, 0.400 };
+                double[] startPostion2 = { 0.600, 0.840 };
 
                 double[] startPostion3 = { 0.360, 0.360 };
 
                 double[] startPostion4 = { 0.200, 0.200 };
 
+                double[] xpostions = { 0.12, 0.6 };
 
-                motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "yx");
-                motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
+                double[] ypostions = { 0.78, 0.9 };
+
+                _xbotCommand.AutoDrivingMotionSI(2, ASYNCOPTIONS.MOVEALL, xbot, xpostions, ypostions);
+                
+                //motionsFunctions.LinarMotion(0, 1, startPostion1[0], startPostion1[1], "yx");
+                //motionsFunctions.LinarMotion(0, 2, startPostion2[0], startPostion2[1], "xy");
                 motionsFunctions.LinarMotion(0, 3, startPostion3[0], startPostion3[1], "yx");
                 motionsFunctions.LinarMotion(0, 4, startPostion4[0], startPostion4[1], "xy");
 
@@ -440,10 +447,11 @@ namespace PMC
                     tasks.Add(Task.Run(() =>
                     {
                         // Add the first motion to the buffer
+                        // Add the first motion to the buffer
                         double[] point = trajectories[xbotID][0];
                         motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
 
-                        for (int i = 1; i < trajectories[xbotID].Count; i++)
+                        for (int i = 1; si < trajectories[xbotID].Count; i++)
                         {
                             MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
                             int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
@@ -461,35 +469,39 @@ namespace PMC
                                 bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
                             }
 
-                            // Calculate direction vector
+                            // Calculate direction and distance
                             double[] currentPoint = trajectories[xbotID][i - 1];
                             double[] nextPoint = trajectories[xbotID][i];
-                            double[] directionVector = { nextPoint[0] - currentPoint[0], nextPoint[1] - currentPoint[1] };
+                            double deltaX = nextPoint[0] - currentPoint[0];
+                            double deltaY = nextPoint[1] - currentPoint[1];
+                            double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                            // Print the direction vector
-                            Console.WriteLine($"Direction vector for xbotID {xbotID} at point {i}: ({directionVector[0]:F3}, {directionVector[1]:F3})");
+                            // Adjust velocity based on distance
+                            double baseVelocity = 0.1; // Base velocity for straight movements
+                            double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
 
                             // Check if the direction is consistent
                             if (i < trajectories[xbotID].Count - 1)
                             {
                                 double[] nextNextPoint = trajectories[xbotID][i + 1];
                                 double[] nextDirectionVector = { nextNextPoint[0] - nextPoint[0], nextNextPoint[1] - nextPoint[1] };
-                                if (Math.Sign(directionVector[0]) != Math.Sign(nextDirectionVector[0]) || Math.Sign(directionVector[1]) != Math.Sign(nextDirectionVector[1]))
+
+                                if (Math.Sign(deltaX) != Math.Sign(nextDirectionVector[0]) || Math.Sign(deltaY) != Math.Sign(nextDirectionVector[1]))
                                 {
                                     Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
-                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, 0.1, 0.2);
+                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
                                 }
                                 else
                                 {
-                                    //_xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0.1, 0.1, 0.2);
-                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, 0.1, 0.2);
+                                    Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
+                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.2);
                                 }
                             }
                             else
                             {
                                 // Handle the last point explicitly
                                 Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
-                                _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0.1, 0.1, 0.2);
+                                _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
                             }
                         }
 

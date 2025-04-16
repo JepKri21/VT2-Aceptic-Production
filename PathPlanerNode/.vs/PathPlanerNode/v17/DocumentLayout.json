@@ -3,12 +3,21 @@
   "WorkspaceRootPath": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PathPlanerNode\\",
   "Documents": [
     {
+<<<<<<< HEAD
       "AbsoluteMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|c:\\users\\silas\\desktop\\manufacturing technology 2\\vt2 project\\vt2-aceptic-production\\pathplanernode\\pathplanernode\\pathplaningnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|solutionrelative:pathplanernode\\pathplaningnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|c:\\users\\silas\\desktop\\manufacturing technology 2\\vt2 project\\vt2-aceptic-production\\pathplanernode\\pathplanernode\\mainhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|solutionrelative:pathplanernode\\mainhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+=======
+      "AbsoluteMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pathplanernode\\pathplanernode\\pathplaningnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|solutionrelative:pathplanernode\\pathplaningnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pathplanernode\\pathplanernode\\pathfinding.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|solutionrelative:pathplanernode\\pathfinding.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+>>>>>>> AddTimeSyncToMotions
     }
   ],
   "DocumentGroupContainers": [
@@ -43,13 +52,35 @@
             },
             {
               "$type": "Document",
+<<<<<<< HEAD
+=======
+              "DocumentIndex": 1,
+              "Title": "Pathfinding.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\Pathfinding.cs",
+              "RelativeDocumentMoniker": "PathPlanerNode\\Pathfinding.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\Pathfinding.cs",
+              "RelativeToolTip": "PathPlanerNode\\Pathfinding.cs",
+              "ViewState": "AgIAABIAAAAAAAAAAAA5wNMAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-11T10:26:11.28Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+>>>>>>> AddTimeSyncToMotions
               "DocumentIndex": 0,
               "Title": "PathPlaningNode.cs",
               "DocumentMoniker": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\PathPlaningNode.cs",
               "RelativeDocumentMoniker": "PathPlanerNode\\PathPlaningNode.cs",
+<<<<<<< HEAD
               "ToolTip": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\PathPlaningNode.cs",
               "RelativeToolTip": "PathPlanerNode\\PathPlaningNode.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAJEAAAAIAAAAAAAAAA==",
+=======
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\PathPlaningNode.cs*",
+              "RelativeToolTip": "PathPlanerNode\\PathPlaningNode.cs*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAKAAAAAAAAAA==",
+>>>>>>> AddTimeSyncToMotions
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-03-28T09:38:36.25Z",
               "EditorCaption": ""
