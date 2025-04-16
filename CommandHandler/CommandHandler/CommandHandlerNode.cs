@@ -171,6 +171,13 @@ namespace CommandHandlerNode
         public async void getCommand(string topic, string message)
         {
 
+            if (allShuttles == null || allShuttles.Count == 0)
+            {
+                // Exit the function early
+                Console.WriteLine("Trying to update the commands,but there are no IDs in the CommandHandler");
+                return;
+            }
+
             var command = JsonSerializer.Deserialize<string>(message);
             //var command = message;
             // Split the topic into segments
@@ -226,6 +233,14 @@ namespace CommandHandlerNode
 
         public async void updateStationOccupancy(string topic, string message)
         {
+
+            if (allShuttles == null || allShuttles.Count == 0)
+            {
+                // Exit the function early
+                Console.WriteLine("Trying to update the station occupancy, but there are no IDs in the CommandHandler");
+                return;
+            }
+
             //If the topic equal a name of one of the stations, then we change the occupancy
             // Split the topic into segments
             string[] segments = topic.Split('/');
