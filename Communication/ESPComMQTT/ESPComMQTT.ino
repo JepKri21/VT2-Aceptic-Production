@@ -3,12 +3,12 @@
 #include <Wire.h>
 #include <WiFi.h>
 
-#define BUTTON_PIN_BOTTOM 13
-#define BUTTON_PIN_TOP 14
+#define BUTTON_PIN_BOTTOM 36
+#define BUTTON_PIN_TOP 39
 
-#define enB 16
-#define in3 17
-#define in4 18
+#define enB 19
+#define in3 18
+#define in4 5
 
 unsigned long startTime;
 unsigned long endTime;
@@ -17,9 +17,9 @@ unsigned long elapsedTime;
 int speed = 140;
 
 // WiFi-oplysninger AAU Smart Production
-// const char* ssid = "smart_production_WIFI";
-// const char* pass = "aau smart production lab";
-// const char* mqtt_serv = "172.20.66.135";
+const char* ssid = "smart_production_WIFI";
+const char* pass = "aau smart production lab";
+const char* mqtt_serv = "172.20.66.135";
 
 // // WiFi-oplysninger Lucas Internetdeling
 // const char* ssid = "Lucas - iPhone";
@@ -27,13 +27,13 @@ int speed = 140;
 // const char* mqtt_serv = "172.20.10.4";
 
 // WiFi-oplysninger Luca Hjemmenet
-const char* ssid = "5G_Router_4266C1";
-const char* pass = "";
-const char* mqtt_serv = "192.168.32.9";
+//const char* ssid = "5G_Router_4266C1";
+//const char* pass = "";
+//const char* mqtt_serv = "192.168.32.9";
 
 // MQTT Topics
-const char* topic_pub = "ACOPOS/movement";
-const char* topic_sub = "ACOPOS/movement";
+const char* topic_pub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus";
+const char* topic_sub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -51,8 +51,8 @@ void setup() {
   // WiFi-forbindelse
   Serial.print("Connecting to WiFi: ");
   Serial.println(ssid);
-  // WiFi.begin(ssid, pass); // Kun når der er kode på nettet
-  WiFi.begin(ssid);         // Kun når der IKKE er kode på nettet
+  WiFi.begin(ssid, pass); // Kun når der er kode på nettet
+  //WiFi.begin(ssid);         // Kun når der IKKE er kode på nettet
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -87,24 +87,6 @@ void loop() {
   }
   client.loop(); // Behandler indgående MQTT-beskeder
 
-  // Send data hver 10. sekund <- Kan fjernes eller ændres til noget andet.
-  long now = millis();
-  if (now - lastMsg > 10000) {
-    lastMsg = now;
-
-    // Simulerede sensorværdier
-    StaticJsonDocument<80> doc;
-    char output[80];
-
-    doc["t"] = random(0, 30);
-    doc["p"] = random(10,40);
-    doc["h"] = random(0,100);
-    doc["g"] = random(0,10);
-
-    serializeJson(doc, output);
-    Serial.println(output);
-    client.publish(topic_pub, output);
-  }
 }
 
 // Callback-funktion: Håndterer modtagne beskeder
@@ -122,10 +104,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println("-----------------------");
 
   // Tjek om beskeden er "START" eller "STOP"
-  if (String(topic) == "ACOPOS/movement") {
-    if (message == "START") {
+  if (String(topic) == topic_sub) {
+    if (message == "running") {
       Serial.println("Starting the motor / LED!");
-      digitalWrite(ledPin, HIGH);  // Tænder motor/LED
+      //digitalWrite(ledPin, HIGH);  // Tænder motor/LED
       startMotor();
     } 
     else if (message == "STOP") {
@@ -142,24 +124,33 @@ void callback(char* topic, byte* payload, unsigned int length) {
 // Funktion til at genoprette MQTT-forbindelsen
 void reconnect() {
   while (!client.connected()) {
-    Serial.print("MQTT not Connected... Trying to connect");
+    //Serial.print("MQTT not Connected... Trying to connect");
 
     // Opret unikt klient-ID
     String clientId = "ESP32Client-";
     clientId += String(random(0xffff), HEX);
+
+    // Send forsøg på forbindelse
+    StaticJsonDocument<100> doc;
+    doc["clientId"] = clientId;
+    doc["message"] = "Trying";
+    char output[100];
+    serializeJson(doc, output);  
+
+    client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/MQTTConnection", output);
 
     // Forsøg at forbinde
     if (client.connect(clientId.c_str())) {
       Serial.println("Connected Successfully!");
 
       // Send bekræftelse på forbindelse
-      StaticJsonDocument<100> doc;
+      //StaticJsonDocument<100> doc;
       doc["clientId"] = clientId;
-      doc["message"] = "Successfully Connected to MQTT";
+      doc["message"] = "Success";
 
-      char output[100];
+      //char output[100];
       serializeJson(doc, output);  
-      client.publish(topic_pub, output);
+      client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/MQTTConnection", output);
       Serial.println("Published connection message");
 
       // Subscribe til topic
@@ -176,64 +167,47 @@ void reconnect() {
 }
 
 void startMotor(){
-  // digitalWrite(in3, LOW); //if it is, then we run in one direction
-  // digitalWrite(in4, HIGH);
-  //   int down_speed = 0;
-  //   startTime = millis(); //Start time for going down
+  digitalWrite(in3, LOW); //if it is, then we run in one direction
+  digitalWrite(in4, HIGH);
+  analogWrite(enB, speed);
+  startTime = millis(); //Start time for going down
     
-  //   while (digitalRead(BUTTON_PIN_BOTTOM) == 0)
-  //   {
+    while (digitalRead(BUTTON_PIN_BOTTOM) == 0) //While we wait for button
+    {
 
-  //     if (down_speed <= speed)
-  //     {
-  //       down_speed = down_speed +1;
-  //       analogWrite(enB, down_speed); // Send PWM signal to L298N Enable pin
-  //     }
 
-  //     if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
-  //     {
-  //       Serial.println("motion_error_down");
-  //       break;
-  //     }
-  //     //Do nothing while we wait for the button 
-  //     //Put some time check here so that it doesn't run forever
-  //   }
-    Serial.println("MOTOREN KØRER NED");
-    client.publish("ACOPOS/movement", "{\"status\":\"Filling Running\"}");
-    digitalWrite(ledPin, HIGH);
-    delay(5000);
+      if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
+      {
+        client.publish(topic_pub, "motion_error_down");
+        break;
+      }
+
+    }
+
     stopMotor();
 }
 
 void stopMotor(){
-  // digitalWrite(in3, HIGH);
-  // digitalWrite(in3, LOW);
 
-  // digitalWrite(in3, HIGH);
-  // digitalWrite(in4, LOW);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  analogWrite(enB, speed);
 
-
-  // int up_speed = 0;
-  // startTime = millis(); //Start time for going up
+  startTime = millis(); //Start time for going up
   
-  // while (digitalRead(BUTTON_PIN_TOP) == 0)
-  // {
-  //   if (up_speed <= speed)
-  //   {
-  //     up_speed = up_speed +1;
-  //     analogWrite(enB, up_speed); // Send PWM signal to L298N Enable pin
-  //   }
+  while (digitalRead(BUTTON_PIN_TOP) == 0) //While we wait for button
+  {
     
-  //   if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
-  //   {
-  //     Serial.println("motion_error_up");
-  //     break;
-  //   }
-  // }
-  // digitalWrite(in3, LOW);
-  // digitalWrite(in4, LOW);
-  digitalWrite(ledPin, LOW);
-  Serial.println("MOTOREN KØRER TIL TOPPEN");
-  client.publish("ACOPOS/movement", "{\"status\":\"Filling idle\"}");
+    if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
+    {
+      client.publish(topic_pub, "motion_error_up");
+      break;
+    }
+  }
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+  analogWrite(enB, 0);
+
+  client.publish(topic_pub, "idle");
   
 }
