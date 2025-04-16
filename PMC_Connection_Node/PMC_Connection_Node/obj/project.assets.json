@@ -60,23 +60,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\jeppe\\.nuget\\packages\\": {},
+    "C:\\Users\\silas\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMC_Connection_Node.csproj",
+      "projectUniqueName": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMC_Connection_Node.csproj",
       "projectName": "PMC_Connection_Node",
-      "projectPath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMC_Connection_Node.csproj",
-      "packagesPath": "C:\\Users\\jeppe\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\obj\\",
+      "projectPath": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMC_Connection_Node.csproj",
+      "packagesPath": "C:\\Users\\silas\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\jeppe\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\silas\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
