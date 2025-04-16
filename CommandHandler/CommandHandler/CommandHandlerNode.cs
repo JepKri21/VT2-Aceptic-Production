@@ -74,9 +74,9 @@ namespace CommandHandlerNode
 
             //Passing the motion functions to their classes and positions to the queues------------------------------------------------------
             //---------------------------------------------------------------------------------------------------
-            Filling.stationTaskName = "FillingStation";
-            Stoppering.stationTaskName = "StopperingStation";
-            Vision.stationTaskName = "VisionStation";
+            Filling.stationTaskName = "FillingStation";         //We could add a publisher on the individual ESP32's to create a station based 
+            Stoppering.stationTaskName = "StopperingStation";   //Might be possible on this website: randomnerdtutorials.com/esp32-ota-over-the-air-vs-code 
+            Vision.stationTaskName = "VisionStation";           //to update the position of the station if we move it.
             PhysicalEndQueue.queueName = "EndQueue";
 
             Filling.passingStationAction(fillingAction);
@@ -92,6 +92,8 @@ namespace CommandHandlerNode
             InitializeTopicHandlers();
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
+
+            //Make a function that calls the IDs from the MQTT broker
         }
 
         private void InitializeTopicHandlers()
@@ -107,7 +109,7 @@ namespace CommandHandlerNode
 
         private async void InitializeMqttSubscriber()
         {
-            mqttSubscriber = new MQTTSubscriber(brokerIP, port); //My subscriber class is slightly different
+            mqttSubscriber = new MQTTSubscriber(brokerIP, port);
             mqttSubscriber.MessageReceived += messageHandler;
             await mqttSubscriber.StartAsync();
 
@@ -186,6 +188,8 @@ namespace CommandHandlerNode
             string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("Xbot segment not found");
             int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
 
+            bool shuttleFound = false;
+
             //Turn the Command in to the shuttle class with the correct ID
             foreach (ShuttleClass shuttle in allShuttles)
             {
@@ -194,12 +198,21 @@ namespace CommandHandlerNode
                     shuttle.addSingleTask(command);
                     Console.Write("Task added to");
                     Console.WriteLine(shuttle.shuttleID);
+                    shuttleFound = true;
                     break;
                 }
             }
 
-            Console.WriteLine("Now gonna run the command checker");
-            commandHandlingCheck();
+            if (shuttleFound)
+            {
+                Console.WriteLine("Now gonna run the command checker");
+                commandHandlingCheck();
+            }
+            else
+            {
+                Console.WriteLine("No shuttle with that ID was found in the CommandHandler");
+            }
+            
 
             //Console.WriteLine("Now publishing runPathPlanner");
             //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
@@ -210,12 +223,38 @@ namespace CommandHandlerNode
         public async void getIDsReturnShuttleClasses(string topic, string message)
         {
             //Get the IDs and create the shuttle classes
-            var IDs = JsonSerializer.Deserialize<int[]>(message);
-            foreach (int num in IDs)
+            int[] newIDs = JsonSerializer.Deserialize<int[]>(message);
+
+
+            //Check if any of the shuttle IDs are already created
+            if (allShuttles.Count > 0)
             {
-                var instance = new ShuttleClass();
-                instance.shuttleID = num;
-                allShuttles.Add(instance);
+                foreach( ShuttleClass shuttle in allShuttles)
+                {
+                    for (int i = 0; i < newIDs.Length; i++)
+                    {
+                        if (newIDs[i] == shuttle.shuttleID)
+                        {
+                            Console.WriteLine($"Shuttle with ID{newIDs[i]} already exists");
+                            newIDs[i] = 0;
+
+                        }
+                    }
+                }
+                
+            }
+
+
+            foreach (int num in newIDs)
+            {
+                if (num > 0)
+                {
+                    var instance = new ShuttleClass();
+                    instance.shuttleID = num;
+                    allShuttles.Add(instance);
+                    Console.WriteLine($"Shuttle with ID {num} has been created");
+                }
+                
 
             }
 
@@ -247,16 +286,27 @@ namespace CommandHandlerNode
             //Check for a topic that ends with station (assuming that it is either FillingStation, StopperingStation or VisionStation
             string stationSegment = segments.FirstOrDefault(s => s.EndsWith("Station"));
 
-
+            bool stationFound = false;
 
             foreach (StationClass station in allStations)
             {
                 if (station.stationTaskName == stationSegment)
                 {
                     station.stationStatus = message;
+                    stationFound = true;
+                    break;
                 }
             }
-            commandHandlingCheck();
+
+            if (stationFound)
+            {
+                commandHandlingCheck();
+            }
+            else
+            {
+                Console.WriteLine("No station with that name was found in the CommandHandler");
+            }
+            
 
             //Console.WriteLine("Now publishing runPathPlanner");
             //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
