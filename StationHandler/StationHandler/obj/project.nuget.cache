@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "JmitUv2O3Hc=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\StationHandler\\StationHandler\\StationHandler.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\silas\\.nuget\\packages\\mqttnet\\4.3.7.1207\\mqttnet.4.3.7.1207.nupkg.sha512"
+  ],
+  "logs": []
+}

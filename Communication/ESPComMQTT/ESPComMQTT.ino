@@ -16,13 +16,19 @@ unsigned long elapsedTime;
 
 int speed = 140;
 
+double[] stationPosition = [0.660, 0.840];
+
 // WiFi-oplysninger AAU Smart Production
 const char* ssid = "smart_production_WIFI";
 const char* pass = "aau smart production lab";
 const char* mqtt_serv = "172.20.66.135";
 
+//To publish the station position
+unsigned long previousMillis = 0;       // Stores the last time the task ran
+const long interval = 5000;            // Interval at which to run (milliseconds)
+
 // MQTT Topics
-const char* topic_pub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus";
+const char* topic_pub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationPosition";
 const char* topic_sub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus";
 
 WiFiClient espClient;
@@ -77,6 +83,18 @@ void loop() {
   }
   client.loop(); // Behandler indgående MQTT-beskeder
 
+
+  //Sending station position every 5 seconds
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    // Save the last time the task ran
+    previousMillis = currentMillis;
+
+    // Your code to run every 10 seconds
+    client.publish(topic_pub, stationPosition);
+  }
+
 }
 
 // Callback-funktion: Håndterer modtagne beskeder
@@ -102,7 +120,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     } 
     else if (message == "STOP") {
       Serial.println("Stopping the motor / LED!");
-      digitalWrite(ledPin, LOW);   // Slukker motor/LED
+      //digitalWrite(ledPin, LOW);   // Slukker motor/LED
       stopMotor();
     } 
     else {
@@ -168,7 +186,7 @@ void startMotor(){
 
       if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
       {
-        client.publish(topic_pub, "motion_error_down");
+        client.publish(topic_sub, "motion_error_down"); //We just publish the error to the same place that we subscribe
         break;
       }
 
@@ -190,7 +208,7 @@ void stopMotor(){
     
     if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
     {
-      client.publish(topic_pub, "motion_error_up");
+      client.publish(topic_sub, "motion_error_up"); //We just publish the error to the same place that we subscribe
       break;
     }
   }
@@ -198,6 +216,6 @@ void stopMotor(){
   digitalWrite(in4, LOW);
   analogWrite(enB, 0);
 
-  client.publish(topic_pub, "idle");
+  //client.publish(topic_pub, "idle");
   
 }
