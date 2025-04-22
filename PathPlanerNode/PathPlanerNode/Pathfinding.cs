@@ -212,6 +212,11 @@ public class Pathfinding
         node startNode = _grid.cells[_from[0], _from[1]];
         node endNode = _grid.cells[_to[0], _to[1]];
 
+        if(startNode == endNode)
+        {
+            return (new List<node> { startNode }, 0);
+        }
+
         List<node> openList = new();
         HashSet<node> closedList = new();
 
@@ -452,7 +457,7 @@ public class Pathfinding
                 List<node> waitingPath = botWaitingPaths.ContainsKey(botID) ? botWaitingPaths[botID] : new List<node>();
 
                 (List<node> newPath, int cost) = aStar(from, to, _grid, botID);
-                if (newPath != null && cost != 0)
+                if (newPath != null)
                 {
                     List<node> fullPath = waitingPath.Concat(newPath).ToList();
                     int currentWaitTime = botWaitTime.ContainsKey(botID) ? botWaitTime[botID] : 0;

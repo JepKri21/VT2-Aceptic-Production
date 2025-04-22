@@ -24,6 +24,8 @@ namespace PMC
         private Dictionary<string, Action<string, string>> topicHandlers;
         private MQTTSubscriber mqttSubscriber;
         private MQTTPublisher mqttPublisher;
+        private Dictionary<int, double[]> targetPositions = new();
+        private Dictionary<int, double[]> positions = new();
         //string brokerIP = "172.20.66.135";
         string brokerIP = "localhost";
         int port = 1883;
@@ -36,11 +38,11 @@ namespace PMC
             InitializeTopicHandlers();
             InitializeMqttSubscriber();
             InitializeMqttPublisher();
-            
+
             CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
             Console.WriteLine(status);
-            
-            
+
+
             PublishXbotIDAsync();
             //PublishTargetPositionsAsync();
 
@@ -63,6 +65,8 @@ namespace PMC
             topicHandlers = new Dictionary<string, Action<string, string>>
             {
             { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Trajectory", GetTrajectories },
+            { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPosition },
+            { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/SubCMD", HandlerSubCMD },
             { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus },
             { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Stop", HandleStop }
             };
@@ -121,14 +125,16 @@ namespace PMC
                     XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
                     double[] position = status.FeedbackPositionSI;
                     position = position.Select(p => Math.Round(p, 3)).ToArray();
-                    double[] positionXY = { position[0], position[1] };
-
+                    double[] positionXYRZ = { position[0], position[1], position[5] };
+                    positions[xbot] = positionXYRZ;
+                    //double[] positionXY = { position[0], position[1]};
                     //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
-                    PublishPositionAsync(xbot, positionXY);
+                    PublishPositionAsync(xbot, positionXYRZ);
                 }
                 await Task.Delay(1000);
             }
         }
+
         public async Task PublishPositionAsync(int xbotId, double[] position)
         {
             var message = JsonSerializer.Serialize(position);
@@ -207,15 +213,15 @@ namespace PMC
             if (message == "home")
             {
                 int[] xbot = { 1, 2 };
-                
+
 
                 double[] xpostions = { 0.12, 0.6 };
 
                 double[] ypostions = { 0.78, 0.9 };
 
                 _xbotCommand.AutoDrivingMotionSI(2, ASYNCOPTIONS.MOVEALL, xbot, xpostions, ypostions);
-                
-                
+
+
 
             }
             if (message == "SendPostions")
@@ -224,7 +230,7 @@ namespace PMC
             }
             if (message == "runPathPlanner")
             {
-                
+
             }
             else
             {
@@ -238,7 +244,75 @@ namespace PMC
             runTrajectoryCancellationTokenSource?.Cancel();
         }
 
-        
+        private void HandlerSubCMD(string topic, string message)
+        {
+            if (message == "Rotate")
+            {
+                Console.WriteLine($"Entered Rotate");
+                Task.Run(async () =>
+                {
+                    List<double[]> flywayCenters = new()
+                    {
+                    new double[] {0.12, 0.12},
+                    new double[] {0.12, 0.36},
+                    new double[] {0.12, 0.6},
+                    new double[] {0.12, 0.84},
+                    new double[] {0.36, 0.12},
+                    new double[] {0.36, 0.36},
+                    new double[] {0.36, 0.84},
+                    new double[] {0.6, 0.12},
+                    new double[] {0.6, 0.36},
+                    new double[] {0.6, 0.6},
+                    new double[] {0.6, 0.84}
+                    };
+
+                    string[] segments = topic.Split('/');
+                    string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                         ?? throw new InvalidOperationException("xbot segment not found");
+                    int xbotID = int.Parse(xbotSegment.Substring(4));
+                    double[] targetPositionsRotation = FindClosestCenter(positions[xbotID], flywayCenters);
+                    double[] targetPosition = targetPositions[xbotID];
+                    Console.WriteLine($"{positions[xbotID].Take(2)}");
+                    Console.WriteLine($"{targetPositionsRotation}");
+                    Console.WriteLine($"{targetPosition[2]}");
+                    while (!positions[xbotID].Take(2).SequenceEqual(targetPositionsRotation))
+                    {
+                        Console.WriteLine($"I am looping");
+                        // Wait until the xbot reaches the target rotation position
+                    }
+                    Console.WriteLine("I am at the center");
+                    _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.WRAP_TO_2PI_CW, targetPosition[2], 0.5, 0.2, POSITIONMODE.ABSOLUTE);
+                    
+                    //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotID}/SubCMD", "RotationDone");
+                });
+            }
+            
+        }
+
+
+        private double[] FindClosestCenter(double[] currentPosition, List<double[]> centers)
+        {
+            if (currentPosition == null || currentPosition.Length < 2)
+            {
+                throw new ArgumentException("Current position must contain at least 2 values: x and y.");
+            }
+
+            double[] closestCenter = centers[0];
+            double minDistance = double.MaxValue;
+
+            foreach (var center in centers)
+            {
+                double distance = Math.Sqrt(Math.Pow(center[0] - currentPosition[0], 2) + Math.Pow(center[1] - currentPosition[1], 2));
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestCenter = center;
+                }
+            }
+
+            return closestCenter;
+        }
+
 
         public void PrintTrajectories()
         {
@@ -254,10 +328,40 @@ namespace PMC
                 }
             }
         }
-        
 
 
         
+
+        public void getTargetPosition(string topic, string message)
+        {
+            //Console.WriteLine($"Received message on topic {topic}: {message}");
+
+            try
+            {
+                var targetPosition = JsonSerializer.Deserialize<double[]>(message) ?? throw new InvalidOperationException("Position is null");
+                if (targetPosition.Length < 2)
+                {
+                    throw new InvalidOperationException("Position must contain at least 2 values: x and y.");
+                }
+
+                string[] segments = topic.Split('/');
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                     ?? throw new InvalidOperationException("xbot segment not found");
+                int xbotId = int.Parse(xbotSegment.Substring(4));
+
+                //Console.WriteLine($"Updating position for xbotID {xbotId}: {string.Join(", ", targetPosition)}");
+
+                targetPositions[xbotId] = targetPosition;
+
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing position message: {ex.Message}");
+            }
+        }
+
 
 
         public async void GetTrajectories(string topic, string message )

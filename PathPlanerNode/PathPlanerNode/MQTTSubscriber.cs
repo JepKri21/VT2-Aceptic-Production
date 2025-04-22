@@ -57,7 +57,7 @@ namespace PathPlaningNode
             string topic = e.ApplicationMessage.Topic;
             string payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
 
-            Console.WriteLine($"Received message on topic '{topic}': {payload}");
+            //.WriteLine($"Received message on topic '{topic}': {payload}");
 
             // Raise the MessageReceived event
             MessageReceived?.Invoke(topic, payload);

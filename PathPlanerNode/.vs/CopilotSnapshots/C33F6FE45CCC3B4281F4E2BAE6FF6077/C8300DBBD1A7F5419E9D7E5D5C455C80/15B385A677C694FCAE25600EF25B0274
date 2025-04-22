@@ -28,7 +28,6 @@ namespace PathPlaningNode
         private Pathfinding.grid gridGlobal;
         private Pathfinding pathfinder;
         private List<(int, double[], double[])> xBotID_From_To = new();
-        private double[] TargetPositionStation;
 
         #region Initialize
         public PathPlaningNode()
@@ -46,8 +45,7 @@ namespace PathPlaningNode
                 {
                     { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPostion },
                     { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Position", getPostion },
-                    { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus },
-                    { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/SubCMD", HandleSubCMD}
+                    { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus }
                 };
         }
 
@@ -86,30 +84,21 @@ namespace PathPlaningNode
 
             string[] segments = topic.Split('/');
             string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
-            int xbotID = int.Parse(xbotSegment.Substring(4));
-            targetPositions[xbotID] = targetPosition;
-            if (positions.ContainsKey(xbotID))
+            int xbotId = int.Parse(xbotSegment.Substring(4));
+
+            if (positions.ContainsKey(xbotId))
             {
-                var currentPosition = positions[xbotID];
+                var currentPosition = positions[xbotId];
                 if (currentPosition.Length >= 3 && currentPosition[2] == targetPosition[2])
                 {
-                    Console.WriteLine($"Rz value of the current position matches the new target position for xbotID {xbotID}.");
-                    Console.WriteLine($"Updating target position for xbotID {xbotID}: {string.Join(", ", targetPosition)}");
-                    
-                    UpdateFromAndTo(xbotID);
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
-
-                }
-                else
-                {
-                    // Ensure the rotation target is included if applicable
-                    RotateCommand(xbotID);
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotID}/SubCMD", "Rotate");
+                    Console.WriteLine($"Rz value of the current position matches the new target position for xbotID {xbotId}.");
+                    Console.WriteLine($"Updating target position for xbotID {xbotId}: {string.Join(", ", targetPosition)}");
+                    targetPositions[xbotId] = targetPosition;
+                    UpdateFromAndTo(xbotId);
                 }
             }
 
-            
+            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
         }
 
         private void RotateCommand(int xbotID)
@@ -132,30 +121,6 @@ namespace PathPlaningNode
             };
 
             double[] targetPositionsRotation = FindClosestCenter(positions[xbotID], flywayCenters);
-            double[]? currentPosition = positions.ContainsKey(xbotID) ? positions[xbotID] : null;
-            // Update xBotID_From_To with the rotation target
-
-            double[]? currentXY = currentPosition != null ? new double[] { currentPosition[0], currentPosition[1] } : null;
-
-
-            // Add the rotation target to xBotID_From_To           
-
-            
-            var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
-
-            if (existingEntry != default)
-            {
-                double[] updatedFrom = currentPosition ?? existingEntry.Item2;
-                double[] updatedTo = targetPositionsRotation ?? existingEntry.Item3;
-                xBotID_From_To.Remove(existingEntry);
-                xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
-            }
-            else
-            {
-                xBotID_From_To.Add((xbotID, currentPosition ?? Array.Empty<double>(), targetPositionsRotation ?? Array.Empty<double>()));
-            }
-            PrintXBotIDFromTo();
-
         }
 
         private double[] FindClosestCenter(double[] currentPosition, List<double[]> centers)
@@ -183,7 +148,7 @@ namespace PathPlaningNode
 
         public void getPostion(string topic, string message)
         {
-            //Console.WriteLine($"Received message on topic {topic}: {message}");
+            Console.WriteLine($"Received message on topic {topic}: {message}");
 
             try
             {
@@ -198,24 +163,23 @@ namespace PathPlaningNode
                                      ?? throw new InvalidOperationException("xbot segment not found");
                 int xbotId = int.Parse(xbotSegment.Substring(4));
 
-                //Console.WriteLine($"Updating position for xbotID {xbotId}: {string.Join(", ", position)}");
+                Console.WriteLine($"Updating position for xbotID {xbotId}: {string.Join(", ", position)}");
 
                 positions[xbotId] = position;
 
                 UpdateFromAndTo(xbotId);
             }
-            catch (Exception ex)    
+            catch (Exception ex)
             {
                 Console.WriteLine($"Error processing position message: {ex.Message}");
             }
         }
 
-        private async void UpdateFromAndTo(int xbotID)
+        private void UpdateFromAndTo(int xbotID)
         {
-            
-            //Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
-            //Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
-            //Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
+            Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
+            Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
+            Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
 
             double[]? currentPosition = positions.ContainsKey(xbotID) ? positions[xbotID] : null;
             double[]? targetPosition = targetPositions.ContainsKey(xbotID) ? targetPositions[xbotID] : null;
@@ -238,15 +202,11 @@ namespace PathPlaningNode
                 xBotID_From_To.Add((xbotID, currentXY ?? Array.Empty<double>(), targetXY ?? Array.Empty<double>()));
             }
 
-            
-
-            
+            PrintXBotIDFromTo();
         }
 
         public void PrintXBotIDFromTo()
         {
-            Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
-            Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
             Console.WriteLine("Current xBotID_From_To Entries:");
             foreach (var entry in xBotID_From_To)
             {
@@ -342,24 +302,6 @@ namespace PathPlaningNode
                 }
 
                 await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "ready");
-            }
-        }
-
-        private async void HandleSubCMD(string topic, string message)
-        {
-            Console.WriteLine($"Received message on topic {topic}: {message}");
-
-            if (message == "RotationDone")
-            {
-                Console.WriteLine("I am here");
-                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Stop", "Stop");
-                string[] segments = topic.Split('/');
-                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
-                int xbotID = int.Parse(xbotSegment.Substring(4));
-                Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
-                Console.WriteLine($"{targetPositions[xbotID]}");
-
-                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
         }
         #endregion
