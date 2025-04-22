@@ -42,7 +42,7 @@ namespace PMC
             
             
             PublishXbotIDAsync();
-            PublishTargetPositionsAsync();
+            //PublishTargetPositionsAsync();
 
         }
         #region MQTT Initialize
@@ -331,7 +331,7 @@ namespace PMC
                                     bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
                                 }
 
-                                // Handle trajectory points (existing logic)
+                                // Handle trajectory points 
                                 double[] currentPoint = trajectories[xbotID][i - 1];
                                 double[] nextPoint = trajectories[xbotID][i];
                                 double deltaX = nextPoint[0] - currentPoint[0];

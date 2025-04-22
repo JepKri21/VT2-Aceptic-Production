@@ -82,7 +82,9 @@ namespace PathPlaningNode
         {
             Console.WriteLine($"Received target position message on topic {topic}: {message}");
             //Console.WriteLine($"Received message on topic {topic}: {message}");
-           
+
+            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Stop", "Stop");
+
             var targetPosition = JsonSerializer.Deserialize<double[]>(message);
             // Split the topic into segments
             string[] segments = topic.Split('/');
@@ -110,36 +112,49 @@ namespace PathPlaningNode
             postions[xbotId] = position ?? throw new InvalidOperationException("Position is null");
             UpdateFromAndTo(xbotId);
         }
-       
-            // Check if the list already contains a value for the given xbotID
+
+        // Check if the list already contains a value for the given xbotID
         private async void UpdateFromAndTo(int xbotID)
         {
             Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
             Console.WriteLine($"postions contains: {string.Join(", ", postions.Keys)}");
             Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPostions.Keys)}");
 
-            if (postions.ContainsKey(xbotID) && targetPostions.ContainsKey(xbotID))
-            {
-                var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+            // Get the current position and target position, or set them to null if missing
+            double[] currentPosition = postions.ContainsKey(xbotID) ? postions[xbotID] : null;
+            double[] targetPosition = targetPostions.ContainsKey(xbotID) ? targetPostions[xbotID] : null;
 
-                if (existingEntry != default)
-                {
-                    xBotID_From_To.Remove(existingEntry);
-                }
-                xBotID_From_To.Add((xbotID, postions[xbotID], targetPostions[xbotID]));
-                PrintXBotIDFromTo();
+            // Check if an entry for this xbotID already exists
+            var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+            if (existingEntry != default)
+            {
+                // Update the entry only if new values are available
+                double[] updatedFrom = existingEntry.Item2 ?? currentPosition;
+                double[] updatedTo = existingEntry.Item3 ?? targetPosition;
+
+                // Replace the existing entry with updated values
+                xBotID_From_To.Remove(existingEntry);
+                xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
             }
             else
             {
-                Console.WriteLine($"XbotID {xbotID} not found in postions or targetPostions dictionaries.");
+                // Add a new entry with the current and target positions (null if missing)
+                xBotID_From_To.Add((xbotID, currentPosition, targetPosition));
             }
+
+            PrintXBotIDFromTo();
         }
-        
+
+
         public void PrintXBotIDFromTo()
         {
+            Console.WriteLine("Current xBotID_From_To Entries:");
             foreach (var entry in xBotID_From_To)
             {
-                Console.WriteLine($"xbotID: {entry.Item1}, From: [{string.Join(", ", entry.Item2)}], To: [{string.Join(", ", entry.Item3)}]");
+                string from = entry.Item2 != null ? $"[{string.Join(", ", entry.Item2)}]" : "null";
+                string to = entry.Item3 != null ? $"[{string.Join(", ", entry.Item3)}]" : "null";
+                Console.WriteLine($"xbotID: {entry.Item1}, From: {from}, To: {to}");
             }
         }
         #endregion
@@ -207,6 +222,28 @@ namespace PathPlaningNode
             {
                 Console.WriteLine("Running Path Planner");
                 PrintGridSize();
+                PrintXBotIDFromTo();
+                Console.WriteLine($"{xBotID_From_To.Count}");
+                for (int i = 0; i < xBotID_From_To.Count; i++)
+                {
+                    var (xbotID, from, to) = xBotID_From_To[i];
+
+                    // If target position (to) is null, set it to the current position
+                    if (to == null || to.Length == 0)
+                    {
+                        if (postions.ContainsKey(xbotID))
+                        {
+                            Console.WriteLine($"Target position for xbotID {xbotID} is null. Setting it to the current position.");
+                            xBotID_From_To[i] = (xbotID, from, from);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: Current position for xbotID {xbotID} is not available.");
+                            return; // Exit if current position is not available
+                        }
+                    }
+                }
+                PrintXBotIDFromTo();
 
                 // Generate trajectories
                 trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)

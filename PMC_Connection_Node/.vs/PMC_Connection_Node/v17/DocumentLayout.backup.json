@@ -7,12 +7,16 @@
       "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\pmcnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\atrajectory.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
-      "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\atrajectory.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\mqttsubscriber.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\mqttsubscriber.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\mqttpublisher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\mqttpublisher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\atrajectory.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\atrajectory.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\connection_handler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -26,7 +30,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 225,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -38,7 +42,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
+              "Title": "MQTTPublisher.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTPublisher.cs",
+              "RelativeDocumentMoniker": "PMC_Connection_Node\\MQTTPublisher.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTPublisher.cs",
+              "RelativeToolTip": "PMC_Connection_Node\\MQTTPublisher.cs",
+              "ViewState": "AgIAABYAAAAAAAAAAAAQwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-16T11:27:27.762Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "ATrajectory.xml",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\ATrajectory.xml",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\ATrajectory.xml",
@@ -56,14 +72,14 @@
               "RelativeDocumentMoniker": "PMC_Connection_Node\\PMCNode.cs",
               "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
               "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs",
-              "ViewState": "AgIAADMAAAAAAAAAAAAQwEwAAAA3AAAAAAAAAA==",
+              "ViewState": "AgIAACsAAAAAAAAAAAAQwBoAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-16T09:40:02.301Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "connection_handler.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\connection_handler.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\connection_handler.cs",
@@ -75,13 +91,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "MQTTSubscriber.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\MQTTSubscriber.cs",
               "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
               "RelativeToolTip": "PMC_Connection_Node\\MQTTSubscriber.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAA1AAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACoAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-16T09:40:02.31Z"
             }

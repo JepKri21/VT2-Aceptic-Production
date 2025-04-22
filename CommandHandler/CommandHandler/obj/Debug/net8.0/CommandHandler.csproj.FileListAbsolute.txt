@@ -18,3 +18,23 @@ C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Produc
 C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.pdb
 C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.genruntimeconfig.cache
 C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\ref\CommandHandler.dll
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\CommandHandler.exe
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\CommandHandler.deps.json
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\CommandHandler.runtimeconfig.json
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\CommandHandler.dll
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\CommandHandler.pdb
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\MQTTnet.dll
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\Unity.Abstractions.dll
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\bin\Debug\net8.0\Unity.Container.dll
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.csproj.AssemblyReference.cache
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.AssemblyInfoInputs.cache
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.AssemblyInfo.cs
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.csproj.CoreCompileInputs.cache
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.sourcelink.json
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandH.A58F3BE6.Up2Date
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.dll
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\refint\CommandHandler.dll
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.pdb
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\CommandHandler.genruntimeconfig.cache
+C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\CommandHandler\CommandHandler\obj\Debug\net8.0\ref\CommandHandler.dll

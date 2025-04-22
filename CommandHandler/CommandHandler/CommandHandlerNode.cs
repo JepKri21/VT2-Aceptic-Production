@@ -57,7 +57,7 @@ namespace CommandHandlerNode
             //Passing positions to the queues------------------------------------------------------
             //---------------------------------------------------------------------------------------------------
             double[] fillingQueuePosX = { 0.420, 0.300, 0.180 };
-            double[] fillingQueuePosY = { 0.890, 0.890, 0.890 };
+            double[] fillingQueuePosY = { 0.900, 0.9, 0.9 };
 
 
             double[] stopperingQueuePosX = { 0.660, 0.660, 0.660 };
@@ -207,6 +207,8 @@ namespace CommandHandlerNode
             {
                 Console.WriteLine("Now gonna run the command checker");
                 commandHandlingCheck();
+                //Console.WriteLine("Now publishing runPathPlanner");
+                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
             else
             {
@@ -301,6 +303,8 @@ namespace CommandHandlerNode
             if (stationFound)
             {
                 commandHandlingCheck();
+                //Console.WriteLine("Now publishing runPathPlanner");
+                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
             else
             {
@@ -308,8 +312,7 @@ namespace CommandHandlerNode
             }
             
 
-            //Console.WriteLine("Now publishing runPathPlanner");
-            //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+            
 
         }
 
