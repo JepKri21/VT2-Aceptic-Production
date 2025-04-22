@@ -22,8 +22,8 @@ const char* pass = "aau smart production lab";
 const char* mqtt_serv = "172.20.66.135";
 
 // MQTT Topics
-const char* topic_pub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus";
-const char* topic_sub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus";
+const char* topic_pub = "AAU/Fiberstræde/Building14/FillingLine/Stations/StopperingStation/StationStatus";
+const char* topic_sub = "AAU/Fiberstræde/Building14/FillingLine/Stations/StopperingStation/StationStatus";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -65,7 +65,7 @@ void setup() {
   pinMode(in4, OUTPUT);
   pinMode(BUTTON_PIN_BOTTOM, INPUT_PULLUP);
   pinMode(BUTTON_PIN_TOP, INPUT_PULLUP);
-  stopMotor();
+  StopStoppering();
   analogWrite(enB,0);
 
 }
@@ -127,7 +127,7 @@ void reconnect() {
     char output[100];
     serializeJson(doc, output);  
 
-    client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/MQTTConnection", output);
+    client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/StopperingStation/MQTTConnection", output);
 
     // Forsøg at forbinde
     if (client.connect(clientId.c_str())) {
@@ -140,7 +140,7 @@ void reconnect() {
 
       //char output[100];
       serializeJson(doc, output);  
-      client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/MQTTConnection", output);
+      client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/StopperingStation/MQTTConnection", output);
       Serial.println("Published connection message");
 
       // Subscribe til topic
@@ -156,7 +156,7 @@ void reconnect() {
   }
 }
 
-void startMotor(){
+void RunStoppering(){
   digitalWrite(in3, LOW); //if it is, then we run in one direction
   digitalWrite(in4, HIGH);
   analogWrite(enB, speed);
@@ -174,10 +174,10 @@ void startMotor(){
 
     }
 
-    stopMotor();
+    StopStoppering();
 }
 
-void stopMotor(){
+void StopStoppering(){
 
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
