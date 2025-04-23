@@ -3,6 +3,16 @@
 #include <Wire.h>
 #include <WiFi.h>
 
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+// DC-Motor Pins
+// Blue is VCC 5V
+// Green is GND
+#define ENCA 23 // YELLOW
+#define ENCB 22 // WHITE
+#define PWM 21 // From Motor Driver <--- De eneste der mangler at blive connected nu :D
+#define IN1 16 // From Motor Driver <--- De eneste der mangler at blive connected nu :D
+#define IN2 17 // From Motor Driver <--- De eneste der mangler at blive connected nu :D
+
 
 #define BUTTON_PIN_BOTTOM 36
 #define BUTTON_PIN_TOP 39
@@ -14,6 +24,16 @@
 unsigned long startTime;
 unsigned long endTime;
 unsigned long elapsedTime;
+
+volatile int posi = 0;
+int prevT = 0;
+int ePrev = 0;
+int eIntegral = 0;
+int pos = 0;
+
+bool fillingRunning = false;
+int state = 0;
+int target = 0;
 
 int speed = 140;
 
@@ -75,6 +95,15 @@ void setup() {
   stopMotor();
   analogWrite(enB,0);
 
+  //For Stoppering Motor
+  pinMode(ENCA, INPUT);
+  pinMode(ENCB, INPUT);
+  attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
+
+  pinMode(PWM, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+
 }
 
 void loop() {
@@ -98,7 +127,6 @@ void loop() {
 
     client.publish(topic_pub, buffer);
   }
-
 }
 
 // Callback-funktion: Håndterer modtagne beskeder
@@ -121,6 +149,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Starting the motor / LED!");
       //digitalWrite(ledPin, HIGH);  // Tænder motor/LED
       startMotor();
+      StopperingRunning();
+
     } 
     else if (message == "STOP") {
       Serial.println("Stopping the motor / LED!");
@@ -223,3 +253,78 @@ void stopMotor(){
   client.publish(topic_sub, "finished");
   
 }
+
+void setMotor(int dir, int pwmVal, int pwm, int in1, int in2){
+  analogWrite(pwm, pwmVal);
+  if(dir == 1){
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
+  }
+  if(dir == -1){
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+  }
+  else{
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, LOW);
+  }
+
+}
+
+void readEncoder(){
+  int b = digitalRead(ENCB);
+  if (b > 0){
+    pos++;
+  }
+  else{
+    pos--;
+  }
+}
+
+void StopperingRunning(){
+  // Setting contraints for PID
+  int kp = 1;
+  int ki = 0.025;
+  int kd = 0.0; 
+  int tolerance = 10;
+
+  // Calculate time difference
+  long currT = micros();
+  float deltaT = ((float) (currT - prevT))/( 1.0e6 );
+  prevT = currT;
+
+  portENTER_CRITICAL(&mux);
+  pos = posi;
+  portEXIT_CRITICAL(&mux);
+
+  // For calculating error, dError og iError
+  // error
+  int e = pos - target;
+  // derivative
+  float dedt = (e-ePrev)/(deltaT);
+  // integral
+  eIntegral = eIntegral + e*deltaT;
+  // control signal
+  float u = kp*e + kd*dedt + ki*eIntegral;
+  float pwr = fabs(u);
+
+  if (pwr > 255) pwr = 255;
+  int dir = (u < 0) ? -1 : 1;
+  setMotor(dir, pwr, PWM, IN1, IN2);
+  ePrev = e;
+
+  if (state == 1 && abs(pos - 1200) < tolerance) {
+    target = 0;
+    state = 2;
+    client.publish(topic_pub, "Reached 1200 – returning to 0");
+  } else if (state == 2 && abs(pos) < tolerance) {
+    setMotor(0, 0, PWM, IN1, IN2);
+    state = 0;
+    eIntegral = 0;
+    client.publish(topic_pub, "Returned to 0 – motor stopped");
+  }
+
+  
+
+}
+
