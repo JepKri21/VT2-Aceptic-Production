@@ -106,7 +106,7 @@ namespace CommandHandlerNode
             {
                 for (int i = 0; i < physicalQueue.Count; i++)
                 {
-                    double[] queuePOS = [queuePosX[i], queuePosY[i]];
+                    double[] queuePOS = [queuePosX[i], queuePosY[i], 0];
                     var message = JsonSerializer.Serialize(queuePOS);
                     Console.WriteLine($"Sending target position {queuePOS} to Xbot{physicalQueue[i]} ");
                     await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{physicalQueue[i]}/TargetPosition", message);
