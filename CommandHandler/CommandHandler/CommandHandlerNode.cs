@@ -216,8 +216,8 @@ namespace CommandHandlerNode
             }
             
 
-            //Console.WriteLine("Now publishing runPathPlanner");
-            //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+            Console.WriteLine("Now publishing runPathPlanner");
+            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
 
 
         }
@@ -303,8 +303,8 @@ namespace CommandHandlerNode
             if (stationFound)
             {
                 commandHandlingCheck();
-                //Console.WriteLine("Now publishing runPathPlanner");
-                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+                Console.WriteLine("Now publishing runPathPlanner");
+                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
             else
             {
@@ -355,6 +355,10 @@ namespace CommandHandlerNode
                             }
                             //If it is not in a queue, then we can just run the movement of the station
                             matchingTaskStation.runMovement(matchingTaskStation.stationQueue[0]); //We run the movement of the first in the queue
+                            string objectiveTopic = $"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{shuttle.shuttleID}/Objective";
+                            publishObjective(objectiveTopic, "_" + matchingTaskStation.stationTaskName);
+
+                            //If I send objective here, then we only check for Xbots with the objective matching the station name
                             //matchingTaskStation.stationOccupied = true; //Then we say that the station is occupied (I think the station itself should tell us)
                             matchingTaskStation.stationStatus = "_running";
                             //shuttle.replaceFirstTask(matchingTaskStation.runningTaskName); //Then we replace the shuttle's task with the stations running task name
@@ -406,6 +410,12 @@ namespace CommandHandlerNode
             }
         }
 
+
+        public async void publishObjective(string topic, string message)
+        {
+            await mqttPublisher.PublishMessageAsync(topic, message);
+
+        }
 
 
         public static async Task Main(string[] args) // Change return type to Task
