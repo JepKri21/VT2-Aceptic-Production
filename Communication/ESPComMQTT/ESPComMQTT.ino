@@ -216,6 +216,6 @@ void stopMotor(){
   digitalWrite(in4, LOW);
   analogWrite(enB, 0);
 
-  //client.publish(topic_pub, "idle");
+  client.publish(topic_sub, "finished");
   
 }
