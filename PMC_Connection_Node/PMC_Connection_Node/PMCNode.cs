@@ -122,14 +122,22 @@ namespace PMC
             {
                 foreach (var xbot in xbotsID)
                 {
+                    // Get the xbot status
                     XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
                     double[] position = status.FeedbackPositionSI;
+                    string xbotState = status.XBOTState.ToString(); // Convert the state to a string
+
+                    // Round the position values
                     position = position.Select(p => Math.Round(p, 3)).ToArray();
                     double[] positionXYRZ = { position[0], position[1], position[5] };
                     positions[xbot] = positionXYRZ;
-                    //double[] positionXY = { position[0], position[1]};
-                    //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
-                    PublishPositionAsync(xbot, positionXYRZ);
+
+                    
+
+                    // Serialize and publish the combined data
+                    var message = JsonSerializer.Serialize(positionXYRZ);
+                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbot}/PositionAndState", message);
+                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbot}/State", xbotState);
                 }
                 await Task.Delay(1000);
             }
