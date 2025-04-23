@@ -24,13 +24,15 @@ namespace StationHandlerNode
 
         private List<ShuttleInformation> allShuttles = new List<ShuttleInformation>();
 
+        private bool alreadySentStatus = false;
+
         private void InitializeTopicHandlers()
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
             {
                 { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Position", updateXbotPositions},
                 { "AAU/Fiberstræde/Building14/FillingLine/Stations/+/StationPosition", updateStationPositions},
-                { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Status", updateXbotStatus},
+                { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/State", updateXbotStatus},
                 { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Objective", updateXbotObjective}
 
             };
@@ -142,12 +144,14 @@ namespace StationHandlerNode
             if (existingShuttle != null)
             {
                 Console.WriteLine($"Updating existing shuttle {existingShuttle._shuttleID} with position: {message}");
-                existingShuttle._shuttlePosition = JsonSerializer.Deserialize<double[]>(message); // Update existing
+                double[] position = JsonSerializer.Deserialize<double[]>(message);
+                existingShuttle._shuttlePosition = position.Take(2).ToArray(); // Update existing
             }
             else
             {
                 Console.WriteLine($"Adding a new shuttle {xbotId} with position: {message}");
-                allShuttles.Add(new ShuttleInformation { _shuttleID = xbotId, _shuttlePosition = JsonSerializer.Deserialize<double[]>(message) }); // Add new
+                double[] position = JsonSerializer.Deserialize<double[]>(message);
+                allShuttles.Add(new ShuttleInformation { _shuttleID = xbotId, _shuttlePosition = position.Take(2).ToArray() }); // Add new
             }
 
             Console.WriteLine("Now checking all shuttle positions");
@@ -217,11 +221,11 @@ namespace StationHandlerNode
                 foreach (ShuttleInformation shuttle in allShuttles)
                 {
 
-                    Console.WriteLine("_" + station._stationName == shuttle._shuttleObjective);
-                    Console.WriteLine(shuttle._shuttleStatus == 3);
-                    Console.WriteLine(shuttle._shuttlePosition[0] == station._stationPosition[0]);
-                    Console.WriteLine(shuttle._shuttlePosition[1] == station._stationPosition[1]);
-                    Console.WriteLine(shuttle._shuttleID != station._occupyingXbot);
+                    //Console.WriteLine("_" + station._stationName == shuttle._shuttleObjective);
+                    //Console.WriteLine(shuttle._shuttleStatus == 3);
+                    //Console.WriteLine(shuttle._shuttlePosition[0] == station._stationPosition[0]);
+                    //Console.WriteLine(shuttle._shuttlePosition[1] == station._stationPosition[1]);
+                    //Console.WriteLine(shuttle._shuttleID != station._occupyingXbot);
 
                     if ("_"+station._stationName == shuttle._shuttleObjective && shuttle._shuttleStatus == 3 && shuttle._shuttlePosition[0] == station._stationPosition[0] && shuttle._shuttlePosition[1] == station._stationPosition[1] && shuttle._shuttleID != station._occupyingXbot)
                     {
@@ -230,7 +234,7 @@ namespace StationHandlerNode
                         shuttle._shuttleObjective = "No Objective"; 
                         await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/{station._stationName}/StationStatus", "running");
                         await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/{"Xbot"+ shuttle._shuttleID}/Objective", shuttle._shuttleObjective);
-
+                        alreadySentStatus = false;
                         objectiveFlag = true;
 
                     }
@@ -238,9 +242,10 @@ namespace StationHandlerNode
 
                 bool noShuttleAtStation = !allShuttles.Any(shuttle => shuttle._shuttlePosition.SequenceEqual(station._stationPosition));
 
-                if (objectiveFlag == false && noShuttleAtStation) //AKA no shuttle has that objective //Fuck, we also have to check that no other shuttle is in the station position
+                if (objectiveFlag == false && noShuttleAtStation && alreadySentStatus == false) //AKA no shuttle has that objective //Fuck, we also have to check that no other shuttle is in the station position
                 {
                     //Remove station occupancy
+                    alreadySentStatus = true;
                     Console.WriteLine($"No shuttles with objectives equal to {"_"+station._stationName} AND no shuttles are at the station position: {station._stationPosition}");
                     station._occupyingXbot = 0;
                     await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/{station._stationName}/StationStatus", "idle");

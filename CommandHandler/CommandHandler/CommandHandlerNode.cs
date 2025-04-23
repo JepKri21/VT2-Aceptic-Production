@@ -56,7 +56,7 @@ namespace CommandHandlerNode
 
             //Passing positions to the queues------------------------------------------------------
             //---------------------------------------------------------------------------------------------------
-            double[] fillingQueuePosX = { 0.420, 0.300, 0.180 };
+            double[] fillingQueuePosX = { 0.420, 0.290, 0.160 };
             double[] fillingQueuePosY = { 0.900, 0.9, 0.9 };
 
 
@@ -69,7 +69,7 @@ namespace CommandHandlerNode
 
 
             double[] endQueuePosX = { 0.060, 0.060, 0.060, 0.060 };
-            double[] endQueuePosY = { 0.780, 0.660, 0.540, 0.420 };
+            double[] endQueuePosY = { 0.780, 0.650, 0.520, 0.390 };
 
 
             //Passing the motion functions to their classes and positions to the queues------------------------------------------------------
@@ -216,8 +216,8 @@ namespace CommandHandlerNode
             }
             
 
-            Console.WriteLine("Now publishing runPathPlanner");
-            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+            //Console.WriteLine("Now publishing runPathPlanner");
+            //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
 
 
         }
@@ -303,8 +303,8 @@ namespace CommandHandlerNode
             if (stationFound)
             {
                 commandHandlingCheck();
-                Console.WriteLine("Now publishing runPathPlanner");
-                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+                //Console.WriteLine("Now publishing runPathPlanner");
+                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
             else
             {
