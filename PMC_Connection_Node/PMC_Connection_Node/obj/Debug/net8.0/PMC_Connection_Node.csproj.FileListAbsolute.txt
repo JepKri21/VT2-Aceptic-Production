@@ -18,3 +18,23 @@ C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.pdb
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.genruntimeconfig.cache
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\ref\PMC_Connection_Node.dll
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMC_Connection_Node.exe
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMC_Connection_Node.deps.json
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMC_Connection_Node.runtimeconfig.json
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMC_Connection_Node.dll
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMC_Connection_Node.pdb
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\MQTTnet.dll
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMCLIB.dll
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMCLIB.xml
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.csproj.AssemblyReference.cache
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.AssemblyInfoInputs.cache
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.AssemblyInfo.cs
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.csproj.CoreCompileInputs.cache
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.sourcelink.json
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Conn.7B390BAF.Up2Date
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.dll
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\refint\PMC_Connection_Node.dll
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.pdb
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.genruntimeconfig.cache
+C:\Users\silas\Desktop\Manufacturing Technology 2\VT2 Project\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\ref\PMC_Connection_Node.dll

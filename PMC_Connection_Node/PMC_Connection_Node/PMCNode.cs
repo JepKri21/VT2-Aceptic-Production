@@ -24,8 +24,8 @@ namespace PMC
         private Dictionary<string, Action<string, string>> topicHandlers;
         private MQTTSubscriber mqttSubscriber;
         private MQTTPublisher mqttPublisher;
-        //string brokerIP = "172.20.66.135";
-        string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();

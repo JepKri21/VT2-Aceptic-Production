@@ -50,8 +50,7 @@
               "RelativeToolTip": "StationHandler\\ShuttleInformation.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAATAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-22T10:02:49.511Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-22T10:02:49.511Z"
             },
             {
               "$type": "Document",
@@ -63,8 +62,7 @@
               "RelativeToolTip": "StationHandler\\StationInformation.cs",
               "ViewState": "AgIAAAQAAAAAAAAAAAAAAA4AAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-22T08:18:48.96Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-22T08:18:48.96Z"
             },
             {
               "$type": "Document",
@@ -96,9 +94,9 @@
               "Title": "StationHandlerNode.cs",
               "DocumentMoniker": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\StationHandler\\StationHandler\\StationHandlerNode.cs",
               "RelativeDocumentMoniker": "StationHandler\\StationHandlerNode.cs",
-              "ToolTip": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\StationHandler\\StationHandler\\StationHandlerNode.cs*",
-              "RelativeToolTip": "StationHandler\\StationHandlerNode.cs*",
-              "ViewState": "AgIAANEAAAAAAAAAAAAcwOEAAADnAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\silas\\Desktop\\Manufacturing Technology 2\\VT2 Project\\VT2-Aceptic-Production\\StationHandler\\StationHandler\\StationHandlerNode.cs",
+              "RelativeToolTip": "StationHandler\\StationHandlerNode.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-16T11:01:18.223Z",
               "EditorCaption": ""
