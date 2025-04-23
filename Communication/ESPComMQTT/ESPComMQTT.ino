@@ -16,7 +16,7 @@ unsigned long elapsedTime;
 
 int speed = 140;
 
-double[] stationPosition = [0.660, 0.840];
+double stationPosition[] = {0.660, 0.840};
 
 // WiFi-oplysninger AAU Smart Production
 const char* ssid = "smart_production_WIFI";
@@ -92,7 +92,10 @@ void loop() {
     previousMillis = currentMillis;
 
     // Your code to run every 10 seconds
-    client.publish(topic_pub, stationPosition);
+    char buffer[50];
+    snprintf(buffer, sizeof(buffer), "[%.3f, %.3f]", stationPosition[0], stationPosition[1]);
+
+    client.publish(topic_pub, buffer);
   }
 
 }
