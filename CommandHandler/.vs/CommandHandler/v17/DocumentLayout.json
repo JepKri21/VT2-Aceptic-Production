@@ -7,12 +7,12 @@
       "RelativeMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|solutionrelative:commandhandler\\commandhandlernode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\commandhandler\\commandhandler\\queue_class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|solutionrelative:commandhandler\\queue_class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\commandhandler\\commandhandler\\station_class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|solutionrelative:commandhandler\\station_class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\commandhandler\\commandhandler\\queue_class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|solutionrelative:commandhandler\\queue_class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{795AF9DC-DE04-42BF-B06A-2334C3DB2A43}|CommandHandler\\CommandHandler.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\commandhandler\\commandhandler\\shuttle_class.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -46,29 +46,31 @@
               "RelativeToolTip": "CommandHandler\\Shuttle_Class.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-16T09:55:15.851Z"
+              "WhenOpened": "2025-04-16T09:55:15.851Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "Station_Class.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\Station_Class.cs",
               "RelativeDocumentMoniker": "CommandHandler\\Station_Class.cs",
               "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\Station_Class.cs",
               "RelativeToolTip": "CommandHandler\\Station_Class.cs",
-              "ViewState": "AgIAAEAAAAAAAAAAAAAkwFYAAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAB4AAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-16T09:55:09.597Z"
+              "WhenOpened": "2025-04-16T09:55:09.597Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "Queue_Class.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\Queue_Class.cs",
               "RelativeDocumentMoniker": "CommandHandler\\Queue_Class.cs",
               "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\Queue_Class.cs",
               "RelativeToolTip": "CommandHandler\\Queue_Class.cs",
-              "ViewState": "AgIAAFQAAAAAAAAAAAAowBoAAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-16T09:55:02.942Z",
               "EditorCaption": ""
@@ -81,7 +83,7 @@
               "RelativeDocumentMoniker": "CommandHandler\\CommandHandlerNode.cs",
               "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\CommandHandlerNode.cs",
               "RelativeToolTip": "CommandHandler\\CommandHandlerNode.cs",
-              "ViewState": "AgIAAL4AAAAAAAAAAAAwwN0AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAACIAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-16T07:54:05.924Z",
               "EditorCaption": ""

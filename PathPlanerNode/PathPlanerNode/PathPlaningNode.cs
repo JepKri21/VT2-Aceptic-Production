@@ -20,8 +20,8 @@ namespace PathPlaningNode
         private Dictionary<int, List<double[]>> trajectories = new();
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
-        //string brokerIP = "localhost";
-        string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
         private int width = 72;
@@ -358,6 +358,8 @@ namespace PathPlaningNode
                     await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotId}/Trajectory", trajectoryMessage);
                 }
 
+                // Add a delay before sending the "ready" message
+                await Task.Delay(500); // Delay for 1 second
                 await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "ready");
             }
         }

@@ -26,8 +26,8 @@ namespace PMC
         private MQTTPublisher mqttPublisher;
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
-        string brokerIP = "172.20.66.135";
-        //string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -448,12 +448,12 @@ namespace PMC
                                 if (cancellationToken.IsCancellationRequested)
                                 {
                                     Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
-                                    lock (trajectories)
+                                    /*lock (trajectories)
                                     {
                                         trajectories.Remove(xbotID);
-                                    }
-                                    MotionBufferReturn BufferStatusClear = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.CLEARBUFFER);
-                                    _xbotCommand.StopMotion(xbotID);
+                                    }*/
+                                    //MotionBufferReturn BufferStatusClear = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.CLEARBUFFER);
+                                    //_xbotCommand.StopMotion(xbotID);
                                     
                                     return; // Exit the loop if cancellation is requested
                                 }
@@ -497,19 +497,19 @@ namespace PMC
 
                                     if (Math.Sign(deltaX) != Math.Sign(nextDirectionVector[0]) || Math.Sign(deltaY) != Math.Sign(nextDirectionVector[1]))
                                     {
-                                        Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
+                                        //Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
                                         _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
                                     }
                                     else
                                     {
-                                        Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
+                                        //Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
                                         _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.2);
                                     }
                                 }
                                 else
                                 {
                                     // Handle the last point explicitly
-                                    Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                                    //Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
                                     _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
                                 }
                             }

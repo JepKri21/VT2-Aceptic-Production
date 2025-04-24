@@ -31,8 +31,8 @@ namespace CommandHandlerNode
         private MQTTSubscriber mqttSubscriber;
         private MQTTPublisher mqttPublisher;
 
-        //string brokerIP = "localhost";
-        string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
         int port = 1883;
         private Dictionary<string, Action<string, string>> topicHandlers;
 
