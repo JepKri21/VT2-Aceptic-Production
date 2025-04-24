@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CommandHandler")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+47d3e8a8fcebb2da3dc89f477638cc3faf0005b3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3ab6bb38ae1a78c4be2dd61e4757cbd50f5827b6")]
 [assembly: System.Reflection.AssemblyProductAttribute("CommandHandler")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CommandHandler")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

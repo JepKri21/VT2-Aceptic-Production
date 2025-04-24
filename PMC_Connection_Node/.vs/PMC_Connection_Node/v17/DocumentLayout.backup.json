@@ -5,6 +5,10 @@
     {
       "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\pmcnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\pmcnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pmc_connection_node\\pmc_connection_node\\mqttsubscriber.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0C29341B-6652-4A36-9567-1F90B6CF208F}|PMC_Connection_Node\\PMC_Connection_Node.csproj|solutionrelative:pmc_connection_node\\mqttsubscriber.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -14,7 +18,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 225,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -26,13 +30,26 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MQTTSubscriber.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
+              "RelativeDocumentMoniker": "PMC_Connection_Node\\MQTTSubscriber.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\MQTTSubscriber.cs",
+              "RelativeToolTip": "PMC_Connection_Node\\MQTTSubscriber.cs",
+              "ViewState": "AgIAACoAAAAAAAAAAAAYwD0AAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-04-23T11:22:59.588Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 0,
               "Title": "PMCNode.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
               "RelativeDocumentMoniker": "PMC_Connection_Node\\PMCNode.cs",
               "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PMC_Connection_Node\\PMC_Connection_Node\\PMCNode.cs",
               "RelativeToolTip": "PMC_Connection_Node\\PMCNode.cs",
-              "ViewState": "AgIAAPsAAAAAAAAAAAAUwB0BAAAWAAAAAAAAAA==",
+              "ViewState": "AgIAALEBAAAAAAAAAAAQwMUBAAAlAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-16T09:40:02.301Z",
               "EditorCaption": ""

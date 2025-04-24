@@ -100,7 +100,7 @@ namespace PathPlaningNode
                         Console.WriteLine($"Updating target position for xbotID {xbotID}: {string.Join(", ", targetPosition)}");
 
                         UpdateFromAndTo(xbotID);
-                        //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+                        await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
                 }                
                 else
                 {
@@ -336,22 +336,7 @@ namespace PathPlaningNode
                     //gridGlobal.SaveWalkablePointsToFile(xbotId, "walkable_points.txt");
                     if (targetPositions.ContainsKey(xbotId))
                     {
-                        var targetPosition = targetPositions[xbotId];
-                        if (positions.ContainsKey(xbotId))
-                        {
-                            var currentPosition = positions[xbotId];
-
-                            // Check if the Rz values match
-                            if (Math.Abs(currentPosition[2] - targetPosition[2]) < 1) // Threshold for Rz comparison
-                            {
-                                // Append the target position as the last point in the trajectory
-                                trajectory.Value.Add(targetPosition);
-                            }
-                            else
-                            {
-                                Console.WriteLine($"Rz values do not match for xbotID {xbotId}. Target position will not be added.");
-                            }
-                        }
+                        trajectory.Value.Add(targetPositions[xbotId]);
                     }
 
                     var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList());

@@ -283,10 +283,10 @@ public class Pathfinding
 
         int[,] priorityMatrix = getPriorityMatrix(_xBotID_From_To);
         
-        Console.WriteLine("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
+        //Console.WriteLine("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
         for (int i = 0; i < priorityMatrix.GetLength(0); i++)
         {
-            Console.WriteLine("Trying priority: " + (i + 1));
+            //Console.WriteLine("Trying priority: " + (i + 1));
             SortedList<int, int> priorityList = new SortedList<int, int>();
             for (int j = 0; j < priorityMatrix.GetLength(1); j++)
             {
@@ -303,19 +303,19 @@ public class Pathfinding
                 bool allBotsHavePaths = _xBotID_From_To.All(bot => newPathList.Any(path => path.Item1 == bot.Item1 && path.Item2 != null && path.Item2.Count > 0));
                 if (allBotsHavePaths)
                 {
-                    Console.WriteLine("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
+                    //Console.WriteLine("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
                     stopwatch.Stop();
-                    Console.WriteLine("Path found. Returning path list with priority: " + (i + 1));
+                    //Console.WriteLine("Path found. Returning path list with priority: " + (i + 1));
                     // Print each XbotID's priority  
                     foreach (var priorityEntry in priorityList)
                     {
-                        Console.WriteLine($"XbotID: {priorityEntry.Value}, Priority: {priorityEntry.Key}");
+                        //Console.WriteLine($"XbotID: {priorityEntry.Value}, Priority: {priorityEntry.Key}");
                     }
-                    Console.WriteLine("Returning pathlist " + string.Join(", ", newPathList.Select(p => $"Bot {p.Item1}: {string.Join(" -> ", p.Item2.Select(n => $"({n.x}, {n.y})"))}")));
+                    //Console.WriteLine("Returning pathlist " + string.Join(", ", newPathList.Select(p => $"Bot {p.Item1}: {string.Join(" -> ", p.Item2.Select(n => $"({n.x}, {n.y})"))}")));
                     return newPathList;
                 }
             }
-            Console.WriteLine("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
+            //Console.WriteLine("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
         }
         Console.WriteLine("Tried: " + priorityMatrix.GetLength(0) + " different priorities. Without Luck");
         return null;
@@ -337,7 +337,7 @@ public class Pathfinding
         {
             _output.Add((path.Item1, path.Item2.Select(x => (x.x, x.y)).ToList()));
         }
-        Console.WriteLine($"Pathfinding completed in: " + stopwatche.ElapsedMilliseconds + " ms");
+        //Console.WriteLine($"Pathfinding completed in: " + stopwatche.ElapsedMilliseconds + " ms");
         stopwatche.Stop();
         List<(int, List<double[]>)> output = unit_CM_To_M(_output); // Convert back to M
         return output;
@@ -521,7 +521,7 @@ public class Pathfinding
                         botWaitingPaths[lowerPriorityBot] = new List<node>();
                     botWaitingPaths[lowerPriorityBot].Add(startNode);
 
-                    Console.WriteLine($"🕒 Bot {lowerPriorityBot} chooses to **WAIT**. WaitTime: {botWaitTime[lowerPriorityBot]}, WaitCost: {waitOptionCost}, WalkCost: {simWalkCost}");
+                    //Console.WriteLine($"🕒 Bot {lowerPriorityBot} chooses to **WAIT**. WaitTime: {botWaitTime[lowerPriorityBot]}, WaitCost: {waitOptionCost}, WalkCost: {simWalkCost}");
                     _grid.removeOccupied();
                 }
                 else
@@ -532,11 +532,11 @@ public class Pathfinding
                     {
                         botWaitingPaths[lowerPriorityBot] = new List<node>(); // Clear waiting steps
                         _grid.makeUnWalkable(conflictNode, lowerPriorityBot, false, true);
-                        Console.WriteLine($"🚶 Bot {lowerPriorityBot} chooses to **WALK AROUND** the conflict at ({conflictNode.x}, {conflictNode.y}). WalkCost: {simWalkCost}, WaitCost: {waitOptionCost}");
+                        //Console.WriteLine($"🚶 Bot {lowerPriorityBot} chooses to **WALK AROUND** the conflict at ({conflictNode.x}, {conflictNode.y}). WalkCost: {simWalkCost}, WaitCost: {waitOptionCost}");
                     }
                     else
                     {
-                        Console.WriteLine($"⚠️ Bot {lowerPriorityBot} attempted walk-around but no valid path found in main grid.");
+                        //Console.WriteLine($"⚠️ Bot {lowerPriorityBot} attempted walk-around but no valid path found in main grid.");
                     }
                 }
             }
@@ -545,7 +545,7 @@ public class Pathfinding
             iteration++;
         }
 
-        Console.WriteLine("Iteration cap hit. No conflict solution found");
+        //Console.WriteLine("Iteration cap hit. No conflict solution found");
         return null;
     }
     #endregion

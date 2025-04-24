@@ -207,8 +207,8 @@ namespace CommandHandlerNode
             {
                 Console.WriteLine("Now gonna run the command checker");
                 commandHandlingCheck();
-                //Console.WriteLine("Now publishing runPathPlanner");
-                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+                Console.WriteLine("Now publishing runPathPlanner");
+                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
             else
             {
@@ -303,8 +303,8 @@ namespace CommandHandlerNode
             if (stationFound)
             {
                 commandHandlingCheck();
-                //Console.WriteLine("Now publishing runPathPlanner");
-                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+                Console.WriteLine("Now publishing runPathPlanner");
+                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
             else
             {
