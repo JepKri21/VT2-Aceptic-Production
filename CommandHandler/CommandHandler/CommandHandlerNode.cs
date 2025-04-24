@@ -190,6 +190,16 @@ namespace CommandHandlerNode
 
             bool shuttleFound = false;
 
+            foreach (StationClass station in allStations)
+            {
+                station.removeIDFromQueue(xbotId);
+            }
+
+            foreach (QueueClass queue in allQueues)
+            {
+                queue.removeIDFromList(xbotId);
+            }
+
             //Turn the Command in to the shuttle class with the correct ID
             foreach (ShuttleClass shuttle in allShuttles)
             {
@@ -207,6 +217,9 @@ namespace CommandHandlerNode
             {
                 Console.WriteLine("Now gonna run the command checker");
                 commandHandlingCheck();
+
+                await Task.Delay(50);
+                //Maybe add delay so that the PMC node has time to receive the target positions
                 Console.WriteLine("Now publishing runPathPlanner");
                 await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
@@ -303,6 +316,7 @@ namespace CommandHandlerNode
             if (stationFound)
             {
                 commandHandlingCheck();
+                await Task.Delay(50); //Added delay here to make sure that the PMC node can follow along before sending the run path planner
                 Console.WriteLine("Now publishing runPathPlanner");
                 await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
             }
@@ -345,6 +359,7 @@ namespace CommandHandlerNode
 
                         if (matchingTaskStation.stationStatus == "idle") //Then we say that if the relevant station is not occupied, then we can:
                         {
+                            /* WE STILL REMOVE THE SHUTTLE FROM ALL QUEUES WHENEVER A NEW COMMAND IS GIVEN
                             if (shuttle.shuttleInQueue != null) //IF it is in a queue
                             {
                                 //Remove it from the queue
@@ -353,6 +368,7 @@ namespace CommandHandlerNode
                                 shuttle.shuttleInQueue = null; //I'm not sure this part works
 
                             }
+                            */
                             //If it is not in a queue, then we can just run the movement of the station
                             matchingTaskStation.runMovement(matchingTaskStation.stationQueue[0]); //We run the movement of the first in the queue
                             string objectiveTopic = $"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{shuttle.shuttleID}/Objective";
