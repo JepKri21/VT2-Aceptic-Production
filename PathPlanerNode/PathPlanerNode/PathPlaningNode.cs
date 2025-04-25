@@ -30,6 +30,8 @@ namespace PathPlaningNode
         private Pathfinding pathfinder;
         private List<(int, double[], double[])> xBotID_From_To = new();
         private double[] TargetPositionStation;
+        string UNSPrefix = "AAU/Fibigerstræde /Building14/FillingLine/Stations/Acopos6D/";
+
 
         #region Initialize
         public PathPlaningNode()
@@ -45,10 +47,10 @@ namespace PathPlaningNode
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
                 {
-                    { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPostion },
-                    { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Position", getPostion },
-                    { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus },
-                    { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/SubCMD", HandleSubCMD}
+                    { UNSPrefix + $"Xbots/+/TargetPosition", getTargetPostion },
+                    { UNSPrefix + $"Xbots/+/Position", getPostion },
+                    { UNSPrefix + $"PathPlan/Status", HandleStatus },
+                    { UNSPrefix + $"Xbots/+/SubCMD", HandleSubCMD}
                 };
         }
 
@@ -106,8 +108,8 @@ namespace PathPlaningNode
                 {
                     // Ensure the rotation target is included if applicable
                     RotateCommand(xbotID);
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotID}/SubCMD", "Rotate");
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/Status", "runPathPlanner");
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotID}/SubCMD", "Rotate");
                 }
             }
 
@@ -355,10 +357,10 @@ namespace PathPlaningNode
                     }
 
                     var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList());
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotId}/Trajectory", trajectoryMessage);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotId}/Trajectory", trajectoryMessage);
                 }
 
-                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "ready");
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/Status", "ready");
             }
         }
 
@@ -376,7 +378,7 @@ namespace PathPlaningNode
                 Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
                 Console.WriteLine($"{targetPositions[xbotID]}");
 
-                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/Status", "runPathPlanner");
             }
         }
         #endregion

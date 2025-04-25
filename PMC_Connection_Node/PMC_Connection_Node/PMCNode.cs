@@ -32,6 +32,8 @@ namespace PMC
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
         private CancellationTokenSource runTrajectoryCancellationTokenSource;
+        string UNSPrefix = "AAU/Fibigerstræde /Building14/FillingLine/Stations/Acopos6D/";
+
 
         private PMC_Connection_Node()
         {
@@ -64,11 +66,11 @@ namespace PMC
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
             {
-            { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/Trajectory", GetTrajectories },
-            { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/TargetPosition", getTargetPosition },
-            { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/+/SubCMD", HandlerSubCMD },
-            { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", HandleStatus },
-            { "AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Stop", HandleStop }
+            { UNSPrefix + "Xbots/+/Trajectory", GetTrajectories },
+            { UNSPrefix + "Xbots/+/TargetPosition", getTargetPosition },
+            { UNSPrefix + "Xbots/+/SubCMD", HandlerSubCMD },
+            { UNSPrefix + "PathPlan/Status", HandleStatus },
+            { UNSPrefix + "PathPlan/Stop", HandleStop }
             };
         }
 
@@ -139,8 +141,8 @@ namespace PMC
                     // Serialize and publish the combined data
                     var message = JsonSerializer.Serialize(positionXYRZ);
                     var message1 = JsonSerializer.Serialize(xbotState);
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbot}/Position", message);
-                    await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbot}/State", message1);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/Position", message);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/State", message1);
                 }
                 await Task.Delay(1000);
             }
@@ -149,7 +151,7 @@ namespace PMC
         public async Task PublishPositionAsync(int xbotId, double[] position)
         {
             var message = JsonSerializer.Serialize(position);
-            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotId}/Position", message);
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotId}/Position", message);
             //Console.WriteLine($"Published position for xbot {xbotId}: {string.Join(", ", position)}");
         }
 
@@ -159,7 +161,7 @@ namespace PMC
             xbotsID = xBotIDs.XBotIDsArray;
             Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
             var message = JsonSerializer.Serialize(xbotsID);
-            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/IDs", message, true);
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/IDs", message, true);
         }
 
         #endregion
@@ -315,7 +317,7 @@ namespace PMC
                         if (xbotState == 3 && Math.Abs(currentOrientation - targetOrientation) > 0.01)
                         {
                             Console.WriteLine("Rotation Done");
-                            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{xbotID}/SubCMD", "RotationDone");
+                            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotID}/SubCMD", "RotationDone");
                             break;
                         }
                         Task.Delay(100).Wait();
@@ -448,12 +450,7 @@ namespace PMC
                                 if (cancellationToken.IsCancellationRequested)
                                 {
                                     Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
-                                    lock (trajectories)
-                                    {
-                                        trajectories.Remove(xbotID);
-                                    }
-                                    MotionBufferReturn BufferStatusClear = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.CLEARBUFFER);
-                                    _xbotCommand.StopMotion(xbotID);
+                                    
                                     
                                     return; // Exit the loop if cancellation is requested
                                 }
