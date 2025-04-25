@@ -31,7 +31,7 @@ int ePrev = 0;
 int eIntegral = 0;
 int pos = 0;
 
-bool fillingRunning = false;
+bool stopperingRunning = false;
 int state = 0;
 int target = 0;
 
@@ -92,7 +92,7 @@ void setup() {
   pinMode(in4, OUTPUT);
   pinMode(BUTTON_PIN_BOTTOM, INPUT_PULLUP);
   pinMode(BUTTON_PIN_TOP, INPUT_PULLUP);
-  stopMotor();
+  //stopMotor();
   analogWrite(enB,0);
 
   //For Stoppering Motor
@@ -148,14 +148,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
     if (message == "running") {
       Serial.println("Starting the motor / LED!");
       //digitalWrite(ledPin, HIGH);  // Tænder motor/LED
-      startMotor();
+      //startMotor();
       StopperingRunning();
+      stopperingRunning = true;
+      
 
     } 
-    else if (message == "STOP") {
+    else if (message == "idle") {
       Serial.println("Stopping the motor / LED!");
       //digitalWrite(ledPin, LOW);   // Slukker motor/LED
-      stopMotor();
+      //stopMotor();
+      StopperingStop();
+      stopperingRunning = false;
     } 
     else {
       Serial.println("Unknown command.");
@@ -282,49 +286,104 @@ void readEncoder(){
 }
 
 void StopperingRunning(){
-  // Setting contraints for PID
-  int kp = 1;
-  int ki = 0.025;
-  int kd = 0.0; 
-  int tolerance = 10;
+  target = 12000;
+  digitalWrite(IN1, HIGH); //if it is, then we run in one direction
+  digitalWrite(IN2, LOW);
+  analogWrite(PWM, speed);
+  startTime = millis(); //Start time for going down
+    
+    while (pos <= target && stopperingRunning) //While we wait for button
+    {
+      client.loop();
 
-  // Calculate time difference
-  long currT = micros();
-  float deltaT = ((float) (currT - prevT))/( 1.0e6 );
-  prevT = currT;
+      Serial.print("POS : ");
+      Serial.println(pos);
+      if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
+      {
+        client.publish(topic_sub, "motion_error_down"); //We just publish the error to the same place that we subscribe
+        break;
+      }
 
-  portENTER_CRITICAL(&mux);
-  pos = posi;
-  portEXIT_CRITICAL(&mux);
+    }
 
-  // For calculating error, dError og iError
-  // error
-  int e = pos - target;
-  // derivative
-  float dedt = (e-ePrev)/(deltaT);
-  // integral
-  eIntegral = eIntegral + e*deltaT;
-  // control signal
-  float u = kp*e + kd*dedt + ki*eIntegral;
-  float pwr = fabs(u);
+    StopperingStop();
 
-  if (pwr > 255) pwr = 255;
-  int dir = (u < 0) ? -1 : 1;
-  setMotor(dir, pwr, PWM, IN1, IN2);
-  ePrev = e;
 
-  if (state == 1 && abs(pos - 1200) < tolerance) {
-    target = 0;
-    state = 2;
-    client.publish(topic_pub, "Reached 1200 – returning to 0");
-  } else if (state == 2 && abs(pos) < tolerance) {
-    setMotor(0, 0, PWM, IN1, IN2);
-    state = 0;
-    eIntegral = 0;
-    client.publish(topic_pub, "Returned to 0 – motor stopped");
-  }
+  // // Setting contraints for PID
+  // int kp = 1;
+  // int ki = 0.025;
+  // int kd = 0.0; 
+  // int tolerance = 10;
 
+  // // Calculate time difference
+  // long currT = micros();
+  // float deltaT = ((float) (currT - prevT))/( 1.0e6 );
+  // prevT = currT;
+
+  // portENTER_CRITICAL(&mux);
+  // pos = posi;
+  // portEXIT_CRITICAL(&mux);
+
+  // // For calculating error, dError og iError
+  // // error
+  // int e = pos - target;
+  // // derivative
+  // float dedt = (e-ePrev)/(deltaT);
+  // // integral
+  // eIntegral = eIntegral + e*deltaT;
+  // // control signal
+  // float u = kp*e + kd*dedt + ki*eIntegral;
+  // float pwr = fabs(u);
+
+  // if (pwr > 255) pwr = 255;
+  // int dir = (u < 0) ? -1 : 1;
+  // setMotor(dir, pwr, PWM, IN1, IN2);
+  // ePrev = e;
+  
+  // char msg[100];
+  // sprintf(msg, "Target: %d Error: %ld PWM: %.2f", target, e, pwr * dir);
+  // client.publish(topic_sub, msg);
+
+  // if (state == 1 && abs(pos - target) < tolerance) {
+  //   target = 0;
+  //   state = 2;
+  //   client.publish(topic_sub, "Reached 1200 – returning to 0");
+  // } else if (state == 2 && abs(pos) < tolerance) {
+  //   setMotor(0, 0, PWM, IN1, IN2);
+  //   state = 0;
+  //   eIntegral = 0;
+  //   client.publish(topic_sub, "Returned to 0 – motor stopped");
+  //   stopperingRunning = false;
+  // }
   
 
+}
+
+void StopperingStop(){
+  target = 0;
+  
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(PWM, speed);
+
+  startTime = millis(); //Start time for going up
+  
+  while (pos >= target) //While we wait for button
+  {
+      Serial.print("POS : ");
+      Serial.println(pos);
+    
+    if (millis() - startTime >= 8000) //If it takes more than 4 seconds then we say there is an error in the movement
+    {
+
+      client.publish(topic_sub, "motion_error_up"); //We just publish the error to the same place that we subscribe
+      break;
+    }
+  }
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  analogWrite(PWM, 0);
+
+  client.publish(topic_sub, "finished");
 }
 
