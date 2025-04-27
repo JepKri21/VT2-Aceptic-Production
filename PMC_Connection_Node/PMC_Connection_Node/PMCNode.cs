@@ -7,6 +7,7 @@ using System.Data;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -34,6 +35,23 @@ namespace PMC
         private CancellationTokenSource runTrajectoryCancellationTokenSource;
         string UNSPrefix = "AAU/Fibigerstræde /Building14/FillingLine/Stations/Acopos6D/";
 
+        private Dictionary<int, string> states = new Dictionary<int, string>
+        {
+            { 0, "Undetected" },
+            { 1, "Discovering" },
+            { 2, "Execute" },
+            { 3, "Idle" },
+            { 4, "Stopped" },
+            { 5, "Executing" },
+            { 6, "Executing" },
+            { 7, "Stopping" },
+            { 8, "Held" },
+            { 10, "Stopped" },
+            { 14, "Error" }
+        };
+
+        private Dictionary<int, double[]> lastPublishedPositions = new();
+        private Dictionary<int, string> lastPublishedStates = new();
 
         private PMC_Connection_Node()
         {
@@ -120,33 +138,76 @@ namespace PMC
             }
         }
 
-        private async void PublishPostionsINFAsync()
+        
+
+
+
+async void PublishPostionsINFAsync()
         {
             while (true)
             {
                 foreach (var xbot in xbotsID)
                 {
-                    // Get the xbot status
+                    // Get the xbot status and position
                     XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
                     double[] position = status.FeedbackPositionSI;
-                    int xbotState = (int)status.XBOTState;
+                    int xbotStateID = (int)status.XBOTState;
+                    string xbotState = states.ContainsKey(xbotStateID) ? states[xbotStateID] : "Unknown";
 
                     // Round the position values
                     position = position.Select(p => Math.Round(p, 3)).ToArray();
-                    double[] positionXYRZ = { position[0], position[1], position[5] };
-                    positions[xbot] = positionXYRZ;
 
-                    await Task.Delay(10);
+                    // Convert the last three entries of the position from radians to degrees
+                    for (int i = position.Length - 3; i < position.Length; i++)
+                    {
+                        position[i] = Math.Round(position[i] * (180 / Math.PI), 3);
+                    }
 
-                    // Serialize and publish the combined data
-                    var message = JsonSerializer.Serialize(positionXYRZ);
-                    var message1 = JsonSerializer.Serialize(xbotState);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/Position", message);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/State", message1);
+                    // Get the current timestamp
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+                    // Check if position has changed
+                    if (!lastPublishedPositions.ContainsKey(xbot) ||
+                        !position.SequenceEqual(lastPublishedPositions[xbot]))
+                    {
+                        lastPublishedPositions[xbot] = position;
+
+                        // Create a message object with position and timestamp
+                        var positionMessage = new
+                        {
+                            CommandUuid = Guid.NewGuid().ToString(),
+                            Position = position,
+                            TimeStamp = timestamp
+                        };
+
+                        // Serialize and publish the position message
+                        string serializedPositionMessage = JsonSerializer.Serialize(positionMessage);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/Position", serializedPositionMessage);
+                    }
+
+                    // Check if state has changed
+                    if (!lastPublishedStates.ContainsKey(xbot) ||
+                        lastPublishedStates[xbot] != xbotState)
+                    {
+                        lastPublishedStates[xbot] = xbotState;
+
+                        // Create a message object with state and timestamp
+                        var stateMessage = new
+                        {
+                            CommandUuid = Guid.NewGuid().ToString(),
+                            State = xbotState,
+                            TimeStamp = timestamp
+                        };
+
+                        // Serialize and publish the state message
+                        string serializedStateMessage = JsonSerializer.Serialize(stateMessage);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/State", serializedStateMessage);
+                    }
                 }
-                await Task.Delay(1000);
+                await Task.Delay(500);
             }
         }
+                   
 
         public async Task PublishPositionAsync(int xbotId, double[] position)
         {

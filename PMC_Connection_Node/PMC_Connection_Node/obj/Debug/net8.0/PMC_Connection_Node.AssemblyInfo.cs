@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PMC_Connection_Node")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2a8490eb5211e81a42d8d96cc5ecdc802ad4731d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+21fd4eb9859c636044a5d6df8b5526127bcf0f8c")]
 [assembly: System.Reflection.AssemblyProductAttribute("PMC_Connection_Node")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PMC_Connection_Node")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
