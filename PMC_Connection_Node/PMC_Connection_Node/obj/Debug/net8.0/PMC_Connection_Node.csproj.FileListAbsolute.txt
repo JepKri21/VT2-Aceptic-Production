@@ -5,7 +5,6 @@ C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMC_Connection_Node.pdb
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\MQTTnet.dll
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMCLIB.dll
-C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\bin\Debug\net8.0\PMCLIB.xml
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.csproj.AssemblyReference.cache
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\jeppe\OneDrive\Dokumenter\GitHub\VT2-Aceptic-Production\PMC_Connection_Node\PMC_Connection_Node\obj\Debug\net8.0\PMC_Connection_Node.AssemblyInfoInputs.cache

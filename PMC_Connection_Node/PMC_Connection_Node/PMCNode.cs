@@ -3,6 +3,7 @@ using PMC_Connection_Node;
 using PMCLIB;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.Design;
 using System.Data;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -33,7 +34,7 @@ namespace PMC
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
         private CancellationTokenSource runTrajectoryCancellationTokenSource;
-        string UNSPrefix = "AAU/Fibigerstræde /Building14/FillingLine/Stations/Acopos6D/";
+        string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Stations/Acopos6D/";
 
         private Dictionary<int, string> states = new Dictionary<int, string>
         {
@@ -53,6 +54,18 @@ namespace PMC
         private Dictionary<int, double[]> lastPublishedPositions = new();
         private Dictionary<int, string> lastPublishedStates = new();
 
+        private class TargetPositionMessage
+        {
+            public string Uuid { get; set; } = string.Empty;
+            public double X { get; set; }
+            public double Y { get; set; }
+            public double Z { get; set; }
+            public double Rx { get; set; }
+            public double Ry { get; set; }
+            public double Rz { get; set; }
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
         private PMC_Connection_Node()
         {
             InitializeTopicHandlers();
@@ -61,6 +74,8 @@ namespace PMC
 
             CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
             Console.WriteLine(status);
+
+
 
 
             PublishXbotIDAsync();
@@ -142,8 +157,9 @@ namespace PMC
 
 
 
-async void PublishPostionsINFAsync()
+        public async void PublishPostionsINFAsync()
         {
+            string CommandUuid = Guid.NewGuid().ToString();
             while (true)
             {
                 foreach (var xbot in xbotsID)
@@ -175,8 +191,13 @@ async void PublishPostionsINFAsync()
                         // Create a message object with position and timestamp
                         var positionMessage = new
                         {
-                            CommandUuid = Guid.NewGuid().ToString(),
-                            Position = position,
+                            CommandUuid = CommandUuid,
+                            X = position[0],
+                            Y = position[1],
+                            Z = position[2],
+                            Rx =position[3],
+                            Ry =position[4],
+                            Rz =position[5],
                             TimeStamp = timestamp
                         };
 
@@ -207,6 +228,7 @@ async void PublishPostionsINFAsync()
                 await Task.Delay(500);
             }
         }
+        
                    
 
         public async Task PublishPositionAsync(int xbotId, double[] position)
@@ -357,7 +379,7 @@ async void PublishPostionsINFAsync()
                     Console.WriteLine($"{targetPosition[2]}");
                     while (!positions[xbotID].Take(2).SequenceEqual(targetPositionsRotation))
                     {
-                        //Console.WriteLine($"I am looping");
+                        Console.WriteLine($"I am looping");
                         // Wait until the xbot reaches the target rotation position
                     }
                     Console.WriteLine("I am at the center");
@@ -439,12 +461,21 @@ async void PublishPostionsINFAsync()
 
             try
             {
-                var targetPosition = JsonSerializer.Deserialize<double[]>(message) ?? throw new InvalidOperationException("Position is null");
-                if (targetPosition.Length < 2)
+                var targetPositionMessage = JsonSerializer.Deserialize<TargetPositionMessage>(message) ?? throw new InvalidOperationException("Position is null");
+                if (targetPositionMessage == null)
                 {
-                    throw new InvalidOperationException("Position must contain at least 2 values: x and y.");
+                    throw new InvalidOperationException("Target Position is null");
                 }
 
+                double[] targetPosition = new double[]
+                {
+                    targetPositionMessage.X,
+                    targetPositionMessage.Y,
+                    targetPositionMessage.Z,
+                    targetPositionMessage.Rx,
+                    targetPositionMessage.Ry,
+                    targetPositionMessage.Rz
+                };
                 string[] segments = topic.Split('/');
                 string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
                                      ?? throw new InvalidOperationException("xbot segment not found");
@@ -523,7 +554,7 @@ async void PublishPostionsINFAsync()
                                 double[] position = status.FeedbackPositionSI;
                                 position = position.Select(p => Math.Round(p, 3)).ToArray();
 
-                                await PublishPositionAsync(xbotID, position);
+                                
 
                                 // Wait until there is only 1 motion left in the buffer
                                 while (bufferCount > 1)

@@ -32,29 +32,6 @@ namespace PathPlaningNode
         private double[] TargetPositionStation;
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Stations/Acopos6D/";
 
-        private class PositionMessage
-        {
-            public string Uuid { get; set; } = string.Empty;
-            public double X { get; set; }
-            public double Y { get; set; }
-            public double Z { get; set; }
-            public double Rx { get; set; }
-            public double Ry { get; set; }
-            public double Rz { get; set; }
-            public string TimeStamp { get; set; } = string.Empty;
-        }
-
-        private class TargetPositionMessage
-        {
-            public string Uuid { get; set; } = string.Empty;
-            public double X { get; set; }
-            public double Y { get; set; }
-            public double Z { get; set; }
-            public double Rx { get; set; }
-            public double Ry { get; set; }
-            public double Rz { get; set; }
-            public string TimeStamp { get; set; } = string.Empty;
-        }
 
         #region Initialize
         public PathPlaningNode()
@@ -65,8 +42,6 @@ namespace PathPlaningNode
             gridGlobal = new Pathfinding.grid(width, height, xbotSize);
             pathfinder = new Pathfinding();
         }
-
-
 
         private void InitializeTopicHandlers()
         {
@@ -96,60 +71,49 @@ namespace PathPlaningNode
             mqttPublisher = new MQTTPublisher(brokerIP, port);
             await mqttPublisher.StartAsync();
         }
+        #endregion
+
+        #region GetTargetAndPostion
         public async void getTargetPostion(string topic, string message)
         {
-            try
+            Console.WriteLine($"Received target position message on topic {topic}: {message}");
+
+            await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Stop", "Stop");
+
+            var targetPosition = JsonSerializer.Deserialize<double[]>(message) ?? throw new InvalidOperationException("TargetPosition is null");
+
+            if (targetPosition.Length != 3)
             {
-                Console.WriteLine($"Received target position message on topic {topic}: {message}");
+                throw new InvalidOperationException("TargetPosition must contain exactly 3 values: x, y, and RZ.");
+            }
+            double thresholdValue = 1;
+            string[] segments = topic.Split('/');
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
+            int xbotID = int.Parse(xbotSegment.Substring(4));
+            targetPositions[xbotID] = targetPosition;
+            if (positions.ContainsKey(xbotID))
+            {
+                var currentPosition = positions[xbotID];
+                // Updated condition to include a threshold value for inconsistencies              
 
-                await mqttPublisher.PublishMessageAsync(UNSPrefix + "PathPlan/Stop", "Stop");
-
-                // Deserialize the message into a TargetPositionMessage object
-                var targetPositionMessage = JsonSerializer.Deserialize<TargetPositionMessage>(message)
-                    ?? throw new InvalidOperationException("TargetPosition is null");
-
-                // Extract numeric values from the structured object
-                double[] targetPosition = new double[]
+                if (Math.Abs(currentPosition[2] - targetPosition[2]) < thresholdValue)
                 {
-                    targetPositionMessage.X,
-                    targetPositionMessage.Y,
-                    targetPositionMessage.Z,
-                    targetPositionMessage.Rx,
-                    targetPositionMessage.Ry,
-                    targetPositionMessage.Rz
-                };
-                Console.WriteLine($"Target Position: {string.Join(", ", targetPosition)}");
-
-                double thresholdValue = 1;
-                string[] segments = topic.Split('/');
-                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot"))
-                    ?? throw new InvalidOperationException("xbot segment not found");
-                int xbotID = int.Parse(xbotSegment.Substring(4));
-                targetPositions[xbotID] = targetPosition;
-
-                if (positions.ContainsKey(xbotID))
-                {
-                    var currentPosition = positions[xbotID];
-
-                    if (Math.Abs(currentPosition[5] - targetPosition[5]) < thresholdValue)
-                    {
                         Console.WriteLine($"Rz value difference is less than the threshold for xbotID {xbotID}.");
                         Console.WriteLine($"Updating target position for xbotID {xbotID}: {string.Join(", ", targetPosition)}");
 
                         UpdateFromAndTo(xbotID);
-                    }
-                    else
-                    {
-                        RotateCommand(xbotID);
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/Status", "runPathPlanner");
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotID}/SubCMD", "Rotate");
-                    }
+                        //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Status", "runPathPlanner");
+                }                
+                else
+                {
+                    // Ensure the rotation target is included if applicable
+                    RotateCommand(xbotID);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/Status", "runPathPlanner");
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotID}/SubCMD", "Rotate");
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error processing target position message: {ex.Message}");
-            }
+
+            
         }
 
         private void RotateCommand(int xbotID)
@@ -225,32 +189,32 @@ namespace PathPlaningNode
         {
             try
             {
-                Console.WriteLine($"Received position message on topic {topic}: {message}");
                 string[] topicSegments = topic.Split('/');
                 string xbotSegment = topicSegments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
                                      ?? throw new InvalidOperationException("xbot segment not found");
                 int xbotId = int.Parse(xbotSegment.Substring(4));
 
-                // Deserialize the message into a structured object
-                var positionMessage = JsonSerializer.Deserialize<PositionMessage>(message);
+                // Split the message into segments
+                string[] messageSegments = message.Split(',');
 
-                if (positionMessage == null)
+                // Filter out segments that include "timestamp" or "commandUuid"
+                var filteredSegments = messageSegments
+                    .Where(segment => !segment.Contains("timestamp", StringComparison.OrdinalIgnoreCase) &&
+                                      !segment.Contains("commandUuid", StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+
+                // Ensure the filtered segments contain at least 6 values
+                if (filteredSegments.Length < 6)
                 {
-                    throw new InvalidOperationException("Position message is null or invalid.");
+                    throw new InvalidOperationException("Filtered position array must contain at least 6 values.");
                 }
 
-                // Extract numeric values from the structured object
-                double[] position = new double[]
-                {
-                    positionMessage.X,
-                    positionMessage.Y,
-                    positionMessage.Z,
-                    positionMessage.Rx,
-                    positionMessage.Ry,
-                    positionMessage.Rz
-                };
-                Console.WriteLine($"Position: {string.Join(", ", position)}");
-                positions[xbotId] = position;
+                // Parse the filtered segments into a double array
+                double[] middleValues = filteredSegments
+                    .Select(double.Parse)
+                    .ToArray();
+
+                positions[xbotId] = middleValues;
 
                 UpdateFromAndTo(xbotId);
             }
@@ -260,14 +224,12 @@ namespace PathPlaningNode
             }
         }
 
-        
-
         private async void UpdateFromAndTo(int xbotID)
         {
             
-            Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
-            Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
-            Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
+            //Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
+            //Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
+            //Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
 
             double[]? currentPosition = positions.ContainsKey(xbotID) ? positions[xbotID] : null;
             double[]? targetPosition = targetPositions.ContainsKey(xbotID) ? targetPositions[xbotID] : null;
