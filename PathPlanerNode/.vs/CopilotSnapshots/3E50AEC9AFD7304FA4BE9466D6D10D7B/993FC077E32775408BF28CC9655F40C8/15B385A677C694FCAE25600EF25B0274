@@ -357,6 +357,7 @@ namespace PathPlaningNode
             if (message == "runPathPlanner")
             {
                 Console.WriteLine("Running Path Planner");
+                //PrintXBotIDFromTo();
                 Console.WriteLine($"{xBotID_From_To.Count}");
                 for (int i = 0; i < xBotID_From_To.Count; i++)
                 {
@@ -375,6 +376,7 @@ namespace PathPlaningNode
                         }
                     }
                 }
+                //PrintXBotIDFromTo();
 
                 trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
                     .ToDictionary(item => item.Item1, item => item.Item2);
@@ -382,7 +384,7 @@ namespace PathPlaningNode
                 foreach (var trajectory in trajectories)
                 {
                     int xbotId = trajectory.Key;
-
+                    //gridGlobal.SaveWalkablePointsToFile(xbotId, "walkable_points.txt");
                     if (targetPositions.ContainsKey(xbotId))
                     {
                         var targetPosition = targetPositions[xbotId];
@@ -390,8 +392,10 @@ namespace PathPlaningNode
                         {
                             var currentPosition = positions[xbotId];
 
-                            if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1)
+                            // Check if the Rz values match
+                            if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1) // Threshold for Rz comparison
                             {
+                                // Append the target position as the last point in the trajectory
                                 trajectory.Value.Add(targetPosition);
                             }
                             else
@@ -401,23 +405,16 @@ namespace PathPlaningNode
                         }
                     }
 
-                    // Generate a unique CommandUuid and current timestamp
-                    string commandUuid = Guid.NewGuid().ToString();
-                    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
-                    // Construct the trajectory message with CommandUuid and TimeStamp
-                    var trajectoryMessage = new
-                    {
-                        CommandUuid = commandUuid,
-                        Trajectory = trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList(),
-                        TimeStamp = timestamp
-                    };
 
-                    string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/Data/Trajectory", serializedMessage);
+
+
+
+                    var trajectoryMessage = JsonSerializer.Serialize(trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList());
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotId}/Trajectory", trajectoryMessage);
                 }
 
-                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/Status", "ready");
             }
         }
 
@@ -435,7 +432,7 @@ namespace PathPlaningNode
                 Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
                 Console.WriteLine($"{targetPositions[xbotID]}");
 
-                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "runPathPlanner");
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/Status", "runPathPlanner");
             }
         }
         #endregion

@@ -11,7 +11,6 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using VT2_Aseptic_Production_Demonstrator;
@@ -35,7 +34,7 @@ namespace PMC
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
         private CancellationTokenSource runTrajectoryCancellationTokenSource;
-        string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
+        string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Stations/Acopos6D/";
 
         private Dictionary<int, string> states = new Dictionary<int, string>
         {
@@ -71,8 +70,6 @@ namespace PMC
         {
             public string CommandUuid { get; set; } = string.Empty;
             public string TimeStamp { get; set; } = string.Empty;
-
-            [JsonPropertyName("Trajectory")] // Map the JSON property "Trajectory" to this property
             public List<double[]> TrajectoryPoints { get; set; } = new List<double[]>();
         }
 
@@ -85,8 +82,12 @@ namespace PMC
             CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
             Console.WriteLine(status);
 
+
+
+
             PublishXbotIDAsync();
             //PublishTargetPositionsAsync();
+
         }
         #region MQTT Initialize
         private async void InitializeMqttSubscriber()
@@ -105,11 +106,11 @@ namespace PMC
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
             {
-            { UNSPrefix + "+/Data/Trajectory", GetTrajectories },
-            { UNSPrefix + "+/Data/TargetPosition", getTargetPosition },
-            { UNSPrefix + "+/CMD/SubCMD", HandlerSubCMD },
-            { UNSPrefix + "PathPlan/CMD", HandleStatus },
-            
+            { UNSPrefix + "Xbots/+/Trajectory", GetTrajectories },
+            { UNSPrefix + "Xbots/+/TargetPosition", getTargetPosition },
+            { UNSPrefix + "Xbots/+/SubCMD", HandlerSubCMD },
+            { UNSPrefix + "PathPlan/Status", HandleStatus },
+            { UNSPrefix + "PathPlan/Stop", HandleStop }
             };
         }
 
@@ -145,7 +146,19 @@ namespace PMC
             }
         }
         */
-        
+        private async void PublishPostionsAsync()
+        {
+            foreach (var xbot in xbotsID)
+            {
+                XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
+                double[] position = status.FeedbackPositionSI;
+                position = position.Select(p => Math.Round(p, 3)).ToArray();
+                double[] positionXY = { position[0], position[1] };
+
+                //Console.WriteLine($"StartPostion for xbot {xbot} is ({positionXY[0]:F3}, {positionXY[1]:F3})");
+                PublishPositionAsync(xbot, positionXY);
+            }
+        }
 
         
 
@@ -200,7 +213,7 @@ namespace PMC
 
                         // Serialize and publish the position message
                         string serializedPositionMessage = JsonSerializer.Serialize(positionMessage);
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/Data/Position", serializedPositionMessage);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/Position", serializedPositionMessage);
                     }
 
                     // Check if state has changed
@@ -219,7 +232,7 @@ namespace PMC
 
                         // Serialize and publish the state message
                         string serializedStateMessage = JsonSerializer.Serialize(stateMessage);
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/Data/State", serializedStateMessage);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbot}/State", serializedStateMessage);
                     }
                 }
                 await Task.Delay(500);
@@ -228,15 +241,20 @@ namespace PMC
         
                    
 
-        
+        public async Task PublishPositionAsync(int xbotId, double[] position)
+        {
+            var message = JsonSerializer.Serialize(position);
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotId}/Position", message);
+            //Console.WriteLine($"Published position for xbot {xbotId}: {string.Join(", ", position)}");
+        }
 
         public async Task PublishXbotIDAsync()
         {
             XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
             xbotsID = xBotIDs.XBotIDsArray;
             Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
-            var message = JsonSerializer.Serialize(new { XBotIDs = xbotsID, TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
-            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Data/IDs", message, true);
+            var message = JsonSerializer.Serialize(xbotsID);
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/IDs", message, true);
         }
 
         #endregion
@@ -311,10 +329,14 @@ namespace PMC
 
 
 
-            }            
-            if (message == "Stop")
+            }
+            if (message == "SendPostions")
             {
-                StopRunTrajectory();
+                PublishPostionsAsync();
+            }
+            if (message == "runPathPlanner")
+            {
+
             }
             else
             {
@@ -322,7 +344,7 @@ namespace PMC
             }
         }
 
-        private void StopRunTrajectory()
+        private void HandleStop(string topic, string message)
         {
             //Console.WriteLine("Stop message received. Stopping RunTrajectory...");
             foreach(var xbot in xbotsID)
@@ -334,19 +356,81 @@ namespace PMC
             runTrajectoryCancellationTokenSource?.Cancel();
         }
 
-
-        
-
         private void HandlerSubCMD(string topic, string message)
         {
-            string[] segments = topic.Split('/');
-            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
-                                 ?? throw new InvalidOperationException("xbot segment not found");
-            int xbotID = int.Parse(xbotSegment.Substring(4));
-
             if (message == "Rotate")
             {
-                Rotation(xbotID);
+                Console.WriteLine($"Entered Rotate");
+                Task.Run(async () =>
+                {
+                    List<double[]> flywayCenters = new()
+                    {
+                        new double[] {0.12, 0.12},
+                        new double[] {0.12, 0.36},
+                        new double[] {0.12, 0.6},
+                        new double[] {0.12, 0.84},
+                        new double[] {0.36, 0.12},
+                        new double[] {0.36, 0.36},
+                        new double[] {0.36, 0.84},
+                        new double[] {0.6, 0.12},
+                        new double[] {0.6, 0.36},
+                        new double[] {0.6, 0.6},
+                        new double[] {0.6, 0.84}
+                    };
+
+                    string[] segments = topic.Split('/');
+                    string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                         ?? throw new InvalidOperationException("xbot segment not found");
+                    int xbotID = int.Parse(xbotSegment.Substring(4));
+                    double[] targetPositionsRotation = FindClosestCenter(positions[xbotID], flywayCenters);
+                    double[] targetPosition = targetPositions[xbotID];
+
+                    // Debugging: Log the initial state of positions and targetPositionsRotation
+                    Console.WriteLine($"Initial positions[{xbotID}]: {string.Join(", ", positions[xbotID])}");
+                    Console.WriteLine($"Target positions rotation: {string.Join(", ", targetPositionsRotation)}");
+
+                    Console.WriteLine($"Before loop Rotate");
+                    while (!positions[xbotID].Take(2).SequenceEqual(targetPositionsRotation))
+                    {
+                        // Debugging: Log the state during each iteration of the loop
+                        Console.WriteLine($"Current positions[{xbotID}]: {string.Join(", ", positions[xbotID])}");
+                        Console.WriteLine($"Target positions rotation: {string.Join(", ", targetPositionsRotation)}");
+                        Console.WriteLine($"Looping...");
+
+                        // Simulate or force updates to positions for testing
+                        positions[xbotID] = _xbotCommand.GetXbotStatus(xbotID).FeedbackPositionSI
+                            .Select(p => Math.Round(p, 3)).ToArray();
+
+                        // Wait until the xbot reaches the target rotation position
+                        await Task.Delay(100); // Add a delay to prevent busy-waiting
+                    }
+                    Console.WriteLine("I am at the center");
+                    _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.WRAP_TO_2PI_CW, targetPosition[5] * (Math.PI / 180), 0.5, 0.2, POSITIONMODE.ABSOLUTE);
+
+                    XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
+                    int xbotState = (int)status.XBOTState;
+
+                    double currentOrientation = positions[xbotID][5]; 
+                    double targetOrientation = targetPositions[xbotID][5];
+
+                    while (true)
+                    {
+                        // Debugging: Log the state of xbotState and orientation differences
+                        Console.WriteLine($"xbotState: {xbotState}");
+                        Console.WriteLine($"Current orientation: {currentOrientation}, Target orientation: {targetOrientation}");
+                        Console.WriteLine($"Orientation difference: {Math.Abs(currentOrientation - targetOrientation)}");
+
+                        status = _xbotCommand.GetXbotStatus(xbotID);
+                        xbotState = (int)status.XBOTState;
+                        if (xbotState == 3 && Math.Abs(currentOrientation - targetOrientation) > 0.01)
+                        {
+                            Console.WriteLine("Rotation Done");
+                            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbots/Xbot{xbotID}/SubCMD", "RotationDone");
+                            break;
+                        }
+                        Task.Delay(100).Wait();
+                    }
+                });
             }
         }
 
@@ -410,27 +494,19 @@ namespace PMC
 
                     // Deserialize the message into a TrajectoryMessage object
                     var trajectoryMessage = JsonSerializer.Deserialize<TrajectoryMessage>(message);
-                    if (trajectoryMessage == null)
+                    if (trajectoryMessage == null || trajectoryMessage.TrajectoryPoints == null)
                     {
                         Console.WriteLine($"Invalid trajectory message received for xbot {xbotId}");
                         return;
                     }
 
-                    // Debugging: Log the deserialized trajectoryMessage object
-                    Console.WriteLine($"Debug: Deserialized trajectoryMessage for xbot {xbotId}:");
-                    Console.WriteLine($"CommandUuid: {trajectoryMessage.CommandUuid}");
-                    Console.WriteLine($"TimeStamp: {trajectoryMessage.TimeStamp}");
-                    Console.WriteLine($"TrajectoryPoints Count: {trajectoryMessage.TrajectoryPoints?.Count ?? 0}");
-                    if (trajectoryMessage.TrajectoryPoints != null)
-                    {
-                        foreach (var point in trajectoryMessage.TrajectoryPoints)
-                        {
-                            Console.WriteLine($"Point: ({point[0]}, {point[1]})");
-                        }
-                    }
+                    // Log the CommandUuid and TimeStamp for debugging
+                    Console.WriteLine($"Received trajectory for xbot {xbotId} with CommandUuid: {trajectoryMessage.CommandUuid} and TimeStamp: {trajectoryMessage.TimeStamp}");
 
                     // Update the trajectories dictionary
-                    trajectories[xbotId] = trajectoryMessage.TrajectoryPoints ?? new List<double[]>();
+                    trajectories[xbotId] = trajectoryMessage.TrajectoryPoints;
+
+                    
 
                     // Debugging: Log the updated state of the trajectories dictionary
                     Console.WriteLine("Debug: Updated state of trajectories dictionary:");
@@ -548,8 +624,6 @@ namespace PMC
 
                             // Add the first motion to the buffer
                             double[] point = trajectories[xbotID][0];
-                            Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
-                            Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
                             motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
 
                             for (int i = 1; i < trajectories[xbotID].Count; i++)
@@ -589,9 +663,6 @@ namespace PMC
 
                                 double baseVelocity = 0.1;
                                 double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
-
-                                Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
-                                Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={nextPoint[0]}, tagPosY={nextPoint[1]}, pathType='D'");
 
                                 if (i < trajectories[xbotID].Count - 1)
                                 {
@@ -650,77 +721,6 @@ namespace PMC
             }
         }
 
-        private void Rotation(int xbotID)
-        {
-            Console.WriteLine($"Entered Rotate");
-            Task.Run(async () =>
-            {
-                List<double[]> flywayCenters = new()
-                    {
-                        new double[] {0.12, 0.12},
-                        new double[] {0.12, 0.36},
-                        new double[] {0.12, 0.6},
-                        new double[] {0.12, 0.84},
-                        new double[] {0.36, 0.12},
-                        new double[] {0.36, 0.36},
-                        new double[] {0.36, 0.84},
-                        new double[] {0.6, 0.12},
-                        new double[] {0.6, 0.36},
-                        new double[] {0.6, 0.6},
-                        new double[] {0.6, 0.84}
-                    };
-
-
-                double[] targetPositionsRotation = FindClosestCenter(positions[xbotID], flywayCenters);
-                double[] targetPosition = targetPositions[xbotID];
-
-                // Debugging: Log the initial state of positions and targetPositionsRotation
-                Console.WriteLine($"Initial positions[{xbotID}]: {string.Join(", ", positions[xbotID])}");
-                Console.WriteLine($"Target positions rotation: {string.Join(", ", targetPositionsRotation)}");
-
-                Console.WriteLine($"Before loop Rotate");
-                while (!positions[xbotID].Take(2).SequenceEqual(targetPositionsRotation))
-                {
-                    // Debugging: Log the state during each iteration of the loop
-                    Console.WriteLine($"Current positions[{xbotID}]: {string.Join(", ", positions[xbotID])}");
-                    Console.WriteLine($"Target positions rotation: {string.Join(", ", targetPositionsRotation)}");
-                    Console.WriteLine($"Looping...");
-
-                    // Simulate or force updates to positions for testing
-                    positions[xbotID] = _xbotCommand.GetXbotStatus(xbotID).FeedbackPositionSI
-                        .Select(p => Math.Round(p, 3)).ToArray();
-
-                    // Wait until the xbot reaches the target rotation position
-                    await Task.Delay(100); // Add a delay to prevent busy-waiting
-                }
-                Console.WriteLine("I am at the center");
-                _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.WRAP_TO_2PI_CW, targetPosition[5] * (Math.PI / 180), 0.5, 0.2, POSITIONMODE.ABSOLUTE);
-
-                XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
-                int xbotState = (int)status.XBOTState;
-
-                double currentOrientation = positions[xbotID][5];
-                double targetOrientation = targetPositions[xbotID][5];
-
-                while (true)
-                {
-                    // Debugging: Log the state of xbotState and orientation differences
-                    Console.WriteLine($"xbotState: {xbotState}");
-                    Console.WriteLine($"Current orientation: {currentOrientation}, Target orientation: {targetOrientation}");
-                    Console.WriteLine($"Orientation difference: {Math.Abs(currentOrientation - targetOrientation)}");
-
-                    status = _xbotCommand.GetXbotStatus(xbotID);
-                    xbotState = (int)status.XBOTState;
-                    if (xbotState == 3 && Math.Abs(currentOrientation - targetOrientation) > 0.01)
-                    {
-                        Console.WriteLine("Rotation Done");
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "RotationDone");
-                        break;
-                    }
-                    Task.Delay(100).Wait();
-                }
-            });
-        }
 
 
         public static async Task Main(string[] args) // Change return type to Task

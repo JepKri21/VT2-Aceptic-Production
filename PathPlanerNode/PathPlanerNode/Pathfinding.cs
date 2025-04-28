@@ -339,7 +339,12 @@ public class Pathfinding
         }
         //Console.WriteLine($"Pathfinding completed in: " + stopwatche.ElapsedMilliseconds + " ms");
         stopwatche.Stop();
-        List<(int, List<double[]>)> output = unit_CM_To_M(_output); // Convert back to M
+        List<(int, List<double[]>)> output = unit_CM_To_M(_output)
+           .Select(botTuple => (botTuple.Item1, botTuple.Item2.Select(coords => new double[]
+           {
+               Math.Round(coords[0], 2),
+               Math.Round(coords[1], 2)
+           }).ToList())).ToList();
         return output;
     }
 
