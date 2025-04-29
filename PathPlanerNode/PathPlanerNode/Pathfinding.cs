@@ -59,8 +59,8 @@ public class Pathfinding
             };
 */
             double[,] zone2 = {
-                { 12, 36},
-                { 48, 72 }
+                { 12, 12},
+                { 48, 48 }
             };
 
             // Convert to integers

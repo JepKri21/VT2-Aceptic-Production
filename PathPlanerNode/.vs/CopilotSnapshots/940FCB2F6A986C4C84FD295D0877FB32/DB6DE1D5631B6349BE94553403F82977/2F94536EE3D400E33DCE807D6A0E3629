@@ -33,8 +33,6 @@ namespace PathPlaningNode
             _mqttClient.DisconnectedAsync += DisconnectedHandler;
         }
 
-        public bool IsConnected => _mqttClient?.IsConnected ?? false;
-
         public async Task StartAsync()
         {
             // Connect to the broker

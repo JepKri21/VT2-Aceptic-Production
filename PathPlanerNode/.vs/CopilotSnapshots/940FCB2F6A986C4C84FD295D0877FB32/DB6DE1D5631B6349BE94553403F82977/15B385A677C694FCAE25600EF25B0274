@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 //using UnityEngine;
 
@@ -84,9 +83,9 @@ namespace PathPlaningNode
         #region Initialize
        
 
-        private async Task WaitForMqttConnectionAsync()
+        private async Task WaitForMqttConnectionAsync(MQTTPublisher mQTTPublisher,MQTTSubscriber mQTTSubscriber)
         {
-            while (!mqttPublisher.IsConnected || !mqttSubscriber.IsConnected)
+            while (!mQTTPublisher.IsConnected || !mQTTSubscriber.IsConnected)
             {
                 Console.WriteLine("Waiting for MQTT connection...");
                 await Task.Delay(500); // Wait for 500ms before checking again
@@ -96,10 +95,11 @@ namespace PathPlaningNode
 
         public PathPlaningNode()
         {
-            
-            InitializeMqttPublisher();
+            mqttSubscriber = new MQTTSubscriber(brokerIP, port);
+            mqttPublisher = new MQTTPublisher(brokerIP, port);
+            InitializeMqttPublisher(mqttPublisher);
             InitializeTopicHandlers();
-            InitializeMqttSubscriber();
+            InitializeMqttSubscriber(mqttSubscriber);
 
             Task.Run(async () =>
             {
@@ -116,8 +116,8 @@ namespace PathPlaningNode
         {
             double[] FillingStation = { 0.6, 0.06, 0, 0, 0, 90 };
             double[] FillingApproach = { 0.6, 0.12, 0, 0, 0, 0 };
-            double[] StopperingStation = { 0.12, 0.06, 0, 0, 0, 0 };
-            double[] StopperingApproach = { 0.12, 0.12, 0, 0, 0, 90 };
+            double[] StopperingStation = { 0.12, 0.36, 0, 0, 0, 0 };
+            double[] StopperingApproach = { 0.12, 0.36, 0, 0, 0, 0 };
             double[] VisionStation = { 0.12, 0.6, 0, 0, 0, 0 };
             double[] VisionApproach = { 0.12, 0.6, 0, 0, 0, 0 };
             double[] FillingQueue1 = { 0.12, 0.84, 0, 0, 0, 0 };
@@ -191,19 +191,19 @@ namespace PathPlaningNode
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
                 {
-                    //{ UNSPrefix + "+/Data/TargetPosition", getTargetPostion },
+                    { UNSPrefix + "+/Data/TargetPosition", getTargetPostion },
                     { UNSPrefix + "+/Data/Position", getPostion },
                     { UNSPrefix + "PathPlan/CMD", HandlePathPlanStatus },
-                    //{ UNSPrefix + "+/CMD/SubCMD", HandleSubCMD},
+                    { UNSPrefix + "+/CMD/SubCMD", HandleSubCMD},
                     { UNSPrefix + "+/CMD", HandleCMD },
                     { "AAU/Fibigerstræde/Building14/FillingLine/Configuration/Data/Planar/Staions", HandelStationSetup}
                 };
         }
 
-        private async void InitializeMqttSubscriber()
+        private async void InitializeMqttSubscriber(MQTTSubscriber mQTTSubscriber)
         {
-            mqttSubscriber = new MQTTSubscriber(brokerIP, port);
-            mqttSubscriber.MessageReceived += messageHandler;
+            
+            mQTTSubscriber.MessageReceived += messageHandler;
             await mqttSubscriber.StartAsync();
             Console.WriteLine("Connected to MQTT broker.");
             foreach (var topic in topicHandlers.Keys)
@@ -212,10 +212,10 @@ namespace PathPlaningNode
             }
         }
 
-        private async void InitializeMqttPublisher()
+        private async void InitializeMqttPublisher(MQTTPublisher mQTTPublisher)
         {
-            mqttPublisher = new MQTTPublisher(brokerIP, port);
-            await mqttPublisher.StartAsync();
+            
+            await mQTTPublisher.StartAsync();
         }
         public async void getTargetPostion(string topic, string message)
         {
@@ -264,7 +264,7 @@ namespace PathPlaningNode
                     {
                         Console.WriteLine("Need to rotate");
                         RotateCommand(xbotID);                        
-                        
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "Rotate");
                     }
                 }
             }
@@ -318,8 +318,7 @@ namespace PathPlaningNode
             }
             PrintXBotIDFromTo();
 
-            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "Rotate");
-
+            
 
         }
 
@@ -370,7 +369,10 @@ namespace PathPlaningNode
                         {
                             trajectory.Value.Add(targetPosition);
                         }
-                        
+                        else
+                        {
+                            Console.WriteLine($"Rz values do not match for xbotID {xbotId}. Target position will not be added.");
+                        }
                     }
                 }
 
@@ -488,28 +490,16 @@ namespace PathPlaningNode
             
         }
 
-        /*public void PrintXBotIDFromTo()
+        public void PrintXBotIDFromTo()
         {
             Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
             Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
             Console.WriteLine("Current xBotID_From_To Entries:");
             foreach (var entry in xBotID_From_To)
             {
-                
-            }
-        }
-        */
-        private readonly object xBotID_From_ToLock = new();
-        public void PrintXBotIDFromTo()
-        {
-            lock (xBotID_From_ToLock)
-            {
-                foreach (var entry in xBotID_From_To)
-                {
-                    string from = entry.Item2 != null ? $"[{string.Join(", ", entry.Item2)}]" : "null";
-                    string to = entry.Item3 != null ? $"[{string.Join(", ", entry.Item3)}]" : "null";
-                    Console.WriteLine($"xbotID: {entry.Item1}, From: {from}, To: {to}");
-                }
+                string from = entry.Item2 != null ? $"[{string.Join(", ", entry.Item2)}]" : "null";
+                string to = entry.Item3 != null ? $"[{string.Join(", ", entry.Item3)}]" : "null";
+                Console.WriteLine($"xbotID: {entry.Item1}, From: {from}, To: {to}");
             }
         }
         #endregion
@@ -625,38 +615,28 @@ namespace PathPlaningNode
 
             CommandUuid[xbotID] = commandMessage.CommnadUuid;
 
-            if (StationCordinate.ContainsKey(commandMessage.Command))                
+            if (commandMessage.Command == "Filling")
             {
-                CommandExecution(xbotID, commandMessage.Command);
-
+                FillingCommand(xbotID);
             }
         }
 
-        private void CommandExecution(int xbotID, string Command)
+        private void FillingCommand(int xbotID)
         {
             Task.Run(() =>
             {
-                Console.WriteLine($"[DEBUG] Starting {Command} for xbotID: {xbotID}");
-
-                SendFinalStationCommand(xbotID, Command);
-
-                if (positions[xbotID] != StationCordinate[Command][1])
+                if (positions[xbotID] != StationCordinate["Filling"][1])
                 {
-                    Console.WriteLine($"[DEBUG] Current position of xbotID {xbotID}: {string.Join(", ", positions[xbotID])}");
-                    Console.WriteLine($"[DEBUG] Target station position: {string.Join(", ", StationCordinate[Command][1])}");
-
                     // Step 1: Move to the approach position first
-                    if (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
+                    if (positions[xbotID][0] != StationCordinate["Filling"][0][0] || positions[xbotID][1] != StationCordinate["Filling"][0][1])
                     {
-                        Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to approach position: {string.Join(", ", StationCordinate[Command][0])}");
-                        double[] approachTarget = StationCordinate[Command][0];
+                        double[] approachTarget = StationCordinate["Filling"][0];
                         targetPositions[xbotID] = approachTarget;
 
                         var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
 
                         if (existingEntry != default)
                         {
-                            Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To");
                             double[] updatedFrom = positions[xbotID] ?? existingEntry.Item2;
                             double[] updatedTo = approachTarget ?? existingEntry.Item3;
                             xBotID_From_To.Remove(existingEntry);
@@ -664,7 +644,6 @@ namespace PathPlaningNode
                         }
                         else
                         {
-                            Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To");
                             xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), approachTarget ?? Array.Empty<double>()));
                         }
 
@@ -672,45 +651,34 @@ namespace PathPlaningNode
                         ExicutePathPlanner();
 
                         // Wait until the xbot reaches the approach position
-                        while (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
+                        while (positions[xbotID][0] != StationCordinate["Filling"][0][0] || positions[xbotID][1] != StationCordinate["Filling"][0][1])
                         {
-                            Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach approach position...");
                             Thread.Sleep(100);
                         }
-                        Console.WriteLine($"[DEBUG] xbotID {xbotID} reached approach position.");
                     }
 
                     // Step 2: Rotate if needed
-                    Console.WriteLine($"[DEBUG] Checking rotation for xbotID {xbotID}. Current Rz: {positions[xbotID][5]}, Target Rz: {StationCordinate[Command][1][5]}");
-
-
-                    if (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
+                    if (Math.Abs(positions[xbotID][5] - StationCordinate["Filling"][0][5]) > 0.1)
                     {
-                        Console.WriteLine($"[DEBUG] Rotating xbotID {xbotID} to match orientation: {StationCordinate[Command][1][5]}");
-
                         RotateCommand(xbotID);
                         StopTrajectoryExicution();
                         ExicutePathPlanner();
 
                         // Wait until the rotation is completed
-                        while (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
+                        while (Math.Abs(positions[xbotID][5] - StationCordinate["Filling"][0][5]) > 0.1)
                         {
-                            Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to complete rotation...");
                             Thread.Sleep(100);
                         }
-                        Console.WriteLine($"[DEBUG] xbotID {xbotID} completed rotation.");
                     }
 
                     // Step 3: Move to the station position
-                    Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to station position: {string.Join(", ", StationCordinate[Command][1])}");
-                    double[] stationTarget = StationCordinate[Command][1];
+                    double[] stationTarget = StationCordinate["Filling"][1];
                     targetPositions[xbotID] = stationTarget;
 
                     var stationEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
 
                     if (stationEntry != default)
                     {
-                        Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To for station position");
                         double[] updatedFrom = positions[xbotID] ?? stationEntry.Item2;
                         double[] updatedTo = stationTarget ?? stationEntry.Item3;
                         xBotID_From_To.Remove(stationEntry);
@@ -718,7 +686,6 @@ namespace PathPlaningNode
                     }
                     else
                     {
-                        Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To for station position");
                         xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), stationTarget ?? Array.Empty<double>()));
                     }
 
@@ -726,55 +693,14 @@ namespace PathPlaningNode
                     ExicutePathPlanner();
 
                     // Wait until the xbot reaches the station position
-                    while (positions[xbotID][0] != StationCordinate[Command][1][0] || positions[xbotID][1] != StationCordinate[Command][1][1])
+                    while (positions[xbotID][0] != StationCordinate["Filling"][1][0] || positions[xbotID][1] != StationCordinate["Filling"][1][1])
                     {
-                        Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach station position...");
                         Thread.Sleep(100);
                     }
-                    Console.WriteLine($"[DEBUG] xbotID {xbotID} reached station position.");
-                }
-                else
-                {
-                    Console.WriteLine($"[DEBUG] xbotID {xbotID} is already at the station position.");
                 }
             });
         }
 
-
-        private async void SendFinalStationCommand(int xbotID, string stationName)
-        {
-            if (StationCordinate.ContainsKey(stationName))
-            {
-                double[] finalStationPosition = StationCordinate[stationName][1]; // Process position
-                targetPositions[xbotID] = finalStationPosition;
-
-                // Serialize the target position message
-                var targetPositionMessage = new TargetPositionMessage
-                {
-                    Uuid = Guid.NewGuid().ToString(),
-                    X = finalStationPosition[0],
-                    Y = finalStationPosition[1],
-                    Z = finalStationPosition[2],
-                    Rx = finalStationPosition[3],
-                    Ry = finalStationPosition[4],
-                    Rz = finalStationPosition[5],
-                    TimeStamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
-                };
-
-                string serializedMessage = JsonSerializer.Serialize(targetPositionMessage);
-
-                // Publish the message to the MQTT broker
-                string topic = $"{UNSPrefix}Xbot{xbotID}/Data/TargetPosition";
-                await mqttPublisher.PublishMessageAsync(topic, serializedMessage);
-
-                Console.WriteLine($"[DEBUG] Sent final station command for xbotID {xbotID} to topic {topic}: {serializedMessage}");
-            }
-            else
-            {
-                Console.WriteLine($"[ERROR] Station '{stationName}' not found in StationCordinate.");
-            }
-
-        }
 
 
         #endregion
@@ -784,8 +710,6 @@ namespace PathPlaningNode
             PathPlaningNode client = new PathPlaningNode();
             await Task.Delay(-1);
         }
-        
-        
         
     }
 

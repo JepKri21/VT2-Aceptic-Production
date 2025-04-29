@@ -19,7 +19,6 @@ namespace PathPlaningNode
         // Define the MessageReceived event
         public event Action<string, string> MessageReceived;
 
-        public bool IsConnected => _mqttClient?.IsConnected ?? false;
 
         public MQTTSubscriber(string broker, int port)
         {

@@ -46,8 +46,7 @@
               "RelativeToolTip": "CommandHandler\\Shuttle_Class.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-16T09:55:15.851Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-16T09:55:15.851Z"
             },
             {
               "$type": "Document",
@@ -55,9 +54,9 @@
               "Title": "Station_Class.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\Station_Class.cs",
               "RelativeDocumentMoniker": "CommandHandler\\Station_Class.cs",
-              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\Station_Class.cs",
-              "RelativeToolTip": "CommandHandler\\Station_Class.cs",
-              "ViewState": "AgIAAAMAAAAAAAAAAAAAAB0AAAAKAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\CommandHandler\\CommandHandler\\Station_Class.cs*",
+              "RelativeToolTip": "CommandHandler\\Station_Class.cs*",
+              "ViewState": "AgIAABEAAAAAAAAAAAAAwB4AAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-16T09:55:09.597Z",
               "EditorCaption": ""
@@ -72,8 +71,7 @@
               "RelativeToolTip": "CommandHandler\\Queue_Class.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-16T09:55:02.942Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-16T09:55:02.942Z"
             },
             {
               "$type": "Document",
@@ -85,8 +83,7 @@
               "RelativeToolTip": "CommandHandler\\CommandHandlerNode.cs",
               "ViewState": "AgIAAAYAAAAAAAAAAAAAACEAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-16T07:54:05.924Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-16T07:54:05.924Z"
             }
           ]
         },
