@@ -33,6 +33,8 @@ namespace VT2_Aseptic_Production_Demonstrator
             _mqttClient.DisconnectedAsync += DisconnectedHandler;
         }
 
+        public bool IsConnected => _mqttClient?.IsConnected ?? false;
+
         public async Task StartAsync()
         {
             // Connect to the broker
@@ -71,7 +73,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
                 // Publish the message to the broker
                 await _mqttClient.PublishAsync(mqttMessage);
-                Console.WriteLine($"Message published to topic '{topic}': {message}");
+                //Console.WriteLine($"Message published to topic '{topic}': {message}");
             }
             else
             {

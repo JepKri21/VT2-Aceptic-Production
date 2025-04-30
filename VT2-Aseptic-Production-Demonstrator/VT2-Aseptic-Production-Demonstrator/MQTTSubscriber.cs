@@ -19,12 +19,13 @@ namespace VT2_Aseptic_Production_Demonstrator
         // Define the MessageReceived event
         public event Action<string, string> MessageReceived;
 
+        public bool IsConnected => _mqttClient?.IsConnected ?? false;
 
-        public MQTTSubscriber(string broker, int port, string topic)
+        public MQTTSubscriber(string broker, int port)
         {
             var factory = new MqttFactory();
             _mqttClient = factory.CreateMqttClient();
-            _topic = topic;
+            
 
             _options = new MqttClientOptionsBuilder()
                 .WithTcpServer(broker, port)
@@ -32,8 +33,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                 .WithProtocolVersion(MqttProtocolVersion.V500)  // Set to MQTT v5.0
                 .Build();
 
-            _mqttClient.ApplicationMessageReceivedAsync += MessageReceivedHandler;
-            _mqttClient.ConnectedAsync += ConnectedHandler;
+            _mqttClient.ApplicationMessageReceivedAsync += MessageReceivedHandler;            
             _mqttClient.DisconnectedAsync += DisconnectedHandler;
         }
 
@@ -58,18 +58,13 @@ namespace VT2_Aseptic_Production_Demonstrator
             string topic = e.ApplicationMessage.Topic;
             string payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
 
-            Console.WriteLine($"Received message on topic '{topic}': {payload}");
+            //.WriteLine($"Received message on topic '{topic}': {payload}");
 
             // Raise the MessageReceived event
             MessageReceived?.Invoke(topic, payload);
         }
 
-        private async Task ConnectedHandler(MqttClientConnectedEventArgs e)
-        {
-            Console.WriteLine("Connected to MQTT broker.");
-            await _mqttClient.SubscribeAsync(_topic, MqttQualityOfServiceLevel.AtLeastOnce);
-            Console.WriteLine($"Subscribed to topic: {_topic}");
-        }
+        
 
         private async Task DisconnectedHandler(MqttClientDisconnectedEventArgs e)
         {

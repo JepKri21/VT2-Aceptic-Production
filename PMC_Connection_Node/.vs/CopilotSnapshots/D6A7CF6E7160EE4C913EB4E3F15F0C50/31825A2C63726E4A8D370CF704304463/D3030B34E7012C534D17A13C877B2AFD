@@ -35,8 +35,6 @@ namespace PMC
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
         private CancellationTokenSource runTrajectoryCancellationTokenSource;
-        private Dictionary<int, Task> runningTasks = new(); // Track running tasks for each xbotID
-        private Dictionary<int, CancellationTokenSource> taskCancellationTokens = new(); // Track cancellation tokens for each xbotID
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
 
         private Dictionary<int, string> states = new Dictionary<int, string>
@@ -326,34 +324,21 @@ namespace PMC
 
         private void StopRunTrajectory()
         {
-            Console.WriteLine("Stop message received. Stopping RunTrajectory...");
-            foreach (var xbot in xbotsID)
+            //Console.WriteLine("Stop message received. Stopping RunTrajectory...");
+            foreach(var xbot in xbotsID)
             {
-                // Cancel the running task for the xbot if it exists
-                if (taskCancellationTokens.ContainsKey(xbot))
-                {
-                    taskCancellationTokens[xbot].Cancel();
-                    taskCancellationTokens[xbot].Dispose();
-                    taskCancellationTokens.Remove(xbot);
-                    Console.WriteLine($"Cancelled running task for xbot {xbot}");
-                }
-
-                // Clear motion buffer and stop motion for each xbot
-                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbot, MOTIONBUFFEROPTIONS.CLEARBUFFER);
+                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbot, MOTIONBUFFEROPTIONS.CLEARBUFFER); 
                 _xbotCommand.StopMotion(xbot);
-                Console.WriteLine($"Cleared motion buffer and stopped motion for xbot {xbot}");
-
-                // Remove trajectories for the xbot
                 lock (trajectories)
                 {
-                    if (trajectories.ContainsKey(xbot))
-                    {
-                        trajectories.Remove(xbot);
-                        Console.WriteLine($"Removed trajectory for xbot {xbot}");
-                    }
+                    trajectories.Remove(xbot);
                 }
             }
+            runTrajectoryCancellationTokenSource?.Cancel();
         }
+
+
+        
 
         private void HandlerSubCMD(string topic, string message)
         {
@@ -436,9 +421,9 @@ namespace PMC
 
                     // Debugging: Log the deserialized trajectoryMessage object
                     Console.WriteLine($"Debug: Deserialized trajectoryMessage for xbot {xbotId}:");
-                    //Console.WriteLine($"CommandUuid: {trajectoryMessage.CommandUuid}");
-                    //Console.WriteLine($"TimeStamp: {trajectoryMessage.TimeStamp}");
-                    /*Console.WriteLine($"TrajectoryPoints Count: {trajectoryMessage.TrajectoryPoints?.Count ?? 0}");
+                    Console.WriteLine($"CommandUuid: {trajectoryMessage.CommandUuid}");
+                    Console.WriteLine($"TimeStamp: {trajectoryMessage.TimeStamp}");
+                    Console.WriteLine($"TrajectoryPoints Count: {trajectoryMessage.TrajectoryPoints?.Count ?? 0}");
                     if (trajectoryMessage.TrajectoryPoints != null)
                     {
                         foreach (var point in trajectoryMessage.TrajectoryPoints)
@@ -446,7 +431,7 @@ namespace PMC
                             Console.WriteLine($"Point: ({point[0]}, {point[1]})");
                         }
                     }
-                    */
+
                     // Update the trajectories dictionary
                     trajectories[xbotId] = trajectoryMessage.TrajectoryPoints ?? new List<double[]>();
 
@@ -543,130 +528,6 @@ namespace PMC
             }
         }
 
-        
-
-        public async void RunTrajectory()
-        {
-            runTrajectoryCancellationTokenSource = new CancellationTokenSource();
-            var cancellationToken = runTrajectoryCancellationTokenSource.Token;
-
-            List<Task> tasks = new List<Task>();
-
-            foreach (var xbotID in trajectories.Keys)
-            {
-                if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
-                {
-                    tasks.Add(Task.Run(async () =>
-                    {
-                        try
-                        {
-                            // Log the trajectory points for debugging
-                            Console.WriteLine($"Starting trajectory for xbot {xbotID}");
-                            Console.WriteLine($"Trajectory Points: {string.Join(" | ", trajectories[xbotID].Select(p => $"({p[0]}, {p[1]})"))}");
-
-                            // Add the first motion to the buffer
-                            double[] point = trajectories[xbotID][0];
-                            Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
-                            Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
-                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
-
-                            for (int i = 1; i < trajectories[xbotID].Count; i++)
-                            {
-                                if (cancellationToken.IsCancellationRequested)
-                                {
-                                    Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
-                                    return; // Exit the loop if cancellation is requested
-                                }
-
-                                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
-
-                                XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
-                                double[] position = status.FeedbackPositionSI;
-                                position = position.Select(p => Math.Round(p, 3)).ToArray();
-
-                                // Wait until there is only 1 motion left in the buffer
-                                while (bufferCount > 1)
-                                {
-                                    if (cancellationToken.IsCancellationRequested)
-                                    {
-                                        Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
-                                        return; // Exit the loop if cancellation is requested
-                                    }
-
-                                    BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                    bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
-                                }
-
-                                // Handle trajectory points
-                                double[] currentPoint = trajectories[xbotID][i - 1];
-                                double[] nextPoint = trajectories[xbotID][i];
-                                double deltaX = nextPoint[0] - currentPoint[0];
-                                double deltaY = nextPoint[1] - currentPoint[1];
-                                double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
-
-                                double baseVelocity = 0.1;
-                                double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
-
-                                Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
-                                Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={nextPoint[0]}, tagPosY={nextPoint[1]}, pathType='D'");
-
-                                if (i < trajectories[xbotID].Count - 1)
-                                {
-                                    double[] nextNextPoint = trajectories[xbotID][i + 1];
-                                    double[] nextDirectionVector = { nextNextPoint[0] - nextPoint[0], nextNextPoint[1] - nextPoint[1] };
-
-                                    if (Math.Sign(deltaX) != Math.Sign(nextDirectionVector[0]) || Math.Sign(deltaY) != Math.Sign(nextDirectionVector[1]))
-                                    {
-                                        Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
-                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
-                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.2);
-                                    }
-                                }
-                                else
-                                {
-                                    // Handle the last point explicitly
-                                    Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
-                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
-
-
-
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error in RunTrajectory for xbotID {xbotID}: {ex.Message}");
-                        }
-                        finally
-                        {
-                            lock (trajectories)
-                            {
-                                trajectories.Remove(xbotID);
-                            }
-                        }
-                    }));
-                }
-            }
-
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("RunTrajectory operation was canceled.");
-            }
-            finally
-            {
-                runTrajectoryCancellationTokenSource?.Dispose();
-                runTrajectoryCancellationTokenSource = new CancellationTokenSource(); // Replace null assignment
-            }
-        }
         */
 
         public async void RunTrajectory()
@@ -756,9 +617,9 @@ namespace PMC
                                     // Handle the last point explicitly
                                     Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
                                     _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
-
-
-
+                                    
+                                    
+                                    
                                 }
                             }
                         }
@@ -791,7 +652,6 @@ namespace PMC
                 runTrajectoryCancellationTokenSource = new CancellationTokenSource(); // Replace null assignment
             }
         }
-
 
         private void Rotation(int xbotID)
         {

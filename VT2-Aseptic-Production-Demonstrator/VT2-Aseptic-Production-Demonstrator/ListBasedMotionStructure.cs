@@ -65,7 +65,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         }
         private async void InitializeMqttSubscriber()
         {
-            mqttSubscriber = new MQTTSubscriber(brokerIP, port, "Acopos6D/#");
+            mqttSubscriber = new MQTTSubscriber(brokerIP, port);
             mqttSubscriber.MessageReceived += messageHandler;
             await mqttSubscriber.StartAsync();
         }

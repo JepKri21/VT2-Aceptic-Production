@@ -23,6 +23,7 @@ namespace PathPlaningNode
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
         private Dictionary<int, string> CommandUuid = new();
+        private Dictionary<int, string> xbotState = new();
         string brokerIP = "localhost";
         //string brokerIP = "172.20.66.135";
         int port = 1883;
@@ -80,6 +81,18 @@ namespace PathPlaningNode
                 public double[] ProcessPosition { get; set; } = Array.Empty<double>();
             }
         }
+
+        private class xbotStateMessage
+        {
+            public string Name { get; set; } = string.Empty;
+
+            public string State { get; set; } = string.Empty;
+
+            public int StationID { get; set; }
+
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
 
         #region Initialize
        
@@ -193,6 +206,7 @@ namespace PathPlaningNode
                 {
                     //{ UNSPrefix + "+/Data/TargetPosition", getTargetPostion },
                     { UNSPrefix + "+/Data/Position", getPostion },
+                    {UNSPrefix + "+/Data/State", getXbotState },
                     { UNSPrefix + "PathPlan/CMD", HandlePathPlanStatus },
                     //{ UNSPrefix + "+/CMD/SubCMD", HandleSubCMD},
                     { UNSPrefix + "+/CMD", HandleCMD },
@@ -320,6 +334,37 @@ namespace PathPlaningNode
 
             await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "Rotate");
 
+
+        }
+
+        private async void getXbotState(string topic, string message)
+        {
+            try
+            {
+                Console.WriteLine($"Received target position message on topic {topic}: {message}");
+
+                
+
+                // Deserialize the message into a TargetPositionMessage object
+                var xbotStateMessage = JsonSerializer.Deserialize<xbotStateMessage>(message)
+                    ?? throw new InvalidOperationException("Xbot State is null");
+
+                // Extract numeric values from the structured object
+                string state = xbotStateMessage.State;
+                
+                Console.WriteLine($"Xbot State: {string.Join(", ", state)}");
+                string[] segments = topic.Split('/');
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot"))
+                    ?? throw new InvalidOperationException("xbot segment not found");
+                int xbotID = int.Parse(xbotSegment.Substring(4));
+
+                xbotState[xbotID] = state;
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing Xbot State message: {ex.Message}");
+            }
 
         }
 
@@ -631,7 +676,7 @@ namespace PathPlaningNode
 
             }
         }
-
+        /*
         private void CommandExecution(int xbotID, string Command)
         {
             Task.Run(() =>
@@ -739,7 +784,7 @@ namespace PathPlaningNode
                 }
             });
         }
-
+        */
 
         private async void SendFinalStationCommand(int xbotID, string stationName)
         {
@@ -783,6 +828,140 @@ namespace PathPlaningNode
         {
             PathPlaningNode client = new PathPlaningNode();
             await Task.Delay(-1);
+        }
+        private void WaitForAllXbotsIdle()
+        {
+            Console.WriteLine("[DEBUG] Waiting for all xbots to be idle...");
+            while (true)
+            {
+                lock (xbotState)
+                {
+                    if (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        break;
+                    }
+                }
+                Thread.Sleep(100); // Poll every 100ms
+            }
+            Console.WriteLine("[DEBUG] All xbots are now idle.");
+        }
+        private void CommandExecution(int xbotID, string Command)
+        {
+            Task.Run(() =>
+            {
+                Console.WriteLine($"[DEBUG] Starting {Command} for xbotID: {xbotID}");
+
+                SendFinalStationCommand(xbotID, Command);
+
+                if (positions[xbotID] != StationCordinate[Command][1])
+                {
+                    Console.WriteLine($"[DEBUG] Current position of xbotID {xbotID}: {string.Join(", ", positions[xbotID])}");
+                    Console.WriteLine($"[DEBUG] Target station position: {string.Join(", ", StationCordinate[Command][1])}");
+
+                    // Step 1: Move to the approach position first
+                    if (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
+                    {
+                        Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to approach position: {string.Join(", ", StationCordinate[Command][0])}");
+                        double[] approachTarget = StationCordinate[Command][0];
+                        targetPositions[xbotID] = approachTarget;
+
+                        var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+                        if (existingEntry != default)
+                        {
+                            Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To");
+                            double[] updatedFrom = positions[xbotID] ?? existingEntry.Item2;
+                            double[] updatedTo = approachTarget ?? existingEntry.Item3;
+                            xBotID_From_To.Remove(existingEntry);
+                            xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To");
+                            xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), approachTarget ?? Array.Empty<double>()));
+                        }
+
+                        StopTrajectoryExicution();
+
+                        // Wait for all xbots to be idle
+                        WaitForAllXbotsIdle();
+
+                        ExicutePathPlanner();
+
+                        // Wait until the xbot reaches the approach position
+                        while (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
+                        {
+                            Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach approach position...");
+                            Thread.Sleep(100);
+                        }
+                        Console.WriteLine($"[DEBUG] xbotID {xbotID} reached approach position.");
+                    }
+
+                    // Step 2: Rotate if needed
+                    Console.WriteLine($"[DEBUG] Checking rotation for xbotID {xbotID}. Current Rz: {positions[xbotID][5]}, Target Rz: {StationCordinate[Command][1][5]}");
+
+                    if (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
+                    {
+                        Console.WriteLine($"[DEBUG] Rotating xbotID {xbotID} to match orientation: {StationCordinate[Command][1][5]}");
+
+                        RotateCommand(xbotID);
+                        StopTrajectoryExicution();
+
+                        // Wait for all xbots to be idle
+                        WaitForAllXbotsIdle();
+
+                        ExicutePathPlanner();
+
+                        // Wait until the rotation is completed
+                        while (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
+                        {
+                            Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to complete rotation...");
+                            Thread.Sleep(100);
+                        }
+                        Console.WriteLine($"[DEBUG] xbotID {xbotID} completed rotation.");
+                    }
+
+                    // Step 3: Move to the station position
+                    Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to station position: {string.Join(", ", StationCordinate[Command][1])}");
+                    double[] stationTarget = StationCordinate[Command][1];
+                    targetPositions[xbotID] = stationTarget;
+
+                    var stationEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+                    if (stationEntry != default)
+                    {
+                        Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To for station position");
+                        double[] updatedFrom = positions[xbotID] ?? stationEntry.Item2;
+                        double[] updatedTo = stationTarget ?? stationEntry.Item3;
+                        xBotID_From_To.Remove(stationEntry);
+                        xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To for station position");
+                        xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), stationTarget ?? Array.Empty<double>()));
+                    }
+
+                    StopTrajectoryExicution();
+
+                    // Wait for all xbots to be idle
+                    WaitForAllXbotsIdle();
+
+                    ExicutePathPlanner();
+
+                    // Wait until the xbot reaches the station position
+                    while (positions[xbotID][0] != StationCordinate[Command][1][0] || positions[xbotID][1] != StationCordinate[Command][1][1])
+                    {
+                        Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach station position...");
+                        Thread.Sleep(100);
+                    }
+                    Console.WriteLine($"[DEBUG] xbotID {xbotID} reached station position.");
+                }
+                else
+                {
+                    Console.WriteLine($"[DEBUG] xbotID {xbotID} is already at the station position.");
+                }
+            });
         }
         
         

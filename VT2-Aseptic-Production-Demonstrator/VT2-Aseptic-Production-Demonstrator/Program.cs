@@ -16,6 +16,7 @@ namespace VT2_Aseptic_Production_Demonstrator
         private connection_handler connectionHandler = new connection_handler();
         private realtime_movement_test realtimeMovement = new realtime_movement_test();
         private ListBasedMotionStructure listBasedMotionStructure = new ListBasedMotionStructure();
+        private CommandSender commandSender = new CommandSender();
         //private Pathfinding pathfinding = new Pathfinding();
 
 
@@ -52,8 +53,8 @@ ____________________________________________________________________| ";
                 {
                     // Connection to the PMC and aquire mastership
                     //Console.Clear();
-                    CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
-                    Console.WriteLine(status);
+                    //CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+                    //Console.WriteLine(status);
                     
 
                     selector = 1;
@@ -65,8 +66,7 @@ ____________________________________________________________________| ";
                     Console.WriteLine(title);
                     Console.WriteLine("Choose program by entering the appropriate number: ");
                     Console.WriteLine("0:   Run Calibration again");
-                    Console.WriteLine("1:   Run the Aseptic Production Demonstrator");
-                    Console.WriteLine("2:   Run List based motion structure");
+                    Console.WriteLine("1:   Run Command Sender");
                     Console.WriteLine("ESC: Exit program");
                     ConsoleKeyInfo keyinfo = Console.ReadKey();
 
@@ -77,11 +77,9 @@ ____________________________________________________________________| ";
                             break;
 
                         case '1':
-                            selector = 2;
+                            selector = 4;
                             break;
-                        case '2':
-                            selector = 3;
-                            break;
+                        
 
 
 
@@ -98,15 +96,10 @@ ____________________________________________________________________| ";
                     }
                 }
                 
-                while(selector == 2) 
+                while (selector == 4)
                 {
-                    //realtimeMovement.runRealtimeMovementTest(xbot_ids);
-                    //selector = realtimeMovement.setSelectorOne();
-                }
-                while(selector == 3)
-                {
-                    listBasedMotionStructure.runListBasedMotion(xbot_ids);
-                        selector = listBasedMotionStructure.setSelectorOne();
+                    commandSender.runCommandSender();
+                    commandSender.setSelectorOne();
                 }
 
             } while (true);
