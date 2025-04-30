@@ -6,7 +6,7 @@
 #include <ArduinoJson.h>
 
 extern WiFiClient espClient;
-extern PubSubClient client;
+extern PubSubClient client; //Why do we call an external here when we create this class below?
 
 // WiFi og MQTT data
 const char* ssid = "smart_production_WIFI";
@@ -21,7 +21,7 @@ unsigned long interval = 5000;
 double stationPosition[] = {0.660, 0.840};
 
 WiFiClient espClient;
-PubSubClient client(espClient);
+PubSubClient client(espClient); //RIGHT HERE
 
 // Forward declarations
 void callback(char*, byte*, unsigned int);
