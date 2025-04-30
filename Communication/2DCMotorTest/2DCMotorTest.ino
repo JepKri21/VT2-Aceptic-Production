@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #define ENCA 23
 #define ENCB 22
 #define PWM 21

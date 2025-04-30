@@ -148,7 +148,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     if (message == "running") {
       Serial.println("Starting the motor / LED!");
       //digitalWrite(ledPin, HIGH);  // Tænder motor/LED
-      //startMotor();
+      startMotor();
       StopperingRunning();
       stopperingRunning = true;
       
@@ -157,7 +157,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     else if (message == "idle") {
       Serial.println("Stopping the motor / LED!");
       //digitalWrite(ledPin, LOW);   // Slukker motor/LED
-      //stopMotor();
+      stopMotor();
       StopperingStop();
       stopperingRunning = false;
     } 
