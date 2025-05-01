@@ -21,9 +21,13 @@
 volatile int pos = 0;
 bool stopperingRunning = false; //What do we use this for, we don't use it to check for anything?
 
+unsigned long interval = 5000;
+double stationPosition[] = {0.120, 0.600};
+
 //If we only call these after we have defined everything, then we can easily use them in the other headers without doing anything.
-#include "stoppering_station.h"
 #include "wifi_mqtt_setup.h"
+#include "stoppering_station.h"
+
 
 
 
@@ -31,13 +35,16 @@ bool stopperingRunning = false; //What do we use this for, we don't use it to ch
 void setup() {
   Serial.begin(115200);
   initWiFiAndMQTT();   // Fra wifi_mqtt_setup.h
-  //InitFilling();
   delay(1000);
   InitStoppering();
+
+
+  delay(1000);
 }
 
 void loop() {
   if (!client.connected()) {
+    Serial.println("We have to reconnect");
     reconnect();
   }
   client.loop();

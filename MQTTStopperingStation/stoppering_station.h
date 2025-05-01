@@ -114,8 +114,6 @@ void InitStepper(){
   delay(10); //Delay for good measure
 
   myStepper.step(-2.5*stepsPerRevolution); // 2.5 full revolution counterclockwise
-  delay(1000);
-  myStepper.step(2.5*stepsPerRevolution); // 2.5 full revolution counterclockwise
   Serial.println("Stepper Motor Initialized");
 }
 
@@ -157,6 +155,8 @@ void InitDC(){
   int difPos = 0;
   int stepsDif = 0;
 
+  StaticJsonDocument<100> doc;
+
   //Boolean used to stop the motor when it has reached the top
   bool initialized = false; 
 
@@ -187,7 +187,7 @@ void InitDC(){
     if(prevTime - timedCounter >= 10){ //If 10 milliseconds have passed since we last checked the speed of the motor we will check it again
 
       stepsDif = difPos - pos; //Calculating the difference in steps or the speed of the motor in the last 10 milliseconds
-      Serial.println(stepsDif);
+      //Serial.println(stepsDif); //Used to check what the normal speed of the motor is 
 
       //Resetting these two to be used again
       difPos = pos;
@@ -198,7 +198,17 @@ void InitDC(){
         digitalWrite(DC_IN4, LOW);
 
         analogWrite(DC_ENB, 0); //Setting the speed to 0, maybe we don't have to do this, just always have a constant speed
-        client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/StopperingStation/StationStatus", "We Reached The Top"); 
+        delay(2000);
+
+        Serial.println("We have to reconnect");
+        reconnect();
+        
+        delay(1000);
+        Serial.println("Should publish station status now");
+        doc["message"] = "We Reached The Top";
+        char initialized_done_output[100];
+        serializeJson(doc, initialized_done_output);
+        client.publish(topic_sub_Stoppering, initialized_done_output); 
         initialized = true; //Used to stop the while-loop
         //We probably also have to reset "pos" right here to set this point as 0 on the encoders
       }
