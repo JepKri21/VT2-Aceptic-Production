@@ -133,7 +133,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var VisionMessage = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Vison",
+                        Command = "Vision",
                         TimeStamp = timestamp
                     };
                     string serializedMessage2 = JsonSerializer.Serialize(VisionMessage);
@@ -147,7 +147,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var FillingQueue1Message = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Vison",
+                        Command = "FillingQueue1",
                         TimeStamp = timestamp
                     };
                     string serializedMessage3 = JsonSerializer.Serialize(FillingQueue1Message);
@@ -161,7 +161,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var FillingQueue2Message = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Vison",
+                        Command = "FillingQueue2",
                         TimeStamp = timestamp
                     };
                     string serializedMessage4 = JsonSerializer.Serialize(FillingQueue2Message);
@@ -176,7 +176,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var FillingQueue3Message = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Vison",
+                        Command = "FillingQueue3",
                         TimeStamp = timestamp
                     };
                     string serializedMessage5 = JsonSerializer.Serialize(FillingQueue3Message);
@@ -191,7 +191,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var FillingQueue4Message = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Vison",
+                        Command = "FillingQueue4",
                         TimeStamp = timestamp
                     };
                     string serializedMessage6 = JsonSerializer.Serialize(FillingQueue4Message);

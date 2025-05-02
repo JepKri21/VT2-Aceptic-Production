@@ -29,13 +29,6 @@ namespace PMC
         private MQTTPublisher mqttPublisher;
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
-        private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
-        {
-            {1,false },
-            {2,false },
-            {3, false },
-            {4, false }
-        };
         //string brokerIP = "172.20.66.135";
         string brokerIP = "localhost";
         int port = 1883;
@@ -323,8 +316,6 @@ namespace PMC
             }            
             if (message == "Stop")
             {
-                Console.Clear();
-                Console.WriteLine("[Debug] Xbots ordred to stop");
                 StopRunTrajectory();
             }
             else
@@ -335,66 +326,31 @@ namespace PMC
 
         private void StopRunTrajectory()
         {
-            Console.WriteLine("[StopDebug] Stop message received. Stopping RunTrajectory...");
+            Console.WriteLine("Stop message received. Stopping RunTrajectory...");
             foreach (var xbot in xbotsID)
             {
                 // Cancel the running task for the xbot if it exists
                 if (taskCancellationTokens.ContainsKey(xbot))
                 {
-                    try
-                    {
-                        taskCancellationTokens[xbot].Cancel();
-                        Console.WriteLine($"[StopDebug] Cancellation token triggered for xbot {xbot}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[StopDebug] Error cancelling task for xbot {xbot}: {ex.Message}");
-                    }
-                    finally
-                    {
-                        taskCancellationTokens[xbot].Dispose();
-                        taskCancellationTokens.Remove(xbot);
-                        Console.WriteLine($"[StopDebug] Disposed and removed cancellation token for xbot {xbot}");
-                    }
+                    taskCancellationTokens[xbot].Cancel();
+                    taskCancellationTokens[xbot].Dispose();
+                    taskCancellationTokens.Remove(xbot);
+                    Console.WriteLine($"Cancelled running task for xbot {xbot}");
                 }
-
                 lock (trajectories)
                 {
                     if (trajectories.ContainsKey(xbot))
                     {
                         trajectories.Remove(xbot);
-                        Console.WriteLine($"[StopDebug] Removed trajectory for xbot {xbot}");
+                        Console.WriteLine($"Removed trajectory for xbot {xbot}");
                     }
                 }
-
                 // Clear motion buffer and stop motion for each xbot
-                if (RotationLock[xbot] == true)
-                {
-                    try
-                    {
-                        MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbot, MOTIONBUFFEROPTIONS.CLEARBUFFER);
-                        Console.WriteLine($"[StopDebug] Motion buffer cleared for xbot {xbot}, Status: {BufferStatus}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[StopDebug] Error clearing motion buffer for xbot {xbot}: {ex.Message}");
-                    }
+                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbot, MOTIONBUFFEROPTIONS.CLEARBUFFER);
+                _xbotCommand.StopMotion(xbot);
+                Console.WriteLine($"Cleared motion buffer and stopped motion for xbot {xbot}");
 
-                    try
-                    {
-                        _xbotCommand.StopMotion(xbot);
-                        Console.WriteLine($"[StopDebug] Motion stopped for xbot {xbot}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[StopDebug] Error stopping motion for xbot {xbot}: {ex.Message}");
-                    }
-                }
-                else if (!RotationLock.ContainsKey(xbot))
-                {
-                    
-                }
-                
+                // Remove trajectories for the xbot
                 
             }
         }
@@ -408,7 +364,6 @@ namespace PMC
 
             if (message == "Rotate")
             {
-                RotationLock[xbotID] = true;
                 Rotation(xbotID);
             }
         }
@@ -737,7 +692,7 @@ namespace PMC
                             double[] point = trajectories[xbotID][0];
                             Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
                             Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
-                            //motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
 
                             for (int i = 1; i < trajectories[xbotID].Count; i++)
                             {
@@ -902,8 +857,7 @@ namespace PMC
                     if (xbotState == 3 && Math.Abs(currentOrientation - targetOrientation) > 0.01)
                     {
                         Console.WriteLine("Rotation Done");
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "RotationDone");// kan være en fejl med dette
-                        RotationLock[xbotID] = false;
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "RotationDone");
                         break;
                     }
                     Task.Delay(100).Wait();

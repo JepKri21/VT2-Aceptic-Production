@@ -127,16 +127,16 @@ namespace PathPlaningNode
 
         private async void InitializeStations()
         {
-            double[] FillingStation = { 0.6, 0.06, 0, 0, 0, 90 };
+            double[] FillingStation = { 0.6, 0.06, 0, 0, 0, 0 };
             double[] FillingApproach = { 0.6, 0.12, 0, 0, 0, 0 };
             double[] StopperingStation = { 0.12, 0.06, 0, 0, 0, 0 };
-            double[] StopperingApproach = { 0.12, 0.12, 0, 0, 0, 90 };
-            double[] VisionStation = { 0.12, 0.6, 0, 0, 0, 0 };
-            double[] VisionApproach = { 0.12, 0.6, 0, 0, 0, 0 };
-            double[] FillingQueue1 = { 0.12, 0.84, 0, 0, 0, 0 };
-            double[] FillingQueue2 = { 0.36, 0.12, 0, 0, 0, 0 };
-            double[] FillingQueue3 = { 0.36, 0.36, 0, 0, 0, 0 };
-            double[] FillingQueue4 = { 0.36, 0.6, 0, 0, 0, 0 };
+            double[] StopperingApproach = { 0.12, 0.12, 0, 0, 0, 0 };
+            double[] VisionStation = { 0.06, 0.36, 0, 0, 0, 90 };
+            double[] VisionApproach = { 0.12, 0.36, 0, 0, 0, 0 };
+            double[] FillingQueue1 = { 0.6, 0.36, 0, 0, 0, 0 };
+            double[] FillingQueue2 = { 0.6, 0.49, 0, 0, 0, 0 };
+            double[] FillingQueue3 = { 0.6, 0.62, 0, 0, 0, 0 };
+            double[] FillingQueue4 = { 0.6, 0.75, 0, 0, 0, 0 };
 
             var stationMessage = new StationMessage
             {
@@ -370,7 +370,7 @@ namespace PathPlaningNode
 
         private async void StopTrajectoryExicution()
         {
-            await mqttPublisher.PublishMessageAsync(UNSPrefix + "PathPlan/Stop", "Stop");
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + "PathPlan/CMD", "Stop");
         }
 
 
@@ -397,8 +397,10 @@ namespace PathPlaningNode
                 }
             }
 
+            
             trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
-                .ToDictionary(item => item.Item1, item => item.Item2);
+                .GroupBy(item => item.Item1)
+                .ToDictionary(group => group.Key, group => group.Last().Item2);
 
             foreach (var trajectory in trajectories)
             {
@@ -436,6 +438,9 @@ namespace PathPlaningNode
             }
 
             await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
+
+            ClearAllTargetPositions();
+
         }
 
         private double[] FindClosestCenter(double[] currentPosition, List<double[]> centers)
@@ -882,9 +887,10 @@ namespace PathPlaningNode
                         }
 
                         StopTrajectoryExicution();
-
-                        // Wait for all xbots to be idle
-                        WaitForAllXbotsIdle();
+                        
+                        
+                        
+                        
 
                         ExicutePathPlanner();
 
@@ -896,7 +902,7 @@ namespace PathPlaningNode
                         }
                         Console.WriteLine($"[DEBUG] xbotID {xbotID} reached approach position.");
                     }
-
+                    
                     // Step 2: Rotate if needed
                     Console.WriteLine($"[DEBUG] Checking rotation for xbotID {xbotID}. Current Rz: {positions[xbotID][5]}, Target Rz: {StationCordinate[Command][1][5]}");
 
@@ -907,8 +913,7 @@ namespace PathPlaningNode
                         RotateCommand(xbotID);
                         StopTrajectoryExicution();
 
-                        // Wait for all xbots to be idle
-                        WaitForAllXbotsIdle();
+                        
 
                         ExicutePathPlanner();
 
@@ -944,8 +949,7 @@ namespace PathPlaningNode
 
                     StopTrajectoryExicution();
 
-                    // Wait for all xbots to be idle
-                    WaitForAllXbotsIdle();
+                    
 
                     ExicutePathPlanner();
 
@@ -956,6 +960,7 @@ namespace PathPlaningNode
                         Thread.Sleep(100);
                     }
                     Console.WriteLine($"[DEBUG] xbotID {xbotID} reached station position.");
+                    
                 }
                 else
                 {
@@ -963,9 +968,48 @@ namespace PathPlaningNode
                 }
             });
         }
-        
-        
-        
+
+        private async void ClearTargetPositionFromTo(int xbotID)
+        {
+            Console.WriteLine($"Clearing target position for xbotID {xbotID} in xBotID_From_To.");
+
+            // Find the entry for the given xbotID in xBotID_From_To  
+            var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+            if (existingEntry != default)
+            {
+                // Update the entry to clear the target position (set 'To' to an empty array)  
+                double[] updatedFrom = existingEntry.Item2;
+                double[] updatedTo = Array.Empty<double>();
+
+                xBotID_From_To.Remove(existingEntry);
+                xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+
+                Console.WriteLine($"Target position cleared for xbotID {xbotID}.");
+            }
+            else
+            {
+                Console.WriteLine($"No entry found for xbotID {xbotID} in xBotID_From_To.");
+            }
+
+
+        }
+
+        private async void ClearAllTargetPositions()
+        {
+            Console.WriteLine("Clearing all target positions in xBotID_From_To.");
+
+            lock (xBotID_From_ToLock)
+            {
+                for (int i = 0; i < xBotID_From_To.Count; i++)
+                {
+                    var (xbotID, from, _) = xBotID_From_To[i];
+                    xBotID_From_To[i] = (xbotID, from, Array.Empty<double>());
+                }
+            }
+
+            Console.WriteLine("All target positions cleared.");
+        }
     }
 
 }
