@@ -70,8 +70,6 @@ namespace PMC
         private Dictionary<int, double[]> lastPublishedPositions = new();
         private Dictionary<int, string> lastPublishedStates = new();
 
-        private const double OrientationTolerance = 0.01;
-
         private class TargetPositionMessage
         {
             public string Uuid { get; set; } = string.Empty;
@@ -902,7 +900,7 @@ namespace PMC
                     await Task.Delay(100); // Add a delay to prevent busy-waiting
                 }
                 Console.WriteLine("I am at the center");
-                _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.NO_ANGLE_WRAP, targetPosition[5] * (Math.PI / 180), 0.5, 0.2, POSITIONMODE.ABSOLUTE);
+                _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.WRAP_TO_2PI_CW, targetPosition[5] * (Math.PI / 180), 0.5, 0.2, POSITIONMODE.ABSOLUTE);
 
                 XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
                 int xbotState = (int)status.XBOTState;
@@ -913,29 +911,36 @@ namespace PMC
                 while (true)
                 {
                     // Debugging: Log the state of xbotState and orientation differences
-                    Console.WriteLine($"xbotState{xbotID}: {xbotState}");
+                    Console.WriteLine($"xbotState: {xbotState}");
                     Console.WriteLine($"Current orientation: {currentOrientation}, Target orientation: {targetOrientation}");
                     Console.WriteLine($"Orientation difference: {Math.Abs(currentOrientation - targetOrientation)}");
 
                     status = _xbotCommand.GetXbotStatus(xbotID);
                     xbotState = (int)status.XBOTState;
-                    currentOrientation = positions[xbotID][5]; // Update current orientation
-                    double adjustedDifference = Math.Min(Math.Abs(currentOrientation - targetOrientation), 360 - Math.Abs(currentOrientation - targetOrientation));
+                    // Add debugging logs to identify why the condition is being met
+                    if (xbotState == 3 && Math.Abs(currentOrientation - targetOrientation) < 0.01)
+                    {
+                        Console.WriteLine($"[Debug] Entered loop with xbotState: {xbotState}, currentOrientation: {currentOrientation}, targetOrientation: {targetOrientation}");
+                        Console.WriteLine($"[Debug] Orientation difference: {Math.Abs(currentOrientation - targetOrientation)}");
 
-                    if (xbotState == 3 && adjustedDifference == 0)
+                        // Additional debugging to ensure values are being updated correctly
+                        Console.WriteLine($"[Debug] Checking if xbotState == 3: {xbotState == 3}");
+                        Console.WriteLine($"[Debug] Checking if orientation difference > 0.01: {Math.Abs(currentOrientation - targetOrientation) < 0.01}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Debug] Skipped loop with xbotState: {xbotState}, currentOrientation: {currentOrientation}, targetOrientation: {targetOrientation}");
+                        Console.WriteLine($"[Debug] Orientation difference: {Math.Abs(currentOrientation - targetOrientation)}");
+                    }
                     {
                         Console.WriteLine("Rotation Done");
                         await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "RotationDone");// kan være en fejl med dette
                         RotationLock[xbotID] = false;
                         break;
                     }
-                    await Task.Delay(100); // Add a delay to prevent busy-waiting
+                    Task.Delay(100).Wait();
                 }
             });
-            
-
-            
-            
         }
 
 
