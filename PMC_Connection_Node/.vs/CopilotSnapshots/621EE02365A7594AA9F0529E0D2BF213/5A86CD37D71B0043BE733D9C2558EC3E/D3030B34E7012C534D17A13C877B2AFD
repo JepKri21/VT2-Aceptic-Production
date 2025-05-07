@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using VT2_Aseptic_Production_Demonstrator;
 
+
 namespace PMC 
 {
     class PMC_Connection_Node
@@ -736,22 +737,19 @@ namespace PMC
                     {
                         try
                         {
-                            // Log the state of the trajectories dictionary
-                            Console.WriteLine($"[Debug] Current state of trajectories dictionary: {string.Join(", ", trajectories.Select(kvp => $"xbotID: {kvp.Key}, Points: {kvp.Value.Count}"))}");
+                            //int count = CountTrajectories[xbotID];
 
-                            // Check if the key exists in the dictionary
-                            if (!trajectories.ContainsKey(xbotID))
-                            {
-                                Console.WriteLine($"[Error] Key {xbotID} not found in trajectories dictionary.");
-                                return;
-                            }
+                            
 
+                            // Log the trajectory points for debugging
+                            //Console.WriteLine($"Starting trajectory for xbot {xbotID}, trajectory number {count}");
                             Console.WriteLine($"Trajectory Points: {string.Join(" | ", trajectories[xbotID].Select(p => $"({p[0]}, {p[1]})"))}");
 
                             // Add the first motion to the buffer
                             double[] point = trajectories[xbotID][0];
                             Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
                             Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
+                            //motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
 
                             for (int i = 1; i < trajectories[xbotID].Count; i++)
                             {
@@ -808,6 +806,7 @@ namespace PMC
                                     {
                                         Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
                                         _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.5);
+                                        
                                     }
                                 }
                                 else
@@ -824,6 +823,9 @@ namespace PMC
                                     Console.WriteLine($"({trajectories[xbotID][j][0]}, {trajectories[xbotID][j][1]})");
                                 }
                             }
+
+                            // Print the number of direct trajectories
+                            
                         }
                         catch (Exception ex)
                         {
