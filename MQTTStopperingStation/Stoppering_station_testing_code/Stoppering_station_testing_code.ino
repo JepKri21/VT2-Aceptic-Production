@@ -1,9 +1,9 @@
 #include <ESP32Servo.h>
 #include <Arduino.h>
 
-#define servoPWM 12
+#define servoPWM 2
 
-#define buttonPin 11
+#define buttonPin 4
 
 #define DC_ENB 41
 #define DC_IN3 39
@@ -18,24 +18,41 @@
 
 Servo myservo;
 
-/*
-volatile int pos = 0;
-
-void readEncoder() {
-  int b = digitalRead(DC_encoder_ENCB);
-  if (b > 0) pos++;
-  else pos--;
-}
-*/
-
 void InitServo()
 {
-  int startPos = 40;
-  myservo.attach(12);
+  myservo.attach(servoPWM);
   //myservo.attach(servoPWM, 500, 2400, 0);
   delay(500);
-  myservo.write(startPos);
+  int targetAngle = 60;
+  int currentAngle = 90;
+  int moveDelay = 15;
+  // Smooth motion toward targetAngle
+  while (currentAngle != targetAngle){
+    if (currentAngle <= targetAngle) {
+    currentAngle++;
+    myservo.write(currentAngle);
+    delay(moveDelay);
+    } else if (currentAngle >= targetAngle) {
+    currentAngle--;
+    myservo.write(currentAngle);
+    delay(moveDelay);
+    }
+  }
+  targetAngle = 50;
+  while (currentAngle != targetAngle){
+    if (currentAngle <= targetAngle) {
+    currentAngle++;
+    myservo.write(currentAngle);
+    delay(moveDelay);
+    } else if (currentAngle >= targetAngle) {
+    currentAngle--;
+    myservo.write(currentAngle);
+    delay(moveDelay);
+    }
+  }
 
+  delay(500);
+  myservo.detach();
 }
 
 void InitLA(){ //Initializing the linear actuator
@@ -67,11 +84,6 @@ void InitDC(){
   
   pinMode(buttonPin, INPUT_PULLUP); // Enable internal pull-up resistor
 
-  //Setting the pin modes for the Encoder and then attaching an interrupt
-  //pinMode(DC_encoder_ENCA, INPUT);
-  //pinMode(DC_encoder_ENCB, INPUT);
-  //attachInterrupt(digitalPinToInterrupt(DC_encoder_ENCA), readEncoder, RISING);
-
   //Setting the pin modes for the DC motor controller pins
   pinMode(DC_ENB, OUTPUT);
   pinMode(DC_IN3, OUTPUT);
@@ -100,7 +112,21 @@ void InitDC(){
 
 }
 
-
+void setup() {
+  Serial.begin(9600);
+  Serial.println("Initializing Servo");
+  InitServo();
+  Serial.println("Servo Initialized");
+  delay(1000);
+  Serial.println("Initializing DC Motor");
+  InitDC();
+  Serial.println("DC Motor Initialized");
+  delay(1000);
+  Serial.println("Initializing Linear Actuator");
+  InitLA();
+  Serial.println("Linear Actuator Initialized");
+  delay(5000);
+}
 
 void runStoppering()
 {
@@ -117,19 +143,21 @@ void runStoppering()
  
 
   delay(500);
-  
-  int pos = 0;
-  for(pos = 40; pos <= 180; pos++)
+  myservo.attach(servoPWM);
+  int pos;
+  for(pos = 60; pos <= 180; pos++)
   {
     myservo.write(pos);
     delay(15);
   }
-  delay(750);
-  for(pos = 180; pos >= 40; pos--)
+  delay(1000);
+  for(pos = 180; pos >= 60; pos--)
   {
     myservo.write(pos);
     delay(15);
   }
+  delay(500);
+  myservo.detach();
 
   digitalWrite(LA_IN1, LOW); //Move linear actuator down
   digitalWrite(LA_IN2, HIGH);
@@ -154,27 +182,11 @@ void runStoppering()
   digitalWrite(DC_IN4, LOW);
 }
 
-
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("Initializing Linear Actuator");
-  InitLA();
-  Serial.println("Linear Actuator Initialized");
-  delay(1000);
-  Serial.println("Initializing Servo");
-  InitServo();
-  Serial.println("Servo Initialized");
-  delay(1000);
-  Serial.println("Initializing DC Motor");
-  InitDC();
-  Serial.println("DC Motor Initialized");
-  delay(5000);
-
-  runStoppering();
-}
-
+int i = 1;
 void loop() {
-
+  while(i == 1) {
+    runStoppering();
+    i++;
+  }
   
 }

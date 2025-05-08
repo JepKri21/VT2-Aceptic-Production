@@ -2,14 +2,14 @@
 
 Servo myservo;
 
-int currentAngle = 180;         // Start at mid position
-int targetAngle = 180;          // Target position (user-defined)
-const int moveDelay = 0;      // Delay in ms between steps (lower = faster)
+int currentAngle = 90;         // Start at mid position
+int targetAngle = 90;          // Target position (user-defined)
+const int moveDelay = 5;      // Delay in ms between steps (lower = faster)
 
 void setup() {
   Serial.begin(115200);
-  myservo.attach(12);          // Attach to GPIO 18
-  myservo.write(targetAngle); // Move to initial position
+  myservo.attach(2);          // Attach to GPIO 18
+  myservo.write(currentAngle); // Move to initial position
   Serial.println("Enter angle (0 to 180):");
 }
 
@@ -30,11 +30,11 @@ void loop() {
   }
 
   // Smooth motion toward targetAngle
-  if (currentAngle < targetAngle) {
+  if (currentAngle <= targetAngle) {
     currentAngle++;
     myservo.write(currentAngle);
     delay(moveDelay);
-  } else if (currentAngle > targetAngle) {
+  } else if (currentAngle >= targetAngle) {
     currentAngle--;
     myservo.write(currentAngle);
     delay(moveDelay);
