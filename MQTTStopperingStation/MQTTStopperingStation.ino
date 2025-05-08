@@ -1,11 +1,7 @@
 #include <Arduino.h>
-#include <Stepper.h>
 #include <PubSubClient.h>
 
-#define stepIN1 14
-#define stepIN2 13
-#define stepIN3 12
-#define stepIN4 11
+#define servoPWM 12
 
 #define LA_ENA 18
 #define LA_IN1 17
