@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
+using System.Text.Json;
 
 public class Pathfinding
 {
@@ -59,8 +60,8 @@ public class Pathfinding
             };
 */
             double[,] zone2 = {
-                { 12, 12},
-                { 48, 48 }
+                { 13, 13},
+                { 47, 47 }
             };
 
             // Convert to integers
@@ -321,6 +322,8 @@ public class Pathfinding
         return null;
     }
     #endregion
+
+
     #region PathPlanRunner
     public List<(int, List<double[]>)> pathPlanRunner(grid _grid, List<(int, double[], double[])> _xBotID_From_To, int _xbotSize)
     {
@@ -380,7 +383,10 @@ public class Pathfinding
         return xBotID_From_To;
     }
     #endregion
+
+
     #region Conflict Searcher
+    /*
     public List<(int, node, int, node)> conflictSearcher(List<(int, List<node>, int)> _pathList, int _xbotSize)
     {
         List<(int, node, int, node)> conflicts = new();
@@ -423,13 +429,83 @@ public class Pathfinding
                             conflicts.Add((xbotID, xbotPath[timeStep], otherXbotID, otherXbotPath[timeStep]));
                         }
                     }
+                    // Check for segment intersection
+                    if (timeStep >= 1)
+                    {
+                        if (Math.Abs(xbotPath[timeStep].x - otherXbotPath[timeStep].x) < _xbotSize * 1.5 &&
+                            Math.Abs(xbotPath[timeStep].y - otherXbotPath[timeStep].y) < _xbotSize * 1.5)
+                        {
+                            float minDist = DistanceBetweenSegments(
+                            xbotPath[timeStep - 1], xbotPath[timeStep],
+                            otherXbotPath[timeStep - 1], otherXbotPath[timeStep]);
+
+                            if (minDist < _xbotSize)
+                            {
+                                conflicts.Add((xbotID, xbotPath[timeStep], otherXbotID, otherXbotPath[timeStep]));
+                            }
+                        }
+                    }
+                }
+
+
+            }
+        }
+
+        return conflicts;
+    }
+    */
+
+    public List<(int, node, int, node)> conflictSearcher(List<(int, List<node>, int)> _pathList, int _xbotSize)
+    {
+        List<(int, node, int, node)> conflicts = new();
+        List<int> xBotIDs = _pathList.Select(x => x.Item1).ToList();
+
+        foreach (int xbotID in xBotIDs)
+        {
+            foreach (int otherXbotID in xBotIDs)
+            {
+                if (xbotID == otherXbotID || xbotID > otherXbotID)
+                    continue;
+
+                List<node> xbotPath = new(_pathList.First(x => x.Item1 == xbotID).Item2);
+                List<node> otherXbotPath = new(_pathList.First(x => x.Item1 == otherXbotID).Item2);
+
+                int maxLength = Math.Max(xbotPath.Count, otherXbotPath.Count);
+
+                while (xbotPath.Count < maxLength)
+                    xbotPath.Add(xbotPath.Last());
+
+                while (otherXbotPath.Count < maxLength)
+                    otherXbotPath.Add(otherXbotPath.Last());
+
+                for (int timeStep = 1; timeStep < maxLength; timeStep++)
+                {
+                    var A1 = (x: (double)xbotPath[timeStep - 1].x, y: (double)xbotPath[timeStep - 1].y);
+                    var A2 = (x: (double)xbotPath[timeStep].x, y: (double)xbotPath[timeStep].y);
+                    var B1 = (x: (double)otherXbotPath[timeStep - 1].x, y: (double)otherXbotPath[timeStep - 1].y);
+                    var B2 = (x: (double)otherXbotPath[timeStep].x, y: (double)otherXbotPath[timeStep].y);
+
+                    Geometry.SegmentToSegmentDistance(A1, A2, B1, B2, out var closestA, out var closestB);
+
+                    double dx = Math.Abs(closestA.x - closestB.x);
+                    double dy = Math.Abs(closestA.y - closestB.y);
+
+                    if (dx <= _xbotSize-0.5 && dy <= _xbotSize-0.5)
+                    {
+                        node conflictA = xbotPath[timeStep];
+                        node conflictB = otherXbotPath[timeStep];
+
+                        if (!conflicts.Any(c => c.Item1 == xbotID && c.Item3 == otherXbotID))
+                        {
+                            conflicts.Add((xbotID, conflictA, otherXbotID, conflictB));
+                        }
+                    }
                 }
             }
         }
 
         return conflicts;
     }
-
     #endregion
     #region Enhanced Conflict Handler
     public List<(int, List<node>, int)> conflictHandler(
@@ -554,6 +630,69 @@ public class Pathfinding
         return null;
     }
     #endregion
+
+    public class Geometry
+    {
+        // Point-to-line segment distance, pure C#
+        public static double PointToLineDistance((double x, double y) point, (double x, double y) lineStart, (double x, double y) lineEnd, out (double x, double y) closest)
+        {
+            double dx = lineEnd.x - lineStart.x;
+            double dy = lineEnd.y - lineStart.y;
+
+            if (dx == 0 && dy == 0)
+            {
+                closest = lineStart;
+                return Math.Sqrt((point.x - lineStart.x) * (point.x - lineStart.x) + (point.y - lineStart.y) * (point.y - lineStart.y));
+            }
+
+            double t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / (dx * dx + dy * dy);
+            t = Math.Max(0, Math.Min(1, t));
+
+            closest = (lineStart.x + t * dx, lineStart.y + t * dy);
+            return Math.Sqrt((point.x - closest.x) * (point.x - closest.x) + (point.y - closest.y) * (point.y - closest.y));
+        }
+
+        // Line-to-line shortest distance
+        public static double SegmentToSegmentDistance((double x, double y) A1, (double x, double y) A2, (double x, double y) B1, (double x, double y) B2,
+            out (double x, double y) closestA, out (double x, double y) closestB)
+        {
+            (double x, double y) temp1, temp2;
+            double d1 = PointToLineDistance(A1, B1, B2, out temp1);
+            double d2 = PointToLineDistance(A2, B1, B2, out temp2);
+            double d3 = PointToLineDistance(B1, A1, A2, out var temp3);
+            double d4 = PointToLineDistance(B2, A1, A2, out var temp4);
+
+            double minDist = d1;
+            closestA = A1;
+            closestB = temp1;
+
+            if (d2 < minDist)
+            {
+                minDist = d2;
+                closestA = A2;
+                closestB = temp2;
+            }
+
+            if (d3 < minDist)
+            {
+                minDist = d3;
+                closestA = temp3;
+                closestB = B1;
+            }
+
+            if (d4 < minDist)
+            {
+                minDist = d4;
+                closestA = temp4;
+                closestB = B2;
+            }
+
+            return minDist;
+        }
+    }
+
+
+
     #region Distance Calculator
     public double getDistance(node _nodeA, node _nodeB, bool euclidean)
     {

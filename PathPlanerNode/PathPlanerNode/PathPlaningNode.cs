@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
-//using UnityEngine;
 
 namespace PathPlaningNode
 {
@@ -23,6 +22,7 @@ namespace PathPlaningNode
         private Dictionary<int, double[]> positions = new();
         private Dictionary<int, string> CommandUuid = new();
         private Dictionary<int, string> xbotState = new();
+        
         private readonly object xBotID_From_ToLock = new();
         string brokerIP = "localhost";
         //string brokerIP = "172.20.66.135";
@@ -40,7 +40,7 @@ namespace PathPlaningNode
 
         private class PositionMessage
         {
-            public string Uuid { get; set; } = string.Empty;
+            public string CommandUuid { get; set; } = string.Empty;
             public double X { get; set; }
             public double Y { get; set; }
             public double Z { get; set; }
@@ -52,7 +52,7 @@ namespace PathPlaningNode
 
         private class TargetPositionMessage
         {
-            public string Uuid { get; set; } = string.Empty;
+            public string CommandUuid { get; set; } = string.Empty;
             public double X { get; set; }
             public double Y { get; set; }
             public double Z { get; set; }
@@ -380,7 +380,7 @@ namespace PathPlaningNode
 
 
 
-        private async void ExicutePathPlanner()
+        private async void ExecutePathPlanner()
         {
             Console.WriteLine("[Debug] Running Path Planner");
             Console.WriteLine($"{xBotID_From_To.Count}");
@@ -402,10 +402,10 @@ namespace PathPlaningNode
                 }
             }
 
-            
+
             trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
-                .GroupBy(item => item.Item1)
-                .ToDictionary(group => group.Key, group => group.Last().Item2);
+                           .GroupBy(item => item.Item1)
+                           .ToDictionary(group => group.Key, group => group.Last().Item2);
 
             foreach (var trajectory in trajectories)
             {
@@ -422,12 +422,20 @@ namespace PathPlaningNode
                         {
                             trajectory.Value.Add(targetPosition);
                         }
-                        
                     }
                 }
 
+                // Debug: Print the generated trajectory
+                Console.WriteLine($"[DEBUG] Trajectory for xbotID {xbotId}:");
+                foreach (var point in trajectory.Value)
+                {
+                    Console.WriteLine($"[DEBUG] Point: {string.Join(", ", point)}");
+                }
+            
+
                 // Generate a unique CommandUuid and current timestamp
-                string commandUuid = Guid.NewGuid().ToString();
+                string commandUuid = CommandUuid.ContainsKey(xbotId) ? CommandUuid[xbotId] : null;
+
                 string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
                 // Construct the trajectory message with CommandUuid and TimeStamp
@@ -617,7 +625,7 @@ namespace PathPlaningNode
         {
             if (message == "runPathPlanner")
             {
-                ExicutePathPlanner();
+                ExecutePathPlanner();
             }
         }
 
@@ -709,11 +717,11 @@ namespace PathPlaningNode
             {
                 double[] finalStationPosition = StationCordinate[stationName][1]; // Process position
                 targetPositions[xbotID] = finalStationPosition;
-
+                string commandUuid = CommandUuid.ContainsKey(xbotID) ? CommandUuid[xbotID] : null;
                 // Serialize the target position message
                 var targetPositionMessage = new TargetPositionMessage
                 {
-                    Uuid = Guid.NewGuid().ToString(),
+                    CommandUuid = commandUuid,
                     X = finalStationPosition[0],
                     Y = finalStationPosition[1],
                     Z = finalStationPosition[2],
@@ -1069,18 +1077,23 @@ namespace PathPlaningNode
                                     Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To to Approach target");
                                     double[] updatedFrom = positions[xbotID] ?? existingEntry.Item2;
                                     double[] updatedTo = approachTarget ?? existingEntry.Item3;
+
                                     xBotID_From_To.Remove(existingEntry);
                                     xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+                                    Console.WriteLine($"[DEBUG] Updated entry for xbotID {xbotID}: From: [{string.Join(", ", updatedFrom)}], To: [{string.Join(", ", updatedTo)}]");
                                 }
                                 else
                                 {
                                     Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To");
+
                                     xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), approachTarget ?? Array.Empty<double>()));
+                                    Console.WriteLine($"[DEBUG] Added entry for xbotID {xbotID}: From: [{string.Join(", ", positions[xbotID] ?? Array.Empty<double>())}], To: [{string.Join(", ", approachTarget ?? Array.Empty<double>())}]");
                                 }
+
 
                                 StopTrajectoryExicution();
 
-                                
+
                                 while (true)
                                 {
                                     lock (xbotState)
@@ -1092,9 +1105,9 @@ namespace PathPlaningNode
                                     }
                                     Thread.Sleep(100); // Poll every 100ms  
                                 }
-                                
 
-                                ExicutePathPlanner();
+
+                                ExecutePathPlanner();
 
                                 // Wait until the xbot reaches the approach position
                                 DateTime startTime = DateTime.Now;
@@ -1107,9 +1120,9 @@ namespace PathPlaningNode
                                     Thread.Sleep(100);
 
                                     var currentPosition = positions[xbotID];
-                                    //DateTime.Now - startTime).TotalSeconds >= 5
+                                    //
                                     // Check if the position has not changed for 5 seconds
-                                    if ( xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == positions[xbotID])
+                                    if ((DateTime.Now - startTime).TotalSeconds >= 5 && xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == positions[xbotID])
                                     {
                                         rerunCounter++; // Increment the rerun counter
 
@@ -1118,7 +1131,7 @@ namespace PathPlaningNode
                                             Console.WriteLine($"[DEBUG] xbotID {xbotID} has reached the maximum rerun count of 3. Cancelling thread.");
                                             commandCancellationTokens[xbotID].Cancel();
                                             commandCancellationTokens[xbotID].Dispose();
-                                            commandCancellationTokens.Remove(xbotID);                                            
+                                            commandCancellationTokens.Remove(xbotID);
                                             CommandExecution(xbotID, Command, commandCancellationTokens[xbotID].Token);
 
                                             return; // Exit this thread and run again  
@@ -1141,7 +1154,7 @@ namespace PathPlaningNode
                                         }
                                         Console.WriteLine("[DEBUG] All xbots are now idle.");
 
-                                        ExicutePathPlanner();
+                                        ExecutePathPlanner();
                                         startTime = DateTime.Now; // Reset the timer
                                     }
                                 }
@@ -1218,11 +1231,14 @@ namespace PathPlaningNode
                             double[] updatedTo = stationTarget ?? stationEntry.Item3;
                             xBotID_From_To.Remove(stationEntry);
                             xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+                            Console.WriteLine($"[DEBUG] Updated entry for xbotID {xbotID}: From: [{string.Join(", ", updatedFrom)}], To: [{string.Join(", ", updatedTo)}]");
                         }
                         else
                         {
                             Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To for station position");
                             xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), stationTarget ?? Array.Empty<double>()));
+
+                            Console.WriteLine($"[DEBUG] Added entry for xbotID {xbotID}: From: [{string.Join(", ", positions[xbotID] ?? Array.Empty<double>())}], To: [{string.Join(", ", stationTarget ?? Array.Empty<double>())}]");
                         }
 
                         StopTrajectoryExicution();
@@ -1241,7 +1257,7 @@ namespace PathPlaningNode
                         }
                         Console.WriteLine("[DEBUG] All xbots are now idle.");
 
-                        ExicutePathPlanner();
+                        ExecutePathPlanner();
 
                         // Wait until the xbot reaches the station position
                         DateTime startTimeEndPosition = DateTime.Now;
@@ -1287,7 +1303,7 @@ namespace PathPlaningNode
                                 }
                                 Console.WriteLine("[DEBUG] All xbots are now idle.");
 
-                                ExicutePathPlanner();
+                                ExecutePathPlanner();
                                 startTimeEndPosition = DateTime.Now; // Reset the timer
                             }
                         }
@@ -1300,7 +1316,11 @@ namespace PathPlaningNode
                     // Add a small delay to avoid busy-waiting
                     Thread.Sleep(100);
                 }
-                Console.WriteLine($"[DEBUG] Command execution completed for xbotID {xbotID}.");
+                if (CommandUuid.ContainsKey(xbotID))
+                {
+                    CommandUuid.Remove(xbotID);
+                }
+                    Console.WriteLine($"[DEBUG] Command execution completed for xbotID {xbotID}.");
             }
             catch (Exception ex)
             {
