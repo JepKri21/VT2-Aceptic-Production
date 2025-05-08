@@ -5,6 +5,7 @@
 #include <PubSubClient.h>
 
 extern PubSubClient client;
+//extern topic_sub_Filling_Data;
 
 #define BUTTON_PIN_BOTTOM 36
 #define BUTTON_PIN_TOP 39
@@ -20,12 +21,12 @@ unsigned long startTime;
 void FillingStop() {
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
-  analogWrite(enB, speed);
+  analogWrite(enB, speed-10);
   startTime = millis();
 
   while (digitalRead(BUTTON_PIN_TOP) == 0) {
     if (millis() - startTime >= 8000) {
-      client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus", "motion_error_up");
+      SendMQTTMessage(commandUuid, "Motion Error Up", topic_pub_status);
       break;
     }
   }
@@ -34,10 +35,11 @@ void FillingStop() {
   digitalWrite(in4, LOW);
   analogWrite(enB, 0);
 
-  client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus", "finished");
+  SendMQTTMessage(commandUuid, "Idle", topic_pub_status);
 }
 
 void FillingRunning() {
+  SendMQTTMessage(commandUuid, "Executing", topic_pub_status);
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
   analogWrite(enB, speed);
@@ -45,7 +47,7 @@ void FillingRunning() {
 
   while (digitalRead(BUTTON_PIN_BOTTOM) == 0) {
     if (millis() - startTime >= 8000) {
-      client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus", "motion_error_down");
+      SendMQTTMessage(commandUuid, "Motion Error Down", topic_pub_status);
       break;
     }
   }

@@ -4,21 +4,24 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <time.h>
 
 extern WiFiClient espClient;
-extern PubSubClient client;
+extern PubSubClient client; 
 
 // WiFi og MQTT data
 const char* ssid = "smart_production_WIFI";
 const char* pass = "aau smart production lab";
 const char* mqtt_serv = "172.20.66.135";
 
-const char* topic_pub = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationPosition";
-const char* topic_sub_Filling = "AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/StationStatus";
-const char* topic_sub_Stoppering = "AAU/Fiberstræde/Building14/FillingLine/Stations/StopperingStation/StationStatus";
+const char* topic_pub_status = "AAU/Fibigerstræde/Building14/FillingLine/Filling/DATA/State";
+const char* topic_sub_Filling_Cmd = "AAU/Fibigerstræde/Building14/FillingLine/Filling/CMD/Dispense";
+const char* topic_pub_mqtt_status = "AAU/Fibigerstræde/Building14/FillingLine/Filling/DATA/MQTTConnection";
 
 unsigned long interval = 5000;
 double stationPosition[] = {0.660, 0.840};
+
+String commandUuid; 
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -43,21 +46,67 @@ void reconnect() {
     String clientId = "ESP32Client-" + String(random(0xffff), HEX);
     StaticJsonDocument<100> doc;
     doc["clientId"] = clientId;
-    doc["message"] = "Trying";
     char output[100];
-    serializeJson(doc, output);
-    client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/MQTTConnection", output);
 
     if (client.connect(clientId.c_str())) {
       doc["message"] = "Success";
       serializeJson(doc, output);
-      client.publish("AAU/Fiberstræde/Building14/FillingLine/Stations/FillingStation/MQTTConnection", output);
-      client.subscribe(topic_sub_Filling);
-      client.subscribe(topic_sub_Stoppering);
+      client.publish(topic_pub_mqtt_status, output);
+      client.subscribe(topic_sub_Filling_Cmd);
     } else {
       delay(5000);
     }
   }
 }
+
+void SendMQTTMessage(String commandUuid, String state, const char* topic){
+  
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Error");
+    return;
+  }
+
+  char timestamp[25];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  StaticJsonDocument<256> doc;
+  doc["CommandUuid"] = commandUuid;
+  doc["State"] = state;
+  doc["TimeStamp"] = timestamp;
+
+  char output[256];
+  serializeJson(doc, output);
+
+  client.publish(topic, output, true);
+}
+
+void readMessage(const String& jsonString){
+  StaticJsonDocument<256> doc;
+  deserializeJson(doc, jsonString); 
+  commandUuid = doc["CommandUuid"].as<String>();
+
+  Serial.println("=== Modtaget MQTT besked ===");
+  Serial.println("CommandUuid: " + commandUuid);
+  Serial.println("============================");
+
+}
+
+void initializeTime() {
+  // Sætter dansk tid med automatisk sommertid
+  configTzTime("CET-1CEST,M3.5.0/02,M10.5.0/03", "pool.ntp.org", "time.nist.gov");
+
+  struct tm timeinfo;
+  Serial.print("Venter på NTP tid");
+  for (int i = 0; i < 10; i++) {
+    if (getLocalTime(&timeinfo)) {
+      Serial.println(" → Tid OK");
+      return;
+    }
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println("\n⚠️ Kunne ikke hente tid fra NTP-server");
+}
+
 
 #endif

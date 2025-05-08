@@ -8,7 +8,7 @@ const int moveDelay = 0;      // Delay in ms between steps (lower = faster)
 
 void setup() {
   Serial.begin(115200);
-  myservo.attach(12);          // Attach to GPIO 18
+  myservo.attach(2);          // Attach to GPIO 18
   myservo.write(targetAngle); // Move to initial position
   Serial.println("Enter angle (0 to 180):");
 }

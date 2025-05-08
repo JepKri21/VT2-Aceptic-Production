@@ -1,9 +1,9 @@
 #include <ESP32Servo.h>
 #include <Arduino.h>
 
-#define servoPWM 12
+#define servoPWM 2
 
-#define buttonPin 11
+#define buttonPin 4
 
 #define DC_ENB 41
 #define DC_IN3 39
@@ -27,15 +27,22 @@ void readEncoder() {
   else pos--;
 }
 */
-
-void InitServo()
-{
-  int startPos = 40;
-  myservo.attach(12);
-  //myservo.attach(servoPWM, 500, 2400, 0);
+void setup() {
+  Serial.begin(9600);
   delay(500);
-  myservo.write(startPos);
+  Serial.println("Initializing Servo");
+  InitServo();
+  Serial.println("Servo Initialized");
+  delay(1000);
+  Serial.println("Initializing Linear Actuator");
+  InitLA();
+  Serial.println("Linear Actuator Initialized");
+  Serial.println("Initializing DC Motor");
+  InitDC();
+  Serial.println("DC Motor Initialized");
+  delay(5000);
 
+  //runStoppering();
 }
 
 void InitLA(){ //Initializing the linear actuator
@@ -154,27 +161,20 @@ void runStoppering()
   digitalWrite(DC_IN4, LOW);
 }
 
-
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("Initializing Linear Actuator");
-  InitLA();
-  Serial.println("Linear Actuator Initialized");
-  delay(1000);
-  Serial.println("Initializing Servo");
-  InitServo();
-  Serial.println("Servo Initialized");
-  delay(1000);
-  Serial.println("Initializing DC Motor");
-  InitDC();
-  Serial.println("DC Motor Initialized");
-  delay(5000);
-
-  runStoppering();
-}
-
 void loop() {
 
   
 }
+
+
+void InitServo()
+{
+  int startPos = 40;
+  myservo.attach(servoPWM);
+  //myservo.attach(servoPWM, 500, 2400, 0);
+  delay(500);
+  myservo.write(startPos);
+
+}
+
+
