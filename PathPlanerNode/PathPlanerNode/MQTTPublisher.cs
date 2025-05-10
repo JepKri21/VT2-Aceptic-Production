@@ -59,7 +59,7 @@ namespace PathPlaningNode
             await _mqttClient.ConnectAsync(_options);
         }
 
-        public async Task PublishMessageAsync(string topic, string message)
+        public async Task PublishMessageAsync(string topic, string message, bool retain = false)
         {
             if (_mqttClient.IsConnected)
             {
@@ -68,7 +68,7 @@ namespace PathPlaningNode
                     .WithTopic(topic)
                     .WithPayload(message)  // Set the message payload
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)  // Set QoS to Exactly Once
-                    .WithRetainFlag()  // Optionally retain the message
+                    .WithRetainFlag(retain)  // Optionally retain the message
                     .Build();
 
                 // Publish the message to the broker

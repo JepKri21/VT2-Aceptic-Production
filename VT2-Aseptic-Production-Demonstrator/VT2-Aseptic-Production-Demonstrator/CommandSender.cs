@@ -199,6 +199,33 @@ namespace VT2_Aseptic_Production_Demonstrator
                     selector = 4;
                     xbotID = 0;
                     break;
+
+                case '8':
+
+                    var FillingPickNeedleMessage = new
+                    {
+                        CommandUuid = commandUuid,
+                        Command = "FillingPickNeedle",
+                        TimeStamp = timestamp
+                    };
+                    string serializedMessage7 = JsonSerializer.Serialize(FillingPickNeedleMessage);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage7);
+                    selector = 4;
+                    xbotID = 0;
+                    break;
+                case '9':
+
+                    var FillingPlaceNeedleMessage = new
+                    {
+                        CommandUuid = commandUuid,
+                        Command = "FillingPickNeedle",
+                        TimeStamp = timestamp
+                    };
+                    string serializedMessage8 = JsonSerializer.Serialize(FillingPlaceNeedleMessage);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage8);
+                    selector = 4;
+                    xbotID = 0;
+                    break;
             }
         }
 

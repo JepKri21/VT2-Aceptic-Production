@@ -28,6 +28,7 @@ namespace PMC
         private MQTTPublisher mqttPublisher;
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
+        private Dictionary<int, int?> xbotStateStationID = new();
         private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
         {
             {1,false },
@@ -35,6 +36,8 @@ namespace PMC
             {3, false },
             {4, false }
         };
+        private Dictionary<int, double[]> Station = new(); //Key is the StationdId, value is the position
+        private Dictionary<int, string> CommandUuid = new();
         //string brokerIP = "172.20.66.135";
         string brokerIP = "localhost";
         int port = 1883;
@@ -44,13 +47,7 @@ namespace PMC
         private Dictionary<int, Task> runningTasks = new(); // Track running tasks for each xbotID
         private Dictionary<int, CancellationTokenSource> taskCancellationTokens = new(); // Track cancellation tokens for each xbotID
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
-        private Dictionary<int, int> CountTrajectories = new Dictionary<int, int>
-        {
-            { 1, 0 },
-            { 2, 0 },
-            { 3, 0 },
-            { 4, 0 },
-        }; // Counter for direct trajectories
+        
         private Dictionary<int, string> states = new Dictionary<int, string>
         {
             { 0, "Undetected" },
@@ -73,7 +70,7 @@ namespace PMC
 
         private class TargetPositionMessage
         {
-            public string Uuid { get; set; } = string.Empty;
+            public string CommandUuid { get; set; } = string.Empty;
             public double X { get; set; }
             public double Y { get; set; }
             public double Z { get; set; }
@@ -83,13 +80,37 @@ namespace PMC
             public string TimeStamp { get; set; } = string.Empty;
         }
 
+        private class StationMessage
+        {
+            public List<Station> Stations { get; set; } = new();
+
+            public class Station
+            {
+                public string Name { get; set; } = string.Empty;
+                public int StationId { get; set; }
+                public double[] ApproachPosition { get; set; } = Array.Empty<double>();
+                public double[] ProcessPosition { get; set; } = Array.Empty<double>();
+            }
+        }
+
+        private class CommandMessage
+        {
+            public string CommandUuid { get; set; } = string.Empty;
+            public string Command { get; set; } = string.Empty;
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
         private class TrajectoryMessage
         {
             public string CommandUuid { get; set; } = string.Empty;
+
+            
+
             public string TimeStamp { get; set; } = string.Empty;
 
             [JsonPropertyName("Trajectory")] // Map the JSON property "Trajectory" to this property
             public List<double[]> TrajectoryPoints { get; set; } = new List<double[]>();
+
         }
 
         private PMC_Connection_Node()
@@ -125,7 +146,8 @@ namespace PMC
             { UNSPrefix + "+/Data/TargetPosition", getTargetPosition },
             { UNSPrefix + "+/CMD/SubCMD", HandlerSubCMD },
             { UNSPrefix + "PathPlan/CMD", HandleStatus },
-            
+            { "AAU/Fibigerstræde/Building14/FillingLine/Configuration/Data/Planar/Staions", HandleStations}
+
             };
         }
 
@@ -169,7 +191,6 @@ namespace PMC
 
         public async void PublishPostionsINFAsync()
         {
-            string CommandUuid = Guid.NewGuid().ToString();
             while (true)
             {
                 foreach (var xbot in xbotsID)
@@ -182,6 +203,9 @@ namespace PMC
 
                     // Round the position values
                     position = position.Select(p => Math.Round(p, 3)).ToArray();
+
+                    // Retrieve the CommandUuid for the xbot
+                    string commandUuid = CommandUuid.ContainsKey(xbot) ? CommandUuid[xbot] : null;
 
                     // Update the positions dictionary
                     positions[xbot] = position;
@@ -204,7 +228,7 @@ namespace PMC
                         // Create a message object with position and timestamp
                         var positionMessage = new
                         {
-                            CommandUuid = CommandUuid,
+                            CommandUuid = commandUuid,
                             X = position[0],
                             Y = position[1],
                             Z = position[2],
@@ -228,8 +252,9 @@ namespace PMC
                         // Create a message object with state and timestamp
                         var stateMessage = new
                         {
-                            CommandUuid = Guid.NewGuid().ToString(),
+                            CommandUuid = commandUuid,
                             State = xbotState,
+                            StationId = xbotStateStationID[xbot],
                             TimeStamp = timestamp
                         };
 
@@ -301,6 +326,40 @@ namespace PMC
             }
 
             return true;
+        }
+
+        private  void HandleCMD(string topic, string message)
+        {
+
+            
+            string[] segments = topic.Split('/');
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                 ?? throw new InvalidOperationException("xbot segment not found");
+            int xbotID = int.Parse(xbotSegment.Substring(4));
+
+            //var commandMessage = JsonSerializer.Deserialize<CommandMessage>(message);
+            /*
+            if (commandMessage == null)
+            {
+                throw new InvalidOperationException("Command message is null or invalid.");
+            }
+            */
+            //CommandUuid[xbotID] = commandMessage.CommandUuid;
+            //Console.WriteLine($"{commandMessage.CommandUuid}");
+        }
+
+
+        private void HandleStations(string topic, string message)
+        {
+            var stationMessage = JsonSerializer.Deserialize<StationMessage>(message);
+            if (stationMessage == null)
+            {
+                throw new InvalidOperationException("Station message is null or invalid.");
+            }
+            foreach (var station in stationMessage.Stations)
+            {
+                Station[station.StationId] = station.ProcessPosition;
+            }
         }
 
         private async void HandleStatus(string topic, string message)
@@ -530,7 +589,7 @@ namespace PMC
                 {
                     throw new InvalidOperationException("Target Position is null");
                 }
-
+                
                 double[] targetPosition = new double[]
                 {
                     targetPositionMessage.X,
@@ -546,7 +605,7 @@ namespace PMC
                 int xbotId = int.Parse(xbotSegment.Substring(4));
 
                 //Console.WriteLine($"Updating position for xbotID {xbotId}: {string.Join(", ", targetPosition)}");
-
+                CommandUuid[xbotId] = targetPositionMessage.CommandUuid;
                 targetPositions[xbotId] = targetPosition;
 
 
@@ -752,7 +811,7 @@ namespace PMC
                             double[] point = trajectories[xbotID][0];
                             Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
                             Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
-
+                            xbotStateStationID[xbotID] = null;
                             for (int i = 1; i < trajectories[xbotID].Count; i++)
                             {
                                 if (cancellationToken.IsCancellationRequested)
@@ -815,6 +874,16 @@ namespace PMC
                                     // Handle the last point explicitly
                                     Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
                                     _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.5);
+
+
+
+                                    if (nextPoint[0] == targetPositions[xbotID][0] && nextPoint[1] == targetPositions[xbotID][1])
+                                    {
+                                        Console.WriteLine($"Next point for xbot {xbotID} matches the target position (X, Y). Stopping trajectory execution.");
+                                        
+                                    }
+                                    
+                                    
                                 }
 
                                 // Print remaining trajectory points
@@ -824,6 +893,7 @@ namespace PMC
                                     Console.WriteLine($"({trajectories[xbotID][j][0]}, {trajectories[xbotID][j][1]})");
                                 }
                             }
+                             
                         }
                         catch (Exception ex)
                         {

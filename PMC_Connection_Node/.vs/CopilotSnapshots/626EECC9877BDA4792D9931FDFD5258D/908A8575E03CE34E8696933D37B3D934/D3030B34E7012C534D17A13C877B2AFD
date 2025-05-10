@@ -1,0 +1,974 @@
+﻿using MQTTnet;
+using PMC_Connection_Node;
+using PMCLIB;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.Design;
+using System.Data;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using VT2_Aseptic_Production_Demonstrator;
+
+namespace PMC 
+{
+    class PMC_Connection_Node
+    {
+        private static MotionsFunctions motionsFunctions = new MotionsFunctions();
+        private static XBotCommands _xbotCommand = new XBotCommands();
+        private connection_handler connectionHandler = new connection_handler();
+        private Dictionary<string, Action<string, string>> topicHandlers;
+        private MQTTSubscriber mqttSubscriber;
+        private MQTTPublisher mqttPublisher;
+        private Dictionary<int, double[]> targetPositions = new();
+        private Dictionary<int, double[]> positions = new();
+        private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
+        {
+            {1,false },
+            {2,false },
+            {3, false },
+            {4, false }
+        };
+
+        private Dictionary<int, string> CommandUuid = new();
+        //string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
+        int port = 1883;
+        int[] xbotsID;
+        Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
+        private CancellationTokenSource runTrajectoryCancellationTokenSource;
+        private Dictionary<int, Task> runningTasks = new(); // Track running tasks for each xbotID
+        private Dictionary<int, CancellationTokenSource> taskCancellationTokens = new(); // Track cancellation tokens for each xbotID
+        string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
+        
+        private Dictionary<int, string> states = new Dictionary<int, string>
+        {
+            { 0, "Undetected" },
+            { 1, "Discovering" },
+            { 2, "Execute" },
+            { 3, "Idle" },
+            { 4, "Stopped" },
+            { 5, "Executing" },
+            { 6, "Executing" },
+            { 7, "Stopping" },
+            { 8, "Held" },
+            { 10, "Stopped" },
+            { 14, "Error" }
+        };
+
+        private Dictionary<int, double[]> lastPublishedPositions = new();
+        private Dictionary<int, string> lastPublishedStates = new();
+
+        private const double OrientationTolerance = 0.01;
+
+        private class TargetPositionMessage
+        {
+            public string CommandUuid { get; set; } = string.Empty;
+            public double X { get; set; }
+            public double Y { get; set; }
+            public double Z { get; set; }
+            public double Rx { get; set; }
+            public double Ry { get; set; }
+            public double Rz { get; set; }
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
+        private class CommandMessage
+        {
+            public string CommnadUuid { get; set; } = string.Empty;
+            public string Command { get; set; } = string.Empty;
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
+        private class TrajectoryMessage
+        {
+            public string CommandUuid { get; set; } = string.Empty;
+
+            
+
+            public string TimeStamp { get; set; } = string.Empty;
+
+            [JsonPropertyName("Trajectory")] // Map the JSON property "Trajectory" to this property
+            public List<double[]> TrajectoryPoints { get; set; } = new List<double[]>();
+
+        }
+
+        private PMC_Connection_Node()
+        {
+            InitializeTopicHandlers();
+            InitializeMqttSubscriber();
+            InitializeMqttPublisher();
+
+            CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
+            Console.WriteLine(status);
+
+            PublishXbotIDAsync();
+            //PublishTargetPositionsAsync();
+        }
+        #region MQTT Initialize
+        private async void InitializeMqttSubscriber()
+        {
+            mqttSubscriber = new MQTTSubscriber(brokerIP, port);
+            mqttSubscriber.MessageReceived += messageHandler;
+            await mqttSubscriber.StartAsync();
+            Console.WriteLine("Connected to MQTT broker.");
+            // Subscribe to each specific topic in the topicHandlers dictionary
+            foreach (var topic in topicHandlers.Keys)
+            {
+                await mqttSubscriber.SubscribeAsync(topic);
+            }
+        }
+        private void InitializeTopicHandlers()
+        {
+            topicHandlers = new Dictionary<string, Action<string, string>>
+            {
+            { UNSPrefix + "+/Data/Trajectory", GetTrajectories },
+            { UNSPrefix + "+/Data/TargetPosition", getTargetPosition },
+            { UNSPrefix + "+/CMD/SubCMD", HandlerSubCMD },
+            { UNSPrefix + "PathPlan/CMD", HandleStatus },
+            { UNSPrefix + "+/CMD", HandleCMD}
+
+            };
+        }
+
+        private async void InitializeMqttPublisher()
+        {
+            mqttPublisher = new MQTTPublisher(brokerIP, port);
+            await mqttPublisher.StartAsync();
+        }
+        #endregion
+
+        #region MQTT Publishers
+        /*
+        public async Task PublishTargetPositionsAsync()
+        {
+            double[] targetPosition1 = { 0.6, 0.78 };
+            double[] targetPosition2 = { 0.120, 0.9 };
+            double[] targetPosition3 = { 0.600, 0.520 };
+            double[] targetPosition4 = { 0.200, 0.500 };
+
+            var targetPositions = new Dictionary<int, double[]>
+            {
+                { 1, targetPosition1 },
+                { 2, targetPosition2 },
+                { 3, targetPosition3 },
+                { 4, targetPosition4 }
+            };
+
+            foreach (var targetPosition in targetPositions)
+            {
+                var message = JsonSerializer.Serialize(targetPosition.Value);
+                await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/Xbots/Xbot{targetPosition.Key}/TargetPosition", message);
+                Console.WriteLine($"Published target position for xbot {targetPosition.Key}: {string.Join(", ", targetPosition.Value)}");
+            }
+        }
+        */
+        
+
+        
+
+
+
+        public async void PublishPostionsINFAsync()
+        {
+            
+            while (true)
+            {
+                foreach (var xbot in xbotsID)
+                {
+                    // Get the xbot status and position
+                    XBotStatus status = _xbotCommand.GetXbotStatus(xbot);
+                    double[] position = status.FeedbackPositionSI;
+                    int xbotStateID = (int)status.XBOTState;
+                    string xbotState = states.ContainsKey(xbotStateID) ? states[xbotStateID] : "Unknown";
+
+                    // Round the position values
+                    position = position.Select(p => Math.Round(p, 3)).ToArray();
+
+                    string commandUuid = CommandUuid.ContainsKey(xbot) ? CommandUuid[xbot] : null;
+
+                    // Update the positions dictionary
+                    positions[xbot] = position;
+
+                    // Convert the last three entries of the position from radians to degrees
+                    for (int i = position.Length - 3; i < position.Length; i++)
+                    {
+                        position[i] = Math.Round(position[i] * (180 / Math.PI), 3);
+                    }
+
+                    // Get the current timestamp
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+                    // Check if position has changed
+                    if (!lastPublishedPositions.ContainsKey(xbot) ||
+                        !position.SequenceEqual(lastPublishedPositions[xbot]))
+                    {
+                        lastPublishedPositions[xbot] = position;
+
+                        // Create a message object with position and timestamp
+                        var positionMessage = new
+                        {
+                            CommandUuid = commandUuid,
+                            X = position[0],
+                            Y = position[1],
+                            Z = position[2],
+                            Rx = position[3],
+                            Ry = position[4],
+                            Rz = position[5],
+                            TimeStamp = timestamp
+                        };
+
+                        // Serialize and publish the position message
+                        string serializedPositionMessage = JsonSerializer.Serialize(positionMessage);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/Data/Position", serializedPositionMessage, retain: true);
+                    }
+
+                    // Check if state has changed
+                    if (!lastPublishedStates.ContainsKey(xbot) ||
+                        lastPublishedStates[xbot] != xbotState)
+                    {
+                        lastPublishedStates[xbot] = xbotState;
+
+                        // Create a message object with state and timestamp
+                        var stateMessage = new
+                        {
+                            CommandUuid = commandUuid,
+                            State = xbotState,
+                            TimeStamp = timestamp
+                        };
+
+                        // Serialize and publish the state message
+                        string serializedStateMessage = JsonSerializer.Serialize(stateMessage);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/Data/State", serializedStateMessage, retain: true);
+                    }
+                }
+                await Task.Delay(500);
+            }
+        }
+        
+                   
+
+        
+
+        public async Task PublishXbotIDAsync()
+        {
+            XBotIDs xBotIDs = _xbotCommand.GetXBotIDS();
+            xbotsID = xBotIDs.XBotIDsArray;
+            Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
+            var message = JsonSerializer.Serialize(new { XBotIDs = xbotsID, TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Data/IDs", message, true);
+        }
+
+        #endregion
+
+
+
+
+
+
+        private async void messageHandler(string topic, string message)
+        {
+            Console.WriteLine($"Received message on topic {topic}: {message}");
+            try
+            {
+                foreach (var handler in topicHandlers)
+                {
+                    if (TopicMatches(handler.Key, topic))
+                    {
+                        handler.Value(topic, message);
+                        return;
+                    }
+                }
+                Console.WriteLine($"Unhandled topic: {topic}");
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Failed to deserialize message: {message}");
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+        private bool TopicMatches(string pattern, string topic)
+        {
+            var patternSegments = pattern.Split('/');
+            var topicSegments = topic.Split('/');
+
+            if (patternSegments.Length != topicSegments.Length)
+                return false;
+
+            for (int i = 0; i < patternSegments.Length; i++)
+            {
+                if (patternSegments[i] == "+")
+                    continue;
+
+                if (patternSegments[i] != topicSegments[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        private async void HandleCMD(string topic, string message)
+        {
+            string[] segments = topic.Split('/');
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                 ?? throw new InvalidOperationException("xbot segment not found");
+            int xbotID = int.Parse(xbotSegment.Substring(4));
+
+            var commandMessage = JsonSerializer.Deserialize<CommandMessage>(message);
+
+            if (commandMessage == null)
+            {
+                throw new InvalidOperationException("Command message is null or invalid.");
+            }
+
+            CommandUuid[xbotID] = commandMessage.CommnadUuid;
+        }
+
+
+        private async void HandleStatus(string topic, string message)
+        {
+
+            if (message == "ready")
+            {
+                Console.WriteLine("Xbots is ready");
+
+                RunTrajectory();
+
+
+            }
+            if (message == "home")
+            {
+                int[] xbot = { 1, 2 };
+
+
+                double[] xpostions = { 0.12, 0.6 };
+
+                double[] ypostions = { 0.78, 0.9 };
+
+                _xbotCommand.AutoDrivingMotionSI(2, ASYNCOPTIONS.MOVEALL, xbot, xpostions, ypostions);
+
+
+
+            }            
+            if (message == "Stop")
+            {
+                //Console.Clear();
+                Console.WriteLine("[Debug] Xbots ordred to stop");
+                StopRunTrajectory();
+            }
+            else
+            {
+                //PrintTrajectories();
+            }
+        }
+
+        private void StopRunTrajectory()
+        {
+            Console.WriteLine("[StopDebug] Stop message received. Stopping RunTrajectory...");
+            foreach (var xbot in xbotsID)
+            {
+                // Cancel the running task for the xbot if it exists
+                if (taskCancellationTokens.ContainsKey(xbot))
+                {
+                    try
+                    {
+                        taskCancellationTokens[xbot].Cancel();
+                        Console.WriteLine($"[StopDebug] Cancellation token triggered for xbot {xbot}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[StopDebug] Error cancelling task for xbot {xbot}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        taskCancellationTokens[xbot].Dispose();
+                        taskCancellationTokens.Remove(xbot);
+                        Console.WriteLine($"[StopDebug] Disposed and removed cancellation token for xbot {xbot}");
+                    }
+                }
+
+                lock (trajectories)
+                {
+                    if (trajectories.ContainsKey(xbot))
+                    {
+                        trajectories.Remove(xbot);
+                        Console.WriteLine($"[StopDebug] Removed trajectory for xbot {xbot}");
+                    }
+                }
+
+                // Clear motion buffer and stop motion for each xbot
+                if (RotationLock[xbot] == true)
+                {
+                    try
+                    {
+                        MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbot, MOTIONBUFFEROPTIONS.CLEARBUFFER);
+                        Console.WriteLine($"[StopDebug] Motion buffer cleared for xbot {xbot}, Status: {BufferStatus}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[StopDebug] Error clearing motion buffer for xbot {xbot}: {ex.Message}");
+                    }
+
+                    try
+                    {
+                        _xbotCommand.StopMotion(xbot);
+                        Console.WriteLine($"[StopDebug] Motion stopped for xbot {xbot}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[StopDebug] Error stopping motion for xbot {xbot}: {ex.Message}");
+                    }
+                }
+                else if (!RotationLock.ContainsKey(xbot))
+                {
+                    
+                }
+                
+                
+            }
+        }
+
+        private void HandlerSubCMD(string topic, string message)
+        {
+            string[] segments = topic.Split('/');
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                 ?? throw new InvalidOperationException("xbot segment not found");
+            int xbotID = int.Parse(xbotSegment.Substring(4));
+
+            if (message == "Rotate")
+            {
+                RotationLock[xbotID] = true;
+                Rotation(xbotID);
+            }
+        }
+
+
+        private double[] FindClosestCenter(double[] currentPosition, List<double[]> centers)
+        {
+            if (currentPosition == null || currentPosition.Length < 2)
+            {
+                throw new ArgumentException("Current position must contain at least 2 values: x and y.");
+            }
+
+            double[] closestCenter = centers[0];
+            double minDistance = double.MaxValue;
+
+            foreach (var center in centers)
+            {
+                double distance = Math.Sqrt(Math.Pow(center[0] - currentPosition[0], 2) + Math.Pow(center[1] - currentPosition[1], 2));
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestCenter = center;
+                }
+            }
+
+            return closestCenter;
+        }
+
+
+        public void PrintTrajectories()
+        {
+            // Debugging: Log the content of the trajectories dictionary
+            Console.WriteLine("Debug: Current state of trajectories dictionary:");
+            foreach (var kvp in trajectories)
+            {
+                Console.WriteLine($"xbotId: {kvp.Key}, Trajectory Points Count: {kvp.Value.Count}");
+            }
+
+            foreach (var kvp in trajectories)
+            {
+                int xbotId = kvp.Key;
+                List<double[]> trajectory = kvp.Value;
+
+                Console.WriteLine($"Trajectory for xbot {xbotId}:");
+                foreach (var point in trajectory)
+                {
+                    Console.WriteLine($"({point[0]:F3}, {point[1]:F3})");
+                }
+            }
+        }
+
+        public async void GetTrajectories(string topic, string message)
+        {
+            try 
+            {
+                // Find the segment that starts with "xbot" and extract the numeric part
+                string[] segments = topic.Split('/');
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot"));
+                if (xbotSegment != null)
+                {
+                    int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
+                    //CountTrajectories[xbotId]++;
+                    // Deserialize the message into a TrajectoryMessage object
+                    var trajectoryMessage = JsonSerializer.Deserialize<TrajectoryMessage>(message);
+                    if (trajectoryMessage == null)
+                    {
+                        Console.WriteLine($"Invalid trajectory message received for xbot {xbotId}");
+                        return;
+                    }
+
+                    // Debugging: Log the deserialized trajectoryMessage object
+                    Console.WriteLine($"Debug: Deserialized trajectoryMessage for xbot {xbotId}:");
+                    //Console.WriteLine($"CommandUuid: {trajectoryMessage.CommandUuid}");
+                    //Console.WriteLine($"TimeStamp: {trajectoryMessage.TimeStamp}");
+                    /*Console.WriteLine($"TrajectoryPoints Count: {trajectoryMessage.TrajectoryPoints?.Count ?? 0}");
+                    if (trajectoryMessage.TrajectoryPoints != null)
+                    {
+                        foreach (var point in trajectoryMessage.TrajectoryPoints)
+                        {
+                            Console.WriteLine($"Point: ({point[0]}, {point[1]})");
+                        }
+                    }
+                    */
+                    // Update the trajectories dictionary
+                    trajectories[xbotId] = trajectoryMessage.TrajectoryPoints ?? new List<double[]>();
+
+                    // Debugging: Log the updated state of the trajectories dictionary
+                    Console.WriteLine("Debug: Updated state of trajectories dictionary:");
+                    foreach (var kvp in trajectories)
+                    {
+                        Console.WriteLine($"xbotId: {kvp.Key}, Trajectory Points Count: {kvp.Value.Count}");
+                    }
+
+                    // Print the received trajectory
+                    PrintTrajectories();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing trajectory message: {ex.Message}");
+            }
+        }
+
+        public void getTargetPosition(string topic, string message)
+        {
+            //Console.WriteLine($"Received message on topic {topic}: {message}");
+
+            try
+            {
+                var targetPositionMessage = JsonSerializer.Deserialize<TargetPositionMessage>(message) ?? throw new InvalidOperationException("Position is null");
+                if (targetPositionMessage == null)
+                {
+                    throw new InvalidOperationException("Target Position is null");
+                }
+
+                double[] targetPosition = new double[]
+                {
+                    targetPositionMessage.X,
+                    targetPositionMessage.Y,
+                    targetPositionMessage.Z,
+                    targetPositionMessage.Rx,
+                    targetPositionMessage.Ry,
+                    targetPositionMessage.Rz
+                };
+                string[] segments = topic.Split('/');
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                     ?? throw new InvalidOperationException("xbot segment not found");
+                int xbotId = int.Parse(xbotSegment.Substring(4));
+
+                //Console.WriteLine($"Updating position for xbotID {xbotId}: {string.Join(", ", targetPosition)}");
+
+                targetPositions[xbotId] = targetPosition;
+
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing position message: {ex.Message}");
+            }
+        }
+
+
+        /*
+        public async void GetTrajectories(string topic, string message)
+        {
+            try 
+            {
+                // Find the segment that starts with "xbot" and extract the numeric part
+                string[] segments = topic.Split('/');
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot"));
+                if (xbotSegment != null)
+                {
+                    int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
+
+                    // Deserialize the message into a TrajectoryMessage object
+                    var trajectoryMessage = JsonSerializer.Deserialize<TrajectoryMessage>(message);
+                    if (trajectoryMessage == null || trajectoryMessage.TrajectoryPoints == null)
+                    {
+                        Console.WriteLine($"Invalid trajectory message received for xbot {xbotId}");
+                        return;
+                    }
+
+                    // Log the CommandUuid and TimeStamp for debugging
+                    Console.WriteLine($"Received trajectory for xbot {xbotId} with CommandUuid: {trajectoryMessage.CommandUuid} and TimeStamp: {trajectoryMessage.TimeStamp}");
+
+                    // Update the trajectories dictionary
+                    trajectories[xbotId] = trajectoryMessage.TrajectoryPoints;
+
+                    // Print the received trajectory
+                    PrintTrajectories();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing trajectory message: {ex.Message}");
+            }
+        }
+
+        
+
+        public async void RunTrajectory()
+        {
+            runTrajectoryCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = runTrajectoryCancellationTokenSource.Token;
+
+            List<Task> tasks = new List<Task>();
+
+            foreach (var xbotID in trajectories.Keys)
+            {
+                if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
+                {
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // Log the trajectory points for debugging
+                            Console.WriteLine($"Starting trajectory for xbot {xbotID}");
+                            Console.WriteLine($"Trajectory Points: {string.Join(" | ", trajectories[xbotID].Select(p => $"({p[0]}, {p[1]})"))}");
+
+                            // Add the first motion to the buffer
+                            double[] point = trajectories[xbotID][0];
+                            Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
+                            Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
+                            motionsFunctions.LinarMotion(0, xbotID, point[0], point[1], "D");
+
+                            for (int i = 1; i < trajectories[xbotID].Count; i++)
+                            {
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
+                                    return; // Exit the loop if cancellation is requested
+                                }
+
+                                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
+                                double[] position = status.FeedbackPositionSI;
+                                position = position.Select(p => Math.Round(p, 3)).ToArray();
+
+                                // Wait until there is only 1 motion left in the buffer
+                                while (bufferCount > 1)
+                                {
+                                    if (cancellationToken.IsCancellationRequested)
+                                    {
+                                        Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
+                                        return; // Exit the loop if cancellation is requested
+                                    }
+
+                                    BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                    bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+                                }
+
+                                // Handle trajectory points
+                                double[] currentPoint = trajectories[xbotID][i - 1];
+                                double[] nextPoint = trajectories[xbotID][i];
+                                double deltaX = nextPoint[0] - currentPoint[0];
+                                double deltaY = nextPoint[1] - currentPoint[1];
+                                double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                                double baseVelocity = 0.1;
+                                double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
+
+                                Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
+                                Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={nextPoint[0]}, tagPosY={nextPoint[1]}, pathType='D'");
+
+                                if (i < trajectories[xbotID].Count - 1)
+                                {
+                                    double[] nextNextPoint = trajectories[xbotID][i + 1];
+                                    double[] nextDirectionVector = { nextNextPoint[0] - nextPoint[0], nextNextPoint[1] - nextPoint[1] };
+
+                                    if (Math.Sign(deltaX) != Math.Sign(nextDirectionVector[0]) || Math.Sign(deltaY) != Math.Sign(nextDirectionVector[1]))
+                                    {
+                                        Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
+                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
+                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.2);
+                                    }
+                                }
+                                else
+                                {
+                                    // Handle the last point explicitly
+                                    Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.2);
+
+
+
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error in RunTrajectory for xbotID {xbotID}: {ex.Message}");
+                        }
+                        finally
+                        {
+                            lock (trajectories)
+                            {
+                                trajectories.Remove(xbotID);
+                            }
+                        }
+                    }));
+                }
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("RunTrajectory operation was canceled.");
+            }
+            finally
+            {
+                runTrajectoryCancellationTokenSource?.Dispose();
+                runTrajectoryCancellationTokenSource = new CancellationTokenSource(); // Replace null assignment
+            }
+        }
+        */
+
+        public async void RunTrajectory()
+        {
+            runTrajectoryCancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = runTrajectoryCancellationTokenSource.Token;
+
+            List<Task> tasks = new List<Task>();
+
+            foreach (var xbotID in trajectories.Keys)
+            {
+                if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
+                {
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // Log the state of the trajectories dictionary
+                            Console.WriteLine($"[Debug] Current state of trajectories dictionary: {string.Join(", ", trajectories.Select(kvp => $"xbotID: {kvp.Key}, Points: {kvp.Value.Count}"))}");
+
+                            // Check if the key exists in the dictionary
+                            if (!trajectories.ContainsKey(xbotID))
+                            {
+                                Console.WriteLine($"[Error] Key {xbotID} not found in trajectories dictionary.");
+                                return;
+                            }
+
+                            Console.WriteLine($"Trajectory Points: {string.Join(" | ", trajectories[xbotID].Select(p => $"({p[0]}, {p[1]})"))}");
+
+                            // Add the first motion to the buffer
+                            double[] point = trajectories[xbotID][0];
+                            Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
+                            Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
+
+                            for (int i = 1; i < trajectories[xbotID].Count; i++)
+                            {
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
+                                    return; // Exit the loop if cancellation is requested
+                                }
+
+                                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                                XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
+                                double[] position = status.FeedbackPositionSI;
+                                position = position.Select(p => Math.Round(p, 3)).ToArray();
+
+                                // Wait until there is only 1 motion left in the buffer
+                                while (bufferCount > 1)
+                                {
+                                    if (cancellationToken.IsCancellationRequested)
+                                    {
+                                        Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
+                                        return; // Exit the loop if cancellation is requested
+                                    }
+
+                                    BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                                    bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+                                }
+
+                                // Handle trajectory points
+                                double[] currentPoint = trajectories[xbotID][i - 1];
+                                double[] nextPoint = trajectories[xbotID][i];
+                                double deltaX = nextPoint[0] - currentPoint[0];
+                                double deltaY = nextPoint[1] - currentPoint[1];
+                                double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                                double baseVelocity = 0.5;
+                                double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
+
+                                Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
+                                Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={nextPoint[0]}, tagPosY={nextPoint[1]}, pathType='D'");
+
+                                if (i < trajectories[xbotID].Count - 1)
+                                {
+                                    double[] nextNextPoint = trajectories[xbotID][i + 1];
+                                    double[] nextDirectionVector = { nextNextPoint[0] - nextPoint[0], nextNextPoint[1] - nextPoint[1] };
+
+                                    if (Math.Sign(deltaX) != Math.Sign(nextDirectionVector[0]) || Math.Sign(deltaY) != Math.Sign(nextDirectionVector[1]))
+                                    {
+                                        Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
+                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.5);
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
+                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.5);
+                                    }
+                                }
+                                else
+                                {
+                                    // Handle the last point explicitly
+                                    Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
+                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.5);
+                                }
+
+                                // Print remaining trajectory points
+                                Console.WriteLine($"Remaining trajectory points for xbot {xbotID}:");
+                                for (int j = i + 1; j < trajectories[xbotID].Count; j++)
+                                {
+                                    Console.WriteLine($"({trajectories[xbotID][j][0]}, {trajectories[xbotID][j][1]})");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error in RunTrajectory for xbotID {xbotID}: {ex.Message}");
+                        }
+                        finally
+                        {
+                            lock (trajectories)
+                            {
+                                trajectories.Remove(xbotID);
+                            }
+                        }
+                    }));
+                }
+            }
+
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("RunTrajectory operation was canceled.");
+            }
+            finally
+            {
+                runTrajectoryCancellationTokenSource?.Dispose();
+                runTrajectoryCancellationTokenSource = new CancellationTokenSource(); // Replace null assignment
+            }
+        }
+
+
+        private void Rotation(int xbotID)
+        {
+            Console.WriteLine($"Entered Rotate for xbotID: {xbotID}");
+            Task.Run(async () =>
+            {
+                try
+                {
+                    Console.WriteLine($"[Debug] Task started for xbotID: {xbotID}");
+
+                    List<double[]> flywayCenters = new()
+                    {
+                        new double[] {0.12, 0.12},
+                        new double[] {0.12, 0.36},
+                        new double[] {0.12, 0.6},
+                        new double[] {0.12, 0.84},
+                        new double[] {0.36, 0.12},
+                        new double[] {0.36, 0.36},
+                        new double[] {0.36, 0.84},
+                        new double[] {0.6, 0.12},
+                        new double[] {0.6, 0.36},
+                        new double[] {0.6, 0.6},
+                        new double[] {0.6, 0.84}
+                    };
+
+                    // Ensure positions dictionary is updated
+                    if (!positions.ContainsKey(xbotID))
+                    {
+                        Console.WriteLine($"[Error] positions dictionary does not contain xbotID: {xbotID}");
+                        return;
+                    }
+
+                    double[] targetPosition = targetPositions[xbotID];
+
+                    
+                    
+                    _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.NO_ANGLE_WRAP, targetPosition[5] * (Math.PI / 180), 1, 0.5, POSITIONMODE.ABSOLUTE);
+
+                    while (true)
+                    {
+                        XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
+                        int xbotState = (int)status.XBOTState;
+                        double currentOrientation = positions[xbotID][5];
+                        double targetOrientation = targetPositions[xbotID][5];
+                        double adjustedDifference = Math.Min(Math.Abs(currentOrientation - targetOrientation), 360 - Math.Abs(currentOrientation - targetOrientation));
+
+                        Console.WriteLine($"[Debug] xbotState: {xbotState}, Current orientation: {currentOrientation}, Target orientation: {targetOrientation}, Difference: {adjustedDifference}");
+
+                        MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
+                        int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
+
+                        Console.WriteLine($"xbot{xbotID} buffer count is {bufferCount}");
+
+                        if (xbotState == 3 && adjustedDifference <= 0.1)
+                        {
+                            Console.WriteLine($"[Debug] Rotation completed for xbotID: {xbotID}");
+                            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "RotationDone");
+                            RotationLock[xbotID] = false;
+                            break;
+                        }
+
+                        await Task.Delay(100);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Error] Exception in Rotation task for xbotID {xbotID}: {ex.Message}");
+                }
+            });
+        }
+
+
+        public static async Task Main(string[] args) // Change return type to Task
+        {
+            
+            PMC_Connection_Node client = new PMC_Connection_Node();
+
+
+            Thread thread1 = new Thread(new ThreadStart(client.PublishPostionsINFAsync));
+
+            
+            thread1.Start();
+            await Task.Delay(-1); // Keep the main thread alive
+        }
+    }
+    
+
+    
+}
