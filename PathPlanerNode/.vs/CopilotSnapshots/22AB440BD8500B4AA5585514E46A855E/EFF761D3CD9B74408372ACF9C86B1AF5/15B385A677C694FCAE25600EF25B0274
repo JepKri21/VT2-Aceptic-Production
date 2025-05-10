@@ -1082,22 +1082,14 @@ namespace PathPlaningNode
                 bool approachPositionReached = false;
                 bool rotationCompleted = false;
                 bool stationPositionReached = false;
-                bool LeavePositionReached = false;
+                bool LeavePositionStarted = false;
                 bool CommandFinished = false;
                 SendFinalStationCommand(xbotID, Command);
-
-
-                if(Command == "FillingQueue1" || Command == "FillingQueue2" || Command == "FillingQueue3" )
-                {
-                    approachPositionReached = true;
-                }
-
-
                 //xbotStateStationID[xbotID] = null;
                 while (!CommandFinished)
                 {
-                     
-                    
+                    while (!stationPositionReached) // Exit loop when the station position is reached
+                    {
                         if (cancellationToken.IsCancellationRequested)
                         {
                             Console.WriteLine($"[DEBUG] {Command} execution for xbotID {xbotID} was cancelled.");
@@ -1107,8 +1099,9 @@ namespace PathPlaningNode
                         // Step 1: Move to the approach position
                         if (!approachPositionReached)
                         {
-                            
-                            
+                            // Logic to move to the approach position
+                            if (positions[xbotID] != StationCordinate[Command][1])
+                            {
                                 Console.WriteLine($"[DEBUG] Current position of xbotID {xbotID}: {string.Join(", ", positions[xbotID])}");
                                 Console.WriteLine($"[DEBUG] Target station position of xbotID {xbotID}: {string.Join(", ", StationCordinate[Command][1])}");
 
@@ -1207,11 +1200,14 @@ namespace PathPlaningNode
                                             startTime = DateTime.Now; // Reset the timer
                                         }
                                     }
-                                    
+                                    if (LeavePositionStarted)
+                                    {
+                                        CommandFinished = true;
+                                    }
                                     
                                 }
                                 
-                            
+                            }
                             approachPositionReached = true; // Set to true once completed
                             Console.WriteLine($"[DEBUG] Approach position reached for xbotID {xbotID}.");
                         }
@@ -1357,18 +1353,27 @@ namespace PathPlaningNode
                                     startTimeEndPosition = DateTime.Now; // Reset the timer
                                 }
                             }
-                            stationPositionReached = true; // Set to true once completed
                             Console.WriteLine($"[DEBUG] xbotID {xbotID} reached station position.");
                             //CommandState[xbotID] = (CommandState[xbotID].Item1, CommandState[xbotID].Item2, CommandState[xbotID].Item3, true);
                         }
+                        stationPositionReached = true; // Set to true once completed
+                        Console.WriteLine($"[DEBUG] Station position reached for xbotID {xbotID}.");
+
+                        // Add a small delay to avoid busy-waiting
+                        Thread.Sleep(100);
+                    }
+
+                    if (Command == "FillingPickNeedle" && Command == "FillingPlaceNeedle")
+                    {
+                        LeavePositionStarted = true;
+                        approachPositionReached = false;
                         
-                        if (Command == "FillingPickNeedle" || Command == "FillingPlaceNeedle")
+                        /*
+                        while (!LeavePositionReached)
                         {
-                            while (!LeavePositionReached)
-                            {
 
-
-
+                            
+                            
                             if (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
                             {
                                 Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to approach position: {string.Join(", ", StationCordinate[Command][0])}");
@@ -1446,7 +1451,6 @@ namespace PathPlaningNode
                                         StopTrajectoryExicution();
 
                                         Console.WriteLine("[DEBUG] Waiting for all xbots to be idle...");
-
                                         while (true)
                                         {
                                             lock (xbotState)
@@ -1464,27 +1468,18 @@ namespace PathPlaningNode
                                         startTime = DateTime.Now; // Reset the timer
                                     }
                                 }
-                                LeavePositionReached = true;
                                 Console.WriteLine($"[DEBUG] xbotID {xbotID} left Station Position.");
-
-                                }
+                                
                             }
-                            CommandFinished = true;
+                        }*/
 
-                        }
-                        else
-                        {
-                            
-                            CommandFinished = true;
-                        }
+
+                    }
+                    else
+                    {
                         
-                        
-
-                        // Add a small delay to avoid busy-waiting
-                        Thread.Sleep(100);
-                    
-
-                    
+                        CommandFinished = true;
+                    }
                 }
                 if (CommandUuid.ContainsKey(xbotID))
                 {

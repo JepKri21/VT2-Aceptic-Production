@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VT2-Aseptic-Production-Demonstrator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6951ad498cb6a4310528a93fcbd2f086811060da")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c84b244843d550dc2ef216910198acc94c618eb1")]
 [assembly: System.Reflection.AssemblyProductAttribute("VT2-Aseptic-Production-Demonstrator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VT2-Aseptic-Production-Demonstrator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

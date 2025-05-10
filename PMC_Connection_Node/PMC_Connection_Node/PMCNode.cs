@@ -28,7 +28,7 @@ namespace PMC
         private MQTTPublisher mqttPublisher;
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
-        private Dictionary<int, int?> xbotStateStationID = new();
+        private Dictionary<int, int> xbotStateStationID = new();
         private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
         {
             {1,false },
@@ -38,8 +38,8 @@ namespace PMC
         };
         private Dictionary<int, double[]> Station = new(); //Key is the StationdId, value is the position
         private Dictionary<int, string> CommandUuid = new();
-        //string brokerIP = "172.20.66.135";
-        string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -122,9 +122,14 @@ namespace PMC
             CONNECTIONSTATUS status = connectionHandler.ConnectAndGainMastership();
             Console.WriteLine(status);
 
+           
+
+
             PublishXbotIDAsync();
             //PublishTargetPositionsAsync();
         }
+
+
         #region MQTT Initialize
         private async void InitializeMqttSubscriber()
         {
@@ -249,6 +254,11 @@ namespace PMC
                     {
                         lastPublishedStates[xbot] = xbotState;
 
+                        if (!xbotStateStationID.ContainsKey(xbot))
+                        {
+                            xbotStateStationID[xbot] = 0;
+                        }
+
                         // Create a message object with state and timestamp
                         var stateMessage = new
                         {
@@ -351,15 +361,27 @@ namespace PMC
 
         private void HandleStations(string topic, string message)
         {
+            
+
             var stationMessage = JsonSerializer.Deserialize<StationMessage>(message);
             if (stationMessage == null)
             {
+                Console.WriteLine("[Error] Station message is null or invalid.");
                 throw new InvalidOperationException("Station message is null or invalid.");
             }
+
+            Console.WriteLine($"[Debug] Deserialized StationMessage contains {stationMessage.Stations.Count} stations.");
+
             foreach (var station in stationMessage.Stations)
             {
+                Console.WriteLine($"[Debug] Processing station: Name={station.Name}, StationId={station.StationId}, " +
+                                  $"ApproachPosition=({string.Join(", ", station.ApproachPosition)}), " +
+                                  $"ProcessPosition=({string.Join(", ", station.ProcessPosition)})");
+
                 Station[station.StationId] = station.ProcessPosition;
             }
+
+            Console.WriteLine("[Debug] Station dictionary updated successfully.");
         }
 
         private async void HandleStatus(string topic, string message)
@@ -811,7 +833,7 @@ namespace PMC
                             double[] point = trajectories[xbotID][0];
                             Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
                             Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
-                            xbotStateStationID[xbotID] = null;
+                            xbotStateStationID[xbotID] = 0;
                             for (int i = 1; i < trajectories[xbotID].Count; i++)
                             {
                                 if (cancellationToken.IsCancellationRequested)
@@ -879,9 +901,27 @@ namespace PMC
 
                                     if (nextPoint[0] == targetPositions[xbotID][0] && nextPoint[1] == targetPositions[xbotID][1])
                                     {
-                                        Console.WriteLine($"Next point for xbot {xbotID} matches the target position (X, Y). Stopping trajectory execution.");
+                                        Console.WriteLine($"[Debug] xbotID {xbotID} reached target position: ({nextPoint[0]}, {nextPoint[1]})");
+
+                                        // Find the key in Station where the value matches the target position
+                                        var matchingStation = Station.FirstOrDefault(station =>
+                                            station.Value.Take(2).Zip(new double[] { targetPositions[xbotID][0], targetPositions[xbotID][1] },
+                                                                     (stationValue, targetValue) => Math.Abs(stationValue - targetValue) < 0.001).All(isClose => isClose));
                                         
+                                        if (matchingStation.Key != 0) // Check if the key is not the default value for int (0)
+                                        {
+                                            Console.WriteLine($"[Debug] Matching station found for xbotID {xbotID}: StationID {matchingStation.Key}");
+
+                                            // Add the key as the stationID to the xbotStateStationID
+                                            xbotStateStationID[xbotID] = matchingStation.Key; // No need to parse as it's already an int
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"[Debug] No matching station found for xbotID {xbotID} at position: ({nextPoint[0]}, {nextPoint[1]})");
+                                        }
                                     }
+
+                                    
                                     
                                     
                                 }
