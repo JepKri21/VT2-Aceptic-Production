@@ -64,7 +64,7 @@ void initPins(){
 void initServo(){
   myservo.write(90);
   delay(2000);
-  myservo.write(135);
+  myservo.write(120);
   delay(2000);
 }
 
@@ -126,7 +126,7 @@ void runServo() {
   myservo.write(0);
   delay(2000);
 
-  myservo.write(140);
+  myservo.write(120);
   delay(2000);
 }
 
