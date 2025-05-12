@@ -26,8 +26,8 @@ namespace PathPlaningNode
         private Dictionary<int, int?> xbotStateStationID = new();
 
         private readonly object xBotID_From_ToLock = new();
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
         private int width = 72;
@@ -130,22 +130,26 @@ namespace PathPlaningNode
 
         private async void InitializeStations()
         {
-            double[] FillingStation = { 0.06, 0.36, 0.001, 0, 0, 0 };
-            double[] FillingApproach = { 0.12, 0.36, 0.001, 0, 0, 0 };
-            double[] StopperingStation = { 0.06, 0.6, 0.001, 0, 0, 0 };
-            double[] StopperingApproach = { 0.12, 0.6, 0.001, 0, 0, 0 };
-            double[] VisionStation = { 0.36, 0.9, 0.001, 0, 0, 90 };
-            double[] VisionApproach = { 0.36, 0.84, 0.001, 0, 0, 0 };
+            double[] FillingStation = { 0.083, 0.114, 0.001, 0, 0, 90 };
+            double[] FillingApproach = { 0.12, 0.12, 0.001, 0, 0, 0 };
+            double[] StopperingStation = { 0.108, 0.361, 0.001, 0, 0, 90 };
+            double[] StopperingApproach = { 0.12, 0.36, 0.001, 0, 0, 0 };
+            double[] VisionStation = { 0.08, 0.6, 0.001, 0, 0, 90 };
+            double[] VisionApproach = { 0.12, 0.6, 0.001, 0, 0, 0 };
             double[] FillingQueueApproach1 = { 0.12, 0.12, 0.001, 0, 0, 0 };
-            double[] FillingQueueApproach2 = { 0.12, 0.12, 0.001, 0, 0, 0 };
+            double[] EndQueue1 = { 0.3, 0.54, 0.001, 0, 0, 90 };
+            double[] EndQueue2 = { 0.42, 0.54, 0.001, 0, 0, 90 };
+            double[] EndQueue3 = { 0.54, 0.54, 0.001, 0, 0, 90 };
+            double[] EndQueue4 = { 0.66, 0.54, 0.001, 0, 0, 90 };
             double[] FillingQueue1 = { 0.3, 0.06, 0.001, 0, 0, 0 };
             double[] FillingQueue2 = { 0.42, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue3 = { 0.6, 0.62, 0.001, 0, 0, 0 };
-            double[] FillingQueue4 = { 0.6, 0.75, 0.001, 0, 0, 0 };
-            double[] FillingPickNeedle = { 0.66, 0.12, 0.001, 0, 0, 0 };
-            double[] FillingPickNeedleApproch = { 0.6, 0.12, 0.001, 0, 0, 0 };
-            double[] FillingPlaceNeedle = { 0.66, 0.12, 0.001, 0, 0, 0 };
-            double[] FillingPlaceNeedleApproch = { 0.6, 0.12, 0.001, 0, 0, 0 };
+            double[] FillingQueue3 = { 0.54, 0.06, 0.001, 0, 0, 0 };
+            double[] FillingQueue4 = { 0.66, 0.06, 0.001, 0, 0, 0 };
+            double[] FillingPickNeedle = { 0.12, 0.08, 0.001, 0, 0, 180 };
+            double[] FillingPickNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
+            double[] EndQueueFillingPlaceNeedle = { 0.106, 0.12, 0.001, 0, 0, 90 };
+            double[] FillingPlaceNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
+            double[] PickPlacerStoreage = { 0.66, 0.9, 0, 001, 0, 0, 180 };
 
             var stationMessage = new StationMessage
             {
@@ -183,7 +187,7 @@ namespace PathPlaningNode
                     {
                         Name = "FillingQueue2",
                         StationId = 5,
-                        ApproachPosition = FillingQueueApproach2,
+                        ApproachPosition = FillingQueueApproach1,
                         ProcessPosition = FillingQueue2
                     },
                     new StationMessage.Station
@@ -191,35 +195,63 @@ namespace PathPlaningNode
                         Name = "FillingQueue3",
                         StationId = 6,
                         ApproachPosition = FillingQueueApproach1,
-                        ProcessPosition = FillingQueue1
+                        ProcessPosition = FillingQueue3
                     },
                     new StationMessage.Station
                     {
                         Name = "FillingQueue4",
                         StationId = 7,
-                        ApproachPosition = FillingQueueApproach2,
-                        ProcessPosition = FillingQueue2
+                        ApproachPosition = FillingQueueApproach1,
+                        ProcessPosition = FillingQueue4
                     },
                     new StationMessage.Station
                     {
                         Name = "FillingPickNeedle",
-                        StationId = 7,
+                        StationId = 8,
                         ApproachPosition = FillingPickNeedleApproch,
                         ProcessPosition = FillingPickNeedle
                     },
                     new StationMessage.Station
                     {
                         Name = "FillingPlaceNeedle",
-                        StationId = 7,
+                        StationId = 9,
                         ApproachPosition = FillingPickNeedleApproch,
                         ProcessPosition = FillingPickNeedle
                     },
                     new StationMessage.Station
                     {
-                        Name = "FillingPlaceNeedle",
-                        StationId = 7,
-                        ApproachPosition = FillingPlaceNeedleApproch,
-                        ProcessPosition = FillingPlaceNeedle
+                        Name = "EndQueue",
+                        StationId = 10,
+                        ApproachPosition = EndQueue1,
+                        ProcessPosition = EndQueue1
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "EndQueue2",
+                        StationId =11,
+                        ApproachPosition = EndQueue2,
+                        ProcessPosition = EndQueue2
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "EndQueue3",
+                        StationId = 12,
+                        ApproachPosition = EndQueue3,
+                        ProcessPosition = EndQueue3
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "EndQueue4",
+                        StationId =13,
+                        ApproachPosition = EndQueue4,
+                        ProcessPosition = EndQueue4
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "PickPlacerStorage",
+                        StationId =14,
+                        ApproachPosition = FillingApproach,
+                        ProcessPosition = PickPlacerStoreage
                     }
                 }
             };
@@ -812,16 +844,17 @@ namespace PathPlaningNode
                 bool LeavePositionReached = false;
                 bool CommandFinished = false;
                 SendFinalStationCommand(xbotID, Command);
-
+                
                 if (xbotState[xbotID] == "Execute")
                 {
                     Levitate(xbotID);
-                }
-
+                }               
+                
 
                 if(Command == "FillingQueue1" || Command == "FillingQueue2" || Command == "FillingQueue3" )
                 {
                     approachPositionReached = true;
+                    rotationCompleted = true;
                 }
 
 
@@ -879,12 +912,13 @@ namespace PathPlaningNode
                                     {
                                         lock (xbotState)
                                         {
-                                            if (xbotState.Count > 0 && xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase)) || xbotState.Values.All(state => state.Equals("Execute", StringComparison.OrdinalIgnoreCase)))
+                                            if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
                                             {
                                                 break;
                                             }
                                         }
                                         Thread.Sleep(100); // Poll every 100ms  
+                                        Console.WriteLine("Looping");
                                     }
 
 
@@ -926,8 +960,8 @@ namespace PathPlaningNode
                                             {
                                                 lock (xbotState)
                                                 {
-                                                    if (xbotState.Count > 0 && xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase)) || xbotState.Values.All(state => state.Equals("Execute", StringComparison.OrdinalIgnoreCase)))
-                                                    {
+                                                    if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
+                                            {
                                                         break;
                                                     }
                                                 }
@@ -1030,7 +1064,7 @@ namespace PathPlaningNode
                             {
                                 lock (xbotState)
                                 {
-                                    if (xbotState.Count > 0 && xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase)) || xbotState.Values.All(state => state.Equals("Execute", StringComparison.OrdinalIgnoreCase)))
+                                    if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
                                     {
                                         break;
                                     }
@@ -1076,7 +1110,7 @@ namespace PathPlaningNode
                                     {
                                         lock (xbotState)
                                         {
-                                            if (xbotState.Count > 0 && xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase)) || xbotState.Values.All(state => state.Equals("Execute", StringComparison.OrdinalIgnoreCase)))
+                                            if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
                                             {
                                                 break;
                                             }
@@ -1090,6 +1124,7 @@ namespace PathPlaningNode
                                 }
                             }
                             stationPositionReached = true; // Set to true once completed
+                            
                             if (Command == "Stoppering")
                             {
                                 Land(xbotID);
@@ -1139,7 +1174,7 @@ namespace PathPlaningNode
                                 {
                                     lock (xbotState)
                                     {
-                                        if (xbotState.Count > 0 && xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase)))
+                                        if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
                                         {
                                             break;
                                         }
@@ -1187,7 +1222,7 @@ namespace PathPlaningNode
                                         {
                                             lock (xbotState)
                                             {
-                                                if (xbotState.Count > 0 && xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase)) || xbotState.Values.All(state => state.Equals("Execute", StringComparison.OrdinalIgnoreCase)))
+                                                if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
                                                 {
                                                     break;
                                                 }

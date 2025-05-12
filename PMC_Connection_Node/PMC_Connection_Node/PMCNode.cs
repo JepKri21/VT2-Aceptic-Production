@@ -31,15 +31,16 @@ namespace PMC
         private Dictionary<int, int> xbotStateStationID = new();
         private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
         {
-            {1,false },
-            {2,false },
-            {3, false },
-            {4, false }
+            {1, false },
+            {2, false },
+            {5, false },
+            {6, false },
+            {7, false }
         };
         private Dictionary<int, double[]> Station = new(); //Key is the StationdId, value is the position
         private Dictionary<int, string> CommandUuid = new();
-        //string brokerIP = "172.20.66.135";
-        string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -248,7 +249,22 @@ namespace PMC
                         string serializedPositionMessage = JsonSerializer.Serialize(positionMessage);
                         await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/Data/Position", serializedPositionMessage, retain: true);
                     }
+                    // Find the key in Station where the value matches the target position
+                    var matchingStation = Station.FirstOrDefault(station =>
+                        station.Value.Take(2).Zip(new double[] { position[0], position[1] },
+                                                 (stationValue, targetValue) => Math.Abs(stationValue - targetValue) < 0.001).All(isClose => isClose));
 
+                    if (matchingStation.Key != 0) // Check if the key is not the default value for int (0)
+                    {
+                        //Console.WriteLine($"[Debug] Matching station found for xbotID {xbotID}: StationID {matchingStation.Key}");
+
+                        // Add the key as the stationID to the xbotStateStationID
+                        xbotStateStationID[xbot] = matchingStation.Key; // No need to parse as it's already an int
+                    }
+                    else
+                    {
+                        //Console.WriteLine($"[Debug] No matching station found for xbotID {xbotID} at position: ({nextPoint[0]}, {nextPoint[1]})");
+                    }
                     // Check if state has changed
                     if (!lastPublishedStates.ContainsKey(xbot) ||
                         lastPublishedStates[xbot] != xbotState)
@@ -698,7 +714,7 @@ namespace PMC
         
 
         
-        /*
+        
         public async void RunTrajectory()
         {
             runTrajectoryCancellationTokenSource = new CancellationTokenSource();
@@ -724,12 +740,12 @@ namespace PMC
                                 return;
                             }
 
-                            Console.WriteLine($"Trajectory Points: {string.Join(" | ", trajectories[xbotID].Select(p => $"({p[0]}, {p[1]})"))}");
+                            //Console.WriteLine($"Trajectory Points: {string.Join(" | ", trajectories[xbotID].Select(p => $"({p[0]}, {p[1]})"))}");
 
                             // Add the first motion to the buffer
                             double[] point = trajectories[xbotID][0];
-                            Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
-                            Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
+                            //Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
+                            //Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
                             xbotStateStationID[xbotID] = 0;
                             for (int i = 1; i < trajectories[xbotID].Count; i++)
                             {
@@ -766,11 +782,11 @@ namespace PMC
                                 double deltaY = nextPoint[1] - currentPoint[1];
                                 double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                                double baseVelocity = 0.5;
+                                double baseVelocity = 0.1;
                                 double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
 
-                                Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
-                                Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={nextPoint[0]}, tagPosY={nextPoint[1]}, pathType='D'");
+                                //Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
+                                //Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={nextPoint[0]}, tagPosY={nextPoint[1]}, pathType='D'");
 
                                 if (i < trajectories[xbotID].Count - 1)
                                 {
@@ -861,8 +877,8 @@ namespace PMC
                 runTrajectoryCancellationTokenSource = new CancellationTokenSource(); // Replace null assignment
             }
         }
-        */
-
+        
+        /*
         public async void RunTrajectory()
         {
             runTrajectoryCancellationTokenSource = new CancellationTokenSource();
@@ -910,7 +926,7 @@ namespace PMC
                                 double deltaY = nextPoint[1] - currentPoint[1];
                                 double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                                double baseVelocity = 0.5;
+                                double baseVelocity = 0.1;
                                 double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
 
                                 Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
@@ -929,6 +945,7 @@ namespace PMC
                                     else
                                     {
                                         Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
+                                        //_xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.5);
                                         _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.5);
                                     }
                                 }
@@ -1006,8 +1023,8 @@ namespace PMC
             }
         }
 
-
-
+        
+        */
 
 
         private void Rotation(int xbotID)
@@ -1079,7 +1096,7 @@ namespace PMC
                 }
             });
         }
-
+        
 
         public static async Task Main(string[] args) // Change return type to Task
         {

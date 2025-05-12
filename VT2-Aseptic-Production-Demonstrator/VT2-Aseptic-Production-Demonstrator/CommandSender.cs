@@ -14,8 +14,8 @@ namespace VT2_Aseptic_Production_Demonstrator
     {
 
         private MQTTPublisher mqttPublisher;
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
         int selector = 4;
@@ -44,8 +44,9 @@ namespace VT2_Aseptic_Production_Demonstrator
             Console.WriteLine("0    Return");
             Console.WriteLine("1    Xbot1");
             Console.WriteLine("2    Xbot2");
-            Console.WriteLine("3    Xbot3");
-            Console.WriteLine("4    Xbot4");
+            Console.WriteLine("3    Xbot5");
+            Console.WriteLine("4    Xbot6");
+            Console.WriteLine("5    Xbot7");
             ConsoleKeyInfo keyInfo = Console.ReadKey();
             switch (keyInfo.KeyChar)
             {
@@ -63,11 +64,15 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Command(xbotID);
                     break;
                 case '3':
-                    xbotID = 3;
+                    xbotID = 5;
                     Command(xbotID);
                     break;
                 case '4':
-                    xbotID = 4;
+                    xbotID = 6;
+                    Command(xbotID);
+                    break;
+                case '5':
+                    xbotID = 7;
                     Command(xbotID);
                     break;
             }
@@ -87,10 +92,12 @@ namespace VT2_Aseptic_Production_Demonstrator
             Console.WriteLine("5    FillingQueue2");
             Console.WriteLine("6    FillingQueue3");
             Console.WriteLine("7    FillingQueue4");
+            Console.WriteLine("8    FillingPickNeedle");
+            Console.WriteLine("9    FillingPlaceNeedle");
             selector = 5;
             string commandUuid = Guid.NewGuid().ToString();
             string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-
+            
             
 
             ConsoleKeyInfo keyInfo = Console.ReadKey();
@@ -223,6 +230,19 @@ namespace VT2_Aseptic_Production_Demonstrator
                     };
                     string serializedMessage8 = JsonSerializer.Serialize(FillingPlaceNeedleMessage);
                     await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage8);
+                    selector = 4;
+                    xbotID = 0;
+                    break;
+                case 'p':
+
+                    var PickPlaceStorageMessage = new
+                    {
+                        CommandUuid = commandUuid,
+                        Command = "PickPlaceStorage",
+                        TimeStamp = timestamp
+                    };
+                    string serializedMessage9 = JsonSerializer.Serialize(PickPlaceStorageMessage);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage9);
                     selector = 4;
                     xbotID = 0;
                     break;
