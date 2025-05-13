@@ -26,8 +26,8 @@ namespace PathPlaningNode
         private Dictionary<int, int?> xbotStateStationID = new();
 
         private readonly object xBotID_From_ToLock = new();
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
         private int width = 72;
@@ -116,7 +116,6 @@ namespace PathPlaningNode
             InitializeMqttPublisher();
             InitializeTopicHandlers();
             InitializeMqttSubscriber();
-           
 
             Task.Run(async () =>
             {
@@ -145,12 +144,12 @@ namespace PathPlaningNode
             double[] EndQueue3 = { 0.54, 0.54, 0.001, 0, 0, 90 };
             double[] EndQueue4 = { 0.66, 0.54, 0.001, 0, 0, 90 };
             double[] FillingQueue1 = { 0.3, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue2 = { 0.43, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue3 = { 0.56, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue4 = { 0.66, 0.18, 0.001, 0, 0, 0 };
+            double[] FillingQueue2 = { 0.42, 0.06, 0.001, 0, 0, 0 };
+            double[] FillingQueue3 = { 0.54, 0.06, 0.001, 0, 0, 0 };
+            double[] FillingQueue4 = { 0.66, 0.06, 0.001, 0, 0, 0 };
             double[] FillingPickNeedle = { 0.12, 0.08, 0.001, 0, 0, 180 };
             double[] FillingPickNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
-            double[] FillingPlaceNeedle = { 0.106, 0.12, 0.001, 0, 0, 90 };
+            double[] EndQueueFillingPlaceNeedle = { 0.106, 0.12, 0.001, 0, 0, 90 };
             double[] FillingPlaceNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
             double[] PickPlacerStoreage = { 0.66, 0.9, 0, 001, 0, 0, 180 };
 
@@ -218,8 +217,8 @@ namespace PathPlaningNode
                     {
                         Name = "FillingPlaceNeedle",
                         StationId = 9,
-                        ApproachPosition = FillingPlaceNeedleApproch,
-                        ProcessPosition = FillingPlaceNeedle
+                        ApproachPosition = FillingPickNeedleApproch,
+                        ProcessPosition = FillingPickNeedle
                     },
                     new StationMessage.Station
                     {
@@ -700,10 +699,6 @@ namespace PathPlaningNode
             if (message == "runPathPlanner")
             {
                 ExecutePathPlanner();
-            }
-            if (message == "test")
-            {
-                TestPathPlanner();
             }
         }
 
@@ -1300,32 +1295,6 @@ namespace PathPlaningNode
             }
 
             Console.WriteLine("All target positions cleared.");
-        }
-
-        public void TestPathPlanner()
-        {
-            // Example 'from' and 'to' points
-            double[] fromPoint = { 0.06, 0.06, 0.001, 0.0, 0.0, 0.0 };
-            double[] toPoint = { 0.06, 0.5, 0.0, 0.0, 0.0, 0.0 };
-            double[] fromPoint1 = { 0.19, 0.06, 0.0, 0.0, 0.0, 0.0 };
-            double[] toPoint1 = { 0.06, 0.06, 0.0, 0.0, 0.0, 0.0 };
-
-
-            // Add the points to the path planner
-            lock (xBotID_From_ToLock)
-            {
-                // Remove existing entries if they exist
-                xBotID_From_To.RemoveAll(entry => entry.Item1 == 1 || entry.Item1 == 2);
-
-                // Add new entries
-                xBotID_From_To.Add((1, fromPoint, toPoint));
-                xBotID_From_To.Add((2, fromPoint1, toPoint1));
-            }
-
-            // Execute the path planner
-            ExecutePathPlanner();
-
-            Console.WriteLine("TestPathPlanner executed with 'from' and 'to' points.");
         }
 
         public static async Task Main(string[] args)

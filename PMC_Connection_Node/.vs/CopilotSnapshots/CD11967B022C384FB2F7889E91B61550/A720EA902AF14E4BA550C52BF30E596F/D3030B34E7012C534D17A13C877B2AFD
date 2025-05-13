@@ -47,7 +47,6 @@ namespace PMC
         private CancellationTokenSource runTrajectoryCancellationTokenSource;
         private Dictionary<int, Task> runningTasks = new(); // Track running tasks for each xbotID
         private Dictionary<int, CancellationTokenSource> taskCancellationTokens = new(); // Track cancellation tokens for each xbotID
-        private Dictionary<int, CancellationTokenSource> rotationCancellationTokens = new(); // Manage rotation cancellation tokens per xbot
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
         
         private Dictionary<int, string> states = new Dictionary<int, string>
@@ -1104,30 +1103,6 @@ namespace PMC
         private void Rotation(int xbotID)
         {
             Console.WriteLine($"Entered Rotate for xbotID: {xbotID}");
-
-            // Cancel any existing rotation task for this xbotID
-            if (rotationCancellationTokens.ContainsKey(xbotID))
-            {
-                try
-                {
-                    rotationCancellationTokens[xbotID].Cancel();
-                    rotationCancellationTokens[xbotID].Dispose();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Rotation] Error cancelling previous rotation for xbotID {xbotID}: {ex.Message}");
-                }
-                finally
-                {
-                    rotationCancellationTokens.Remove(xbotID);
-                }
-            }
-
-            // Create a new cancellation token for this rotation
-            var cts = new CancellationTokenSource();
-            rotationCancellationTokens[xbotID] = cts;
-            var cancellationToken = cts.Token;
-
             Task.Run(async () =>
             {
                 try
@@ -1158,20 +1133,12 @@ namespace PMC
 
                     double[] targetPosition = targetPositions[xbotID];
 
+                    
+                    
                     _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.NO_ANGLE_WRAP, targetPosition[5] * (Math.PI / 180), 1, 0.5, POSITIONMODE.ABSOLUTE);
-
-                    double lastOrientation = positions[xbotID][5];
-                    int unchangedOrientationCount = 0;
-                    bool retried = false;
 
                     while (true)
                     {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            Console.WriteLine($"[Rotation] Task cancelled for xbotID {xbotID}");
-                            break;
-                        }
-
                         XBotStatus status = _xbotCommand.GetXbotStatus(xbotID);
                         int xbotState = (int)status.XBOTState;
                         double currentOrientation = positions[xbotID][5];
@@ -1185,24 +1152,6 @@ namespace PMC
 
                         Console.WriteLine($"xbot{xbotID} buffer count is {bufferCount}");
 
-                        if (Math.Abs(currentOrientation - lastOrientation) < 0.01)
-                        {
-                            unchangedOrientationCount++;
-                        }
-                        else
-                        {
-                            unchangedOrientationCount = 0;
-                        }
-                        lastOrientation = currentOrientation;
-
-                        if (unchangedOrientationCount >= 3 && !retried)
-                        {
-                            Console.WriteLine($"[Debug] Orientation unchanged for 3 iterations for xbotID {xbotID}, calling Rotation again.");
-                            retried = true; // Prevent infinite recursion
-                            Rotation(xbotID);
-                            break;
-                        }
-
                         if (xbotState == 3 && adjustedDifference <= 0.1)
                         {
                             Console.WriteLine($"[Debug] Rotation completed for xbotID: {xbotID}");
@@ -1211,24 +1160,16 @@ namespace PMC
                             break;
                         }
 
-                        await Task.Delay(100, cancellationToken);
+                        await Task.Delay(100);
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[Error] Exception in Rotation task for xbotID {xbotID}: {ex.Message}");
                 }
-                finally
-                {
-                    // Clean up the cancellation token after task ends
-                    if (rotationCancellationTokens.ContainsKey(xbotID))
-                    {
-                        rotationCancellationTokens[xbotID].Dispose();
-                        rotationCancellationTokens.Remove(xbotID);
-                    }
-                }
-            }, cancellationToken);
+            });
         }
+        
 
         public static async Task Main(string[] args) // Change return type to Task
         {
