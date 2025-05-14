@@ -26,8 +26,8 @@ namespace PathPlaningNode
         private Dictionary<int, int?> xbotStateStationID = new();
 
         private readonly object xBotID_From_ToLock = new();
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
         private int width = 72;
@@ -137,7 +137,7 @@ namespace PathPlaningNode
             double[] FillingApproach = { 0.12, 0.12, 0.001, 0, 0, 0 };
             double[] StopperingStation = { 0.108, 0.361, 0.001, 0, 0, 90 };
             double[] StopperingApproach = { 0.12, 0.36, 0.001, 0, 0, 0 };
-            double[] VisionStation = { 0.08, 0.6, 0.001, 0, 0, 90 };
+            double[] VisionStation = { 0.102, 0.587, 0.001, 0, 0, 90 };
             double[] VisionApproach = { 0.12, 0.6, 0.001, 0, 0, 0 };
             double[] FillingQueueApproach1 = { 0.12, 0.12, 0.001, 0, 0, 0 };
             double[] EndQueue1 = { 0.3, 0.54, 0.001, 0, 0, 90 };
@@ -153,7 +153,8 @@ namespace PathPlaningNode
             double[] FillingPlaceNeedle = { 0.106, 0.12, 0.001, 0, 0, 90 };
             double[] FillingPlaceNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
             double[] PickPlacerStoreage = { 0.66, 0.9, 0, 001, 0, 0, 180 };
-
+            double[] ErrorHandelingStation = { 0.36, 0.90, 0.001, 0, 0, 0 };
+            double[] ErrorHandelingStationApproch2 = { 0.36, 0.84, 0.001, 0, 0, 0 };
             var stationMessage = new StationMessage
             {
                 Stations = new List<StationMessage.Station>
@@ -260,7 +261,7 @@ namespace PathPlaningNode
             };
 
             string serializedMessage = JsonSerializer.Serialize(stationMessage);
-            await mqttPublisher.PublishMessageAsync("AAU/Fibigerstræde/Building14/FillingLine/Configuration/Data/Planar/Staions", serializedMessage, retain: true);
+            await mqttPublisher.PublishMessageAsync("AAU/Fibigerstræde/Building14/FillingLine/Configuration/DATA/Planar/Staions", serializedMessage, retain: true);
         }
             
         
@@ -269,14 +270,14 @@ namespace PathPlaningNode
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
                 {
-                    //{ UNSPrefix + "+/Data/TargetPosition", getTargetPostion },
-                    { UNSPrefix + "+/Data/Position", getPostion },
+                    //{ UNSPrefix + "+/DATA/TargetPosition", getTargetPostion },
+                    { UNSPrefix + "+/DATA/Position", getPostion },
                     
-                    {UNSPrefix + "+/Data/State", getXbotState },
+                    {UNSPrefix + "+/DATA/State", getXbotState },
                     { UNSPrefix + "PathPlan/CMD", HandlePathPlanStatus },
                     //{ UNSPrefix + "+/CMD/SubCMD", HandleSubCMD},
                     { UNSPrefix + "+/CMD", HandleCMD },
-                    { "AAU/Fibigerstræde/Building14/FillingLine/Configuration/Data/Planar/Staions", HandelStationSetup}
+                    { "AAU/Fibigerstræde/Building14/FillingLine/Configuration/DATA/Planar/Staions", HandelStationSetup}
                 };
         }
 
@@ -436,7 +437,7 @@ namespace PathPlaningNode
                 };
 
                 //string serializedMessage = JsonSerializer.Serialize(xbotStateMessage);
-                //await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/Data/State", serializedMessage);
+                //await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/DATA/State", serializedMessage);
                 */
 
             }
@@ -521,7 +522,7 @@ namespace PathPlaningNode
                 };
 
                 string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
-                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/Data/Trajectory", serializedMessage);
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/DATA/Trajectory", serializedMessage);
             }
 
             await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
@@ -812,7 +813,7 @@ namespace PathPlaningNode
                 string serializedMessage = JsonSerializer.Serialize(targetPositionMessage);
 
                 // Publish the message to the MQTT broker
-                string topic = $"{UNSPrefix}Xbot{xbotID}/Data/TargetPosition";
+                string topic = $"{UNSPrefix}Xbot{xbotID}/DATA/TargetPosition";
                 await mqttPublisher.PublishMessageAsync(topic, serializedMessage);
 
                 //Console.WriteLine($"[DEBUG] Sent final station command for xbotID {xbotID} to topic {topic}: {serializedMessage}");

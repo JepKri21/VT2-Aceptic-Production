@@ -61,7 +61,7 @@ public class Pathfinding
 */
             double[,] zone2 = {
                 { 13, 13},
-                { 96, 47 }
+                { 47, 71 }
             };
 
             // Convert to integers
@@ -74,7 +74,7 @@ public class Pathfinding
             {
                 for (int y = yStart; y <= yEnd; y++)
                 {
-                    if (x > 0 && x < width && y > 0 && y < height)
+                    if (x >= 0 && x <= width && y >= 0 && y <= height)
                     {
                         cells[x, y].obstacle = true;
                     }

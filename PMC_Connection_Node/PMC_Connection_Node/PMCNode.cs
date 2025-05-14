@@ -29,6 +29,7 @@ namespace PMC
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
         private Dictionary<int, int> xbotStateStationID = new();
+        /*
         private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
         {
             {1, false },
@@ -36,11 +37,19 @@ namespace PMC
             {5, false },
             {6, false },
             {7, false }
+        };*/
+        private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
+        {
+            {1, false },
+            {2, false },
+            {3, false },
+            {4, false },
+            {5, false }
         };
         private Dictionary<int, double[]> Station = new(); //Key is the StationdId, value is the position
         private Dictionary<int, string> CommandUuid = new();
-        //string brokerIP = "172.20.66.135";
-        string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -150,11 +159,11 @@ namespace PMC
         {
             topicHandlers = new Dictionary<string, Action<string, string>>
             {
-            { UNSPrefix + "+/Data/Trajectory", GetTrajectories },
-            { UNSPrefix + "+/Data/TargetPosition", getTargetPosition },
+            { UNSPrefix + "+/DATA/Trajectory", GetTrajectories },
+            { UNSPrefix + "+/DATA/TargetPosition", getTargetPosition },
             { UNSPrefix + "+/CMD/SubCMD", HandlerSubCMD },
             { UNSPrefix + "PathPlan/CMD", HandleStatus },
-            { "AAU/Fibigerstræde/Building14/FillingLine/Configuration/Data/Planar/Staions", HandleStations}
+            { "AAU/Fibigerstræde/Building14/FillingLine/Configuration/DATA/Planar/Staions", HandleStations}
 
             };
         }
@@ -248,7 +257,7 @@ namespace PMC
 
                         // Serialize and publish the position message
                         string serializedPositionMessage = JsonSerializer.Serialize(positionMessage);
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/Data/Position", serializedPositionMessage, retain: true);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/DATA/Position", serializedPositionMessage, retain: true);
                     }
                     // Find the key in Station where the value matches the target position
                     var matchingStation = Station.FirstOrDefault(station =>
@@ -288,7 +297,7 @@ namespace PMC
 
                         // Serialize and publish the state message
                         string serializedStateMessage = JsonSerializer.Serialize(stateMessage);
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/Data/State", serializedStateMessage, retain: true);
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/DATA/State", serializedStateMessage, retain: true);
                     }
                 }
                 await Task.Delay(500);
@@ -301,7 +310,7 @@ namespace PMC
             xbotsID = xBotIDs.XBotIDsArray;
             Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
             var message = JsonSerializer.Serialize(new { XBotIDs = xbotsID, TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
-            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Data/IDs", message, true);
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"DATA/IDs", message, true);
         }
 
         #endregion

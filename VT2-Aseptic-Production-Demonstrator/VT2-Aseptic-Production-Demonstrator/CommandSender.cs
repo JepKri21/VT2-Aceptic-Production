@@ -14,8 +14,8 @@ namespace VT2_Aseptic_Production_Demonstrator
     {
 
         private MQTTPublisher mqttPublisher;
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
         int selector = 4;
@@ -64,15 +64,15 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Command(xbotID);
                     break;
                 case '3':
-                    xbotID = 5;
+                    xbotID = 3;
                     Command(xbotID);
                     break;
                 case '4':
-                    xbotID = 6;
+                    xbotID = 4;
                     Command(xbotID);
                     break;
                 case '5':
-                    xbotID = 7;
+                    xbotID = 5;
                     Command(xbotID);
                     break;
             }
