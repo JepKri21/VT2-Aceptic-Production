@@ -53,34 +53,51 @@ public class Pathfinding
                     cells[x, y] = new node(x, y, false, new());
                 }
             }
-/*
-            double[,] zone2 = {
-                { (width + _xbotSize) * (1.0 / 3) - _xbotSize, (height + _xbotSize) * (2.0 / 4) - _xbotSize },
-                { (width + _xbotSize) * (2.0 / 3), (height + _xbotSize) * (3.0 / 4) }
-            };
-*/
-            double[,] zone2 = {
-                { 13, 13},
+
+            double[,] zone1 = {
+                { 25, 25},
                 { 47, 71 }
             };
 
-            // Convert to integers
-            int xStart = (int)Math.Round(zone2[0, 0])+1;
-            int yStart = (int)Math.Round(zone2[0, 1])+1;
-            int xEnd = (int)Math.Round(zone2[1, 0])-1;
-            int yEnd = (int)Math.Round(zone2[1, 1])-1;
+            double[,] zone2 = {
+                { 73, 0},
+                { 96, 71 }
+            };
+            double[,] zone3 = {
+                { 0, 85},
+                { 6, 96 }
+            };
 
-            for (int x = xStart; x <= xEnd; x++)
+            List<double[,]> zones = new List<double[,]>();
+            zones.Add(zone1);
+            zones.Add(zone2);
+            zones.Add(zone3);
+
+            int dilationStart = -6;
+            int dilationEnd = 6;
+            int translation = -6;
+
+            foreach (double[,] zone in zones)
             {
-                for (int y = yStart; y <= yEnd; y++)
+                // Translate and dilate zone coordinates
+                int xStart = (int)Math.Round(zone[0, 0]) + translation + dilationStart + 1;
+                int yStart = (int)Math.Round(zone[0, 1]) + translation + dilationStart + 1;
+                int xEnd = (int)Math.Round(zone[1, 0]) + translation + dilationEnd - 1;
+                int yEnd = (int)Math.Round(zone[1, 1]) + translation + dilationEnd - 1;
+
+                for (int x = xStart; x <= xEnd; x++)
                 {
-                    if (x >= 0 && x <= width && y >= 0 && y <= height)
+                    for (int y = yStart; y <= yEnd; y++)
                     {
-                        cells[x, y].obstacle = true;
+                        if (x >= 0 && x <= width && y >= 0 && y <= height)
+                        {
+                            cells[x, y].obstacle = true;
+                        }
                     }
                 }
             }
         }
+
         public void SaveWalkablePointsToFile(int _xbotID, string filePath)
         {
             using (StreamWriter writer = new StreamWriter(filePath))

@@ -30,7 +30,7 @@ namespace PathPlaningNode
         string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
-        private int width = 72;
+        private int width = 96;
         private int height = 96;
         private Pathfinding.grid gridGlobal;
         private Pathfinding pathfinder;
@@ -139,7 +139,7 @@ namespace PathPlaningNode
             double[] StopperingApproach = { 0.12, 0.36, 0.001, 0, 0, 0 };
             double[] VisionStation = { 0.102, 0.587, 0.001, 0, 0, 90 };
             double[] VisionApproach = { 0.12, 0.6, 0.001, 0, 0, 0 };
-            double[] FillingQueueApproach1 = { 0.12, 0.12, 0.001, 0, 0, 0 };
+            double[] FillingQueueApproach1 = { 0.6, 0.84, 0.001, 0, 0, 0 };
             double[] EndQueue1 = { 0.3, 0.54, 0.001, 0, 0, 90 };
             double[] EndQueue2 = { 0.42, 0.54, 0.001, 0, 0, 90 };
             double[] EndQueue3 = { 0.54, 0.54, 0.001, 0, 0, 90 };
@@ -147,7 +147,7 @@ namespace PathPlaningNode
             double[] FillingQueue1 = { 0.3, 0.06, 0.001, 0, 0, 0 };
             double[] FillingQueue2 = { 0.43, 0.06, 0.001, 0, 0, 0 };
             double[] FillingQueue3 = { 0.56, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue4 = { 0.66, 0.18, 0.001, 0, 0, 0 };
+            double[] FillingQueue4 = { 0.66, 0.19, 0.001, 0, 0, 0 };
             double[] FillingPickNeedle = { 0.12, 0.08, 0.001, 0, 0, 180 };
             double[] FillingPickNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
             double[] FillingPlaceNeedle = { 0.106, 0.12, 0.001, 0, 0, 90 };
