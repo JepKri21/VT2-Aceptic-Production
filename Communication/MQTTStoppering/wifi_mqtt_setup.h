@@ -17,6 +17,8 @@ const char* mqtt_serv = "172.20.66.135";
 const char* topic_pub_status = "AAU/Fibigerstræde/Building14/FillingLine/Stoppering/DATA/State";
 const char* topic_sub_Stoppering_Cmd = "AAU/Fibigerstræde/Building14/FillingLine/Stoppering/CMD/Plunge";
 const char* topic_pub_mqtt_status = "AAU/Fibigerstræde/Building14/FillingLine/Stoppering/DATA/MQTTConnection";
+const char* topic_pub_cycle_time = "AAU/Fibigerstræde/Building14/FillingLine/Stoppering/DATA/CycleTime";
+
 
 unsigned long interval = 5000;
 
@@ -78,6 +80,27 @@ void SendMQTTMessage(String commandUuid, String state, const char* topic){
 
   client.publish(topic, output, true);
 }
+
+void sendCycleTime(double cycle_time, const char* topic){
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Error");
+    return;
+  }
+
+  char timestamp[25];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  StaticJsonDocument<256> doc;
+  doc["CommandUuid"] = commandUuid;
+  doc["CycleTime"] = cycle_time;
+  doc["TimeStamp"] = timestamp;
+
+  char output[256];
+  serializeJson(doc, output);
+
+  client.publish(topic, output, true);
+}
+
 
 void readMessage(const String& jsonString){
   StaticJsonDocument<256> doc;

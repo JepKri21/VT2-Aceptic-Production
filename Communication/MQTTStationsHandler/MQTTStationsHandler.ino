@@ -8,8 +8,10 @@ void setup() {
   initWiFiAndMQTT();   // Fra wifi_mqtt_setup.h
   InitFilling();
   initializeTime();
-  SendMQTTMessage("mdkas-nmdlk-a54d6", "Executing", topic_pub_status);
 }
+
+unsigned long cycle_time_start = 0;
+unsigned long cycle_time_end= 0;
 
 void loop() {
   if (!client.connected()) {
@@ -25,28 +27,21 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   if (String(topic) == topic_sub_Filling_Cmd) {
-    // if (message == "running") {
-      
-    //   FillingRunning();
-    //   Serial.println("RUNNING");
-    // } else if (message == "idle") {
-    //   FillingStop();
-    //   Serial.println("IDLE");
-    // }
-
+    cycle_time_start = millis();
     readMessage(message);
     FillingRunning();
+    cycle_time_end = millis();
+    double cycle_time = (cycle_time_end - cycle_time_start)/1000.0;
+    sendCycleTime(cycle_time, topic_pub_cycle_time);
 
   }
-  // if (String(topic) == topic_sub_Stoppering) {
-  //   if (message == "running") {
-  //     StopperingRunning();
-  //     stopperingRunning = true;
-  //     Serial.println("RUNNING");
-  //   } else if (message == "idle") {
-  //     StopperingStop();
-  //     stopperingRunning = false;
-  //     Serial.println("IDLE");
-  //   }
-  // }
+  else if (String(topic) == topic_sub_Needle_Cmd){
+    cycle_time_start = millis();
+    readMessage(message);
+    Needle_Attachment();
+    cycle_time_end = millis();
+    double cycle_time = (cycle_time_end - cycle_time_start)/1000.0;
+    sendCycleTime(cycle_time, topic_pub_cycle_time);
+  }
+
 }

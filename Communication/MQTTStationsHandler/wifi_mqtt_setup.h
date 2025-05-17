@@ -16,7 +16,10 @@ const char* mqtt_serv = "172.20.66.135";
 
 const char* topic_pub_status = "AAU/Fibigerstræde/Building14/FillingLine/Filling/DATA/State";
 const char* topic_sub_Filling_Cmd = "AAU/Fibigerstræde/Building14/FillingLine/Filling/CMD/Dispense";
+const char* topic_sub_Needle_Cmd = "AAU/Fibigerstræde/Building14/FillingLine/Filling/CMD/Needle";
 const char* topic_pub_mqtt_status = "AAU/Fibigerstræde/Building14/FillingLine/Filling/DATA/MQTTConnection";
+const char* topic_pub_cycle_time = "AAU/Fibigerstræde/Building14/FillingLine/Filling/DATA/CycleTime";
+const char* topic_pub_weight = "AAU/Fibigerstræde/Building14/FillingLine/Filling/DATA/Weight";
 
 unsigned long interval = 5000;
 double stationPosition[] = {0.660, 0.840};
@@ -38,6 +41,9 @@ void initWiFiAndMQTT() {
   Serial.println("WiFi Connected");
 
   client.setServer(mqtt_serv, 1883);
+
+  client.publish(topic_sub_Needle_Cmd, "Here");
+  
   client.setCallback(callback);
 }
 
@@ -53,6 +59,7 @@ void reconnect() {
       serializeJson(doc, output);
       client.publish(topic_pub_mqtt_status, output);
       client.subscribe(topic_sub_Filling_Cmd);
+      client.subscribe(topic_sub_Needle_Cmd);
     } else {
       delay(5000);
     }
@@ -80,6 +87,48 @@ void SendMQTTMessage(String commandUuid, String state, const char* topic){
   client.publish(topic, output, true);
 }
 
+void sendCycleTime(double cycle_time, const char* topic){
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Error");
+    return;
+  }
+
+
+  char timestamp[25];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  StaticJsonDocument<256> doc;
+  doc["CommandUuid"] = commandUuid;
+  doc["CycleTime"] = cycle_time;
+  doc["TimeStamp"] = timestamp;
+
+  char output[256];
+  serializeJson(doc, output);
+
+  client.publish(topic, output, true);
+}
+
+
+void sendWeight(double weight, const char* topic){
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Error");
+    return;
+  }
+
+  char timestamp[25];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  StaticJsonDocument<256> doc;
+  doc["CommandUuid"] = commandUuid;
+  doc["Weight"] = weight;
+  doc["TimeStamp"] = timestamp;
+
+  char output[256];
+  serializeJson(doc, output);
+
+  client.publish(topic, output, true);
+}
+
 void readMessage(const String& jsonString){
   StaticJsonDocument<256> doc;
   deserializeJson(doc, jsonString); 
@@ -88,7 +137,6 @@ void readMessage(const String& jsonString){
   Serial.println("=== Modtaget MQTT besked ===");
   Serial.println("CommandUuid: " + commandUuid);
   Serial.println("============================");
-
 }
 
 void initializeTime() {
