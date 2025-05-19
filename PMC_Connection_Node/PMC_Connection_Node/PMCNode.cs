@@ -48,8 +48,8 @@ namespace PMC
         };
         private Dictionary<int, double[]> Station = new(); //Key is the StationdId, value is the position
         private Dictionary<int, string> CommandUuid = new();
-        string brokerIP = "172.20.66.135";
-        //string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();

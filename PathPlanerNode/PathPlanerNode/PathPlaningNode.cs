@@ -26,12 +26,15 @@ namespace PathPlaningNode
         private Dictionary<int, int?> xbotStateStationID = new();
 
         private readonly object xBotID_From_ToLock = new();
-        //string brokerIP = "localhost";
-        string brokerIP = "172.20.66.135";
+        private readonly object pathPlannerLock = new();
+        private Task? pathPlannerTask = null;
+        private CancellationTokenSource? pathPlannerCts = null;
+        string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
-        private int width = 96;
-        private int height = 96;
+        private int width = 98;
+        private int height = 98;
         private Pathfinding.grid gridGlobal;
         private Pathfinding pathfinder;
         private List<(int, double[], double[])> xBotID_From_To = new();        
@@ -454,81 +457,127 @@ namespace PathPlaningNode
         }
 
 
-
-        private async void ExecutePathPlanner()
+        private void ExecutePathPlanner()
         {
-            Console.WriteLine("[Debug] Running Path Planner");
-            Console.WriteLine($"{xBotID_From_To.Count}");
-            for (int i = 0; i < xBotID_From_To.Count; i++)
-            {
-                var (xbotID, from, to) = xBotID_From_To[i];
+            Task? previousTask = null;
+            CancellationTokenSource? previousCts = null;
 
-                if (to == null || to.Length == 0)
+            lock (pathPlannerLock)
+            {
+                // If a previous task is running, capture it for cancellation outside the lock
+                if (pathPlannerTask != null && !pathPlannerTask.IsCompleted)
                 {
-                    if (positions.ContainsKey(xbotID))
-                    {
-                        xBotID_From_To[i] = (xbotID, from, from);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Error: Current position for xbotID {xbotID} is not available.");
-                        return;
-                    }
+                    Console.WriteLine("[DEBUG] Cancelling previous path planner task.");
+                    previousCts = pathPlannerCts;
+                    previousTask = pathPlannerTask;
                 }
+
+                pathPlannerCts = new CancellationTokenSource();
+                pathPlannerTask = Task.Run(() => RunExecutePathPlannerAsync(pathPlannerCts.Token), pathPlannerCts.Token);
             }
+        }
 
-
-            trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
-                           .GroupBy(item => item.Item1)
-                           .ToDictionary(group => group.Key, group => group.Last().Item2);
-
-            foreach (var trajectory in trajectories)
+        private async Task RunExecutePathPlannerAsync(CancellationToken token)
+        {
+            try
             {
-                int xbotId = trajectory.Key;
-
-                if (targetPositions.ContainsKey(xbotId))
+                Console.WriteLine("[Debug] Running Path Planner");
+                Console.WriteLine($"{xBotID_From_To.Count}");
+                for (int i = 0; i < xBotID_From_To.Count; i++)
                 {
-                    var targetPosition = targetPositions[xbotId];
-                    if (positions.ContainsKey(xbotId))
-                    {
-                        var currentPosition = positions[xbotId];
+                    if (token.IsCancellationRequested) return;
 
-                        if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1)
+                    var (xbotID, from, to) = xBotID_From_To[i];
+
+                    if (to == null || to.Length == 0)
+                    {
+                        if (positions.ContainsKey(xbotID))
                         {
-                            trajectory.Value.Add(targetPosition);
+                            xBotID_From_To[i] = (xbotID, from, from);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: Current position for xbotID {xbotID} is not available.");
+                            return;
                         }
                     }
                 }
 
-                // Debug: Print the generated trajectory
-                Console.WriteLine($"[DEBUG] Trajectory for xbotID {xbotId}:");
-                foreach (var point in trajectory.Value)
+                trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
+                               .GroupBy(item => item.Item1)
+                               .ToDictionary(group => group.Key, group => group.Last().Item2);
+
+                //if (trajectories == null || trajectories.Count == 0)
+                //{
+                //    Console.WriteLine("[DEBUG] No trajectories generated.");
+                //    //ExecutePathPlanner();
+                //}
+
+
+                foreach (var trajectory in trajectories)
                 {
-                    Console.WriteLine($"[DEBUG] Point: {string.Join(", ", point)}");
+                    if (token.IsCancellationRequested) return;
+
+                    int xbotId = trajectory.Key;
+
+                    if (targetPositions.ContainsKey(xbotId))
+                    {
+                        var targetPosition = targetPositions[xbotId];
+                        if (positions.ContainsKey(xbotId))
+                        {
+                            var currentPosition = positions[xbotId];
+
+                            if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1)
+                            {
+                                trajectory.Value.Add(targetPosition);
+                            }
+                        }
+                    }
+
+                    // Debug: Print the generated trajectory
+                    Console.WriteLine($"[DEBUG] Trajectory for xbotID {xbotId}:");
+                    foreach (var point in trajectory.Value)
+                    {
+                        Console.WriteLine($"[DEBUG] Point: {string.Join(", ", point)}");
+                    }
+
+                    // Generate a unique CommandUuid and current timestamp
+                    string commandUuid = CommandUuid.ContainsKey(xbotId) ? CommandUuid[xbotId] : null;
+
+                    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+                    // Construct the trajectory message with CommandUuid and TimeStamp
+                    var trajectoryMessage = new
+                    {
+                        CommandUuid = commandUuid,
+                        Trajectory = trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList(),
+                        TimeStamp = timestamp
+                    };
+
+                    string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/DATA/Trajectory", serializedMessage);
                 }
-            
 
-                // Generate a unique CommandUuid and current timestamp
-                string commandUuid = CommandUuid.ContainsKey(xbotId) ? CommandUuid[xbotId] : null;
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
 
-                string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-
-                // Construct the trajectory message with CommandUuid and TimeStamp
-                var trajectoryMessage = new
-                {
-                    CommandUuid = commandUuid,
-                    Trajectory = trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList(),
-                    TimeStamp = timestamp
-                };
-
-                string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
-                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/DATA/Trajectory", serializedMessage);
+                //ClearAllTargetPositions();
             }
-
-            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
-
-            ClearAllTargetPositions();
-
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("[DEBUG] Path planner task was cancelled.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Exception in path planner: {ex.Message}");
+            }
+            finally
+            {
+                lock (pathPlannerLock)
+                {
+                    pathPlannerTask = null;
+                    pathPlannerCts = null;
+                }
+            }
         }
 
         private double[] FindClosestCenter(double[] currentPosition, List<double[]> centers)
@@ -836,6 +885,55 @@ namespace PathPlaningNode
         }
         #endregion
 
+        private void PrintXbotDirectories(int xbotID)
+        {
+            Console.WriteLine($"--- Directory dump for xbotID {xbotID} ---");
+
+            // positions
+            if (positions.ContainsKey(xbotID))
+                Console.WriteLine($"positions[{xbotID}]: [{string.Join(", ", positions[xbotID])}]");
+            else
+                Console.WriteLine($"positions[{xbotID}]: <not present>");
+
+            // targetPositions
+            if (targetPositions.ContainsKey(xbotID))
+                Console.WriteLine($"targetPositions[{xbotID}]: [{string.Join(", ", targetPositions[xbotID])}]");
+            else
+                Console.WriteLine($"targetPositions[{xbotID}]: <not present>");
+
+            // xbotState
+            if (xbotState.ContainsKey(xbotID))
+                Console.WriteLine($"xbotState[{xbotID}]: {xbotState[xbotID]}");
+            else
+                Console.WriteLine($"xbotState[{xbotID}]: <not present>");
+
+            // CommandUuid
+            if (CommandUuid.ContainsKey(xbotID))
+                Console.WriteLine($"CommandUuid[{xbotID}]: {CommandUuid[xbotID]}");
+            else
+                Console.WriteLine($"CommandUuid[{xbotID}]: <not present>");
+
+            // xBotID_From_To
+            var entry = xBotID_From_To.FirstOrDefault(e => e.Item1 == xbotID);
+            if (!entry.Equals(default((int, double[], double[]))))
+            {
+                string from = entry.Item2 != null ? $"[{string.Join(", ", entry.Item2)}]" : "null";
+                string to = entry.Item3 != null ? $"[{string.Join(", ", entry.Item3)}]" : "null";
+                Console.WriteLine($"xBotID_From_To: From: {from}, To: {to}");
+            }
+            else
+            {
+                Console.WriteLine("xBotID_From_To: <not present>");
+            }
+
+            // trajectories
+            if (trajectories.ContainsKey(xbotID))
+                Console.WriteLine($"trajectories[{xbotID}]: {string.Join(" | ", trajectories[xbotID].Select(arr => $"[{string.Join(", ", arr)}]"))}");
+            else
+                Console.WriteLine($"trajectories[{xbotID}]: <not present>");
+
+            Console.WriteLine($"--- End directory dump for xbotID {xbotID} ---");
+        }
 
 
 
@@ -844,6 +942,7 @@ namespace PathPlaningNode
             try
             {
                 Console.WriteLine($"[DEBUG] Starting {Command} for xbotID: {xbotID}");
+                //PrintXbotDirectories(xbotID); // Print directories at start
 
                 // Track progress to avoid redundant operations
                 bool approachPositionReached = false;
@@ -852,14 +951,14 @@ namespace PathPlaningNode
                 bool LeavePositionReached = false;
                 bool CommandFinished = false;
                 SendFinalStationCommand(xbotID, Command);
-                
+
                 if (xbotState[xbotID] == "Execute")
                 {
                     Levitate(xbotID);
-                }               
-                
+                }
 
-                if(Command == "FillingQueue1" || Command == "FillingQueue2" || Command == "FillingQueue3" )
+
+                if (Command == "FillingQueue1" || Command == "FillingQueue2" || Command == "FillingQueue3")
                 {
                     approachPositionReached = true;
                     rotationCompleted = true;
@@ -869,205 +968,53 @@ namespace PathPlaningNode
                 //xbotStateStationID[xbotID] = null;
                 while (!CommandFinished)
                 {
-                     
-                    
-                        if (cancellationToken.IsCancellationRequested)
+
+
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        Console.WriteLine($"[DEBUG] {Command} execution for xbotID {xbotID} was cancelled.");
+                        return;
+                    }
+
+                    // Step 1: Move to the approach position
+                    if (!approachPositionReached)
+                    {
+
+
+                        Console.WriteLine($"[DEBUG] Current position of xbotID {xbotID}: {string.Join(", ", positions[xbotID])}");
+                        Console.WriteLine($"[DEBUG] Target station position of xbotID {xbotID}: {string.Join(", ", StationCordinate[Command][1])}");
+
+                        // Step 1: Move to the approach position first
+                        if (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
                         {
-                            Console.WriteLine($"[DEBUG] {Command} execution for xbotID {xbotID} was cancelled.");
-                            return;
-                        }
+                            Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to approach position: {string.Join(", ", StationCordinate[Command][0])}");
+                            double[] approachTarget = StationCordinate[Command][0];
+                            targetPositions[xbotID] = approachTarget;
 
-                        // Step 1: Move to the approach position
-                        if (!approachPositionReached)
-                        {
-                            
-                            
-                                Console.WriteLine($"[DEBUG] Current position of xbotID {xbotID}: {string.Join(", ", positions[xbotID])}");
-                                Console.WriteLine($"[DEBUG] Target station position of xbotID {xbotID}: {string.Join(", ", StationCordinate[Command][1])}");
+                            var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
 
-                                // Step 1: Move to the approach position first
-                                if (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
-                                {
-                                    Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to approach position: {string.Join(", ", StationCordinate[Command][0])}");
-                                    double[] approachTarget = StationCordinate[Command][0];
-                                    targetPositions[xbotID] = approachTarget;
-
-                                    var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
-
-                                    if (existingEntry != default)
-                                    {
-                                        Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To to Approach target");
-                                        double[] updatedFrom = positions[xbotID] ?? existingEntry.Item2;
-                                        double[] updatedTo = approachTarget ?? existingEntry.Item3;
-
-                                        xBotID_From_To.Remove(existingEntry);
-                                        xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
-                                        Console.WriteLine($"[DEBUG] Updated entry for xbotID {xbotID}: From: [{string.Join(", ", updatedFrom)}], To: [{string.Join(", ", updatedTo)}]");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To");
-
-                                        xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), approachTarget ?? Array.Empty<double>()));
-                                        Console.WriteLine($"[DEBUG] Added entry for xbotID {xbotID}: From: [{string.Join(", ", positions[xbotID] ?? Array.Empty<double>())}], To: [{string.Join(", ", approachTarget ?? Array.Empty<double>())}]");
-                                    }
-
-
-                                    StopTrajectoryExicution();
-
-
-                                    while (true)
-                                    {
-                                        lock (xbotState)
-                                        {
-                                            if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
-                                            {
-                                                break;
-                                            }
-                                        }
-                                        Thread.Sleep(100); // Poll every 100ms  
-                                        Console.WriteLine("Looping");
-                                    }
-
-
-                                    ExecutePathPlanner();
-
-                                    // Wait until the xbot reaches the approach position
-                                    DateTime startTime = DateTime.Now;
-
-                                    int rerunCounter = 0; // Counter to track reruns
-
-                                    while (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
-                                    {
-                                        //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach approach position...");
-                                        Thread.Sleep(100);
-
-                                        var currentPosition = positions[xbotID];
-                                        //
-                                        // Check if the position has not changed for 5 seconds
-                                        if ((DateTime.Now - startTime).TotalSeconds >= 5 && xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == positions[xbotID])
-                                        {
-                                            rerunCounter++; // Increment the rerun counter
-
-                                            if (rerunCounter >= 2)
-                                            {
-                                                Console.WriteLine($"[DEBUG] xbotID {xbotID} has reached the maximum rerun count of 3. Cancelling thread.");
-                                                commandCancellationTokens[xbotID].Cancel();
-                                                commandCancellationTokens[xbotID].Dispose();
-                                                commandCancellationTokens.Remove(xbotID);
-                                                CommandExecution(xbotID, Command, commandCancellationTokens[xbotID].Token);
-
-                                                return; // Exit this thread and run again  
-                                            }
-
-                                            Console.WriteLine($"[DEBUG] xbotID {xbotID} has been waiting for 5 seconds without position change. Re-running PathPlanner. Rerun count: {rerunCounter}");
-                                            StopTrajectoryExicution();
-
-                                            Console.WriteLine("[DEBUG] Waiting for all xbots to be idle...");
-                                            while (true)
-                                            {
-                                                lock (xbotState)
-                                                {
-                                                    if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
-                                            {
-                                                        break;
-                                                    }
-                                                }
-                                                Thread.Sleep(100); // Poll every 100ms  
-                                            }
-                                            Console.WriteLine("[DEBUG] All xbots are now idle.");
-
-                                            ExecutePathPlanner();
-                                            startTime = DateTime.Now; // Reset the timer
-                                        }
-                                    }
-                                    
-                                    
-                                }
-                                
-                            
-                            approachPositionReached = true; // Set to true once completed
-                            Console.WriteLine($"[DEBUG] Approach position reached for xbotID {xbotID}.");
-                        }
-
-                        // Step 2: Rotate if needed
-                        if (approachPositionReached && !rotationCompleted)
-                        {
-                            // Logic to perform rotation
-                            Console.WriteLine($"[DEBUG] Checking rotation for xbotID {xbotID}. Current Rz: {positions[xbotID][5]}, Target Rz: {StationCordinate[Command][1][5]}");
-
-                            while (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
+                            if (existingEntry != default)
                             {
-                                Console.WriteLine($"[DEBUG] Rotating xbotID {xbotID} to match orientation: {StationCordinate[Command][1][5]}");
-                                RotateCommand(xbotID);
-                                var currentPosition = positions[xbotID];
-                                DateTime startTimeRotation = DateTime.Now;
-                                int rerunCounterRotation = 0; // Counter to track reruns
-                                if ((DateTime.Now - startTimeRotation).TotalSeconds >= 5 && xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == positions[xbotID])
-                                {
-                                    rerunCounterRotation++; // Increment the rerun counter
+                                Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To to Approach target");
+                                double[] updatedFrom = positions[xbotID] ?? existingEntry.Item2;
+                                double[] updatedTo = approachTarget ?? existingEntry.Item3;
 
-                                    if (rerunCounterRotation >= 2)
-                                    {
-                                        Console.WriteLine($"[DEBUG] xbotID {xbotID} has reached the maximum rerun count of 3. Cancelling thread.");
-                                        commandCancellationTokens[xbotID].Cancel();
-                                        commandCancellationTokens[xbotID].Dispose();
-                                        commandCancellationTokens.Remove(xbotID);
-                                        //CommandState.Remove(xbotID);
-                                        CommandExecution(xbotID, Command, commandCancellationTokens[xbotID].Token);
-
-                                        return; // Exit this thread and run again  
-                                    }
-
-
-
-                                    Console.WriteLine($"[DEBUG] Rotating xbotID {xbotID} to match orientation: {StationCordinate[Command][1][5]}");
-                                    RotateCommand(xbotID);
-
-                                    // Wait until the rotation is completed
-                                    startTimeRotation = DateTime.Now;
-
-                                }
-                                while (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
-                                {
-                                    //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to complete rotation...");
-                                    Thread.Sleep(100);
-                                }
-                                Console.WriteLine($"[DEBUG] xbotID {xbotID} completed rotation.");
-                            }
-                            rotationCompleted = true; // Set to true once completed
-                            Console.WriteLine($"[DEBUG] Rotation completed for xbotID {xbotID}.");
-                        }
-
-                        // Step 3: Move to the station position
-                        if (rotationCompleted && !stationPositionReached)
-                        {
-                            Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to station position: {string.Join(", ", StationCordinate[Command][1])}");
-                            double[] stationTarget = StationCordinate[Command][1];
-                            targetPositions[xbotID] = stationTarget;
-
-                            var stationEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
-
-                            if (stationEntry != default)
-                            {
-                                Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To for station position");
-                                double[] updatedFrom = positions[xbotID] ?? stationEntry.Item2;
-                                double[] updatedTo = stationTarget ?? stationEntry.Item3;
-                                xBotID_From_To.Remove(stationEntry);
+                                xBotID_From_To.Remove(existingEntry);
                                 xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
                                 Console.WriteLine($"[DEBUG] Updated entry for xbotID {xbotID}: From: [{string.Join(", ", updatedFrom)}], To: [{string.Join(", ", updatedTo)}]");
                             }
                             else
                             {
-                                Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To for station position");
-                                xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), stationTarget ?? Array.Empty<double>()));
+                                Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To");
 
-                                Console.WriteLine($"[DEBUG] Added entry for xbotID {xbotID}: From: [{string.Join(", ", positions[xbotID] ?? Array.Empty<double>())}], To: [{string.Join(", ", stationTarget ?? Array.Empty<double>())}]");
+                                xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), approachTarget ?? Array.Empty<double>()));
+                                Console.WriteLine($"[DEBUG] Added entry for xbotID {xbotID}: From: [{string.Join(", ", positions[xbotID] ?? Array.Empty<double>())}], To: [{string.Join(", ", approachTarget ?? Array.Empty<double>())}]");
                             }
+
 
                             StopTrajectoryExicution();
 
-                            Console.WriteLine("[DEBUG] Waiting for all xbots to be idle...");
+
                             while (true)
                             {
                                 lock (xbotState)
@@ -1078,39 +1025,47 @@ namespace PathPlaningNode
                                     }
                                 }
                                 Thread.Sleep(100); // Poll every 100ms  
+
                             }
-                            Console.WriteLine("[DEBUG] All xbots are now idle.");
+
 
                             ExecutePathPlanner();
 
-                            // Wait until the xbot reaches the station position
-                            DateTime startTimeEndPosition = DateTime.Now;
-                            int rerunCounterStation = 0; // Counter to track reruns
-                            while (positions[xbotID][0] != StationCordinate[Command][1][0] || positions[xbotID][1] != StationCordinate[Command][1][1])
+                            // Wait until the xbot reaches the approach position
+                            DateTime startTime = DateTime.Now;
+
+                            int rerunCounter = 0; // Counter to track reruns
+                            var lastPosition = positions[xbotID];
+                            while (positions[xbotID][0] != StationCordinate[Command][0][0] || positions[xbotID][1] != StationCordinate[Command][0][1])
                             {
-                                //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach Station position...");
+                                //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach approach position...");
                                 Thread.Sleep(100);
-
-                                var currentPosition = positions[xbotID];
-
-                                // Check if the position has not changed for 5 seconds
-                                if ((DateTime.Now - startTimeEndPosition).TotalSeconds >= 5 && xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == positions[xbotID])
+                                if (cancellationToken.IsCancellationRequested)
                                 {
-                                    rerunCounterStation++; // Increment the rerun counter
+                                    Console.WriteLine($"[DEBUG] {Command} execution for xbotID {xbotID} was cancelled (inside approach loop).");
+                                    return;
+                                }
+                                var currentPosition = positions[xbotID];
+                                //
+                                // Check if the position has not changed for 5 seconds
+                                if ((DateTime.Now - startTime).TotalSeconds >= 5 && xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == lastPosition)
+                                {
+                                    rerunCounter++; // Increment the rerun counter
 
-                                    if (rerunCounterStation >= 2)
+                                    if (rerunCounter >= 2)
                                     {
                                         Console.WriteLine($"[DEBUG] xbotID {xbotID} has reached the maximum rerun count of 3. Cancelling thread.");
                                         commandCancellationTokens[xbotID].Cancel();
                                         commandCancellationTokens[xbotID].Dispose();
                                         commandCancellationTokens.Remove(xbotID);
-                                        //CommandState.Remove(xbotID);
+                                        var cancellationTokenSource = new CancellationTokenSource();
+                                        commandCancellationTokens[xbotID] = cancellationTokenSource;
                                         CommandExecution(xbotID, Command, commandCancellationTokens[xbotID].Token);
 
                                         return; // Exit this thread and run again  
                                     }
 
-                                    Console.WriteLine($"[DEBUG] xbotID {xbotID} has been waiting for 5 seconds without position change. Re-running PathPlanner. Rerun count: {rerunCounterStation}");
+                                    Console.WriteLine($"[DEBUG] xbotID {xbotID} has been waiting for 5 seconds without position change. Re-running PathPlanner. Rerun count: {rerunCounter}");
                                     StopTrajectoryExicution();
 
                                     Console.WriteLine("[DEBUG] Waiting for all xbots to be idle...");
@@ -1128,23 +1083,195 @@ namespace PathPlaningNode
                                     Console.WriteLine("[DEBUG] All xbots are now idle.");
 
                                     ExecutePathPlanner();
-                                    startTimeEndPosition = DateTime.Now; // Reset the timer
+                                    startTime = DateTime.Now; // Reset the timer
+                                }
+
+                                lastPosition = currentPosition;
+                            }
+
+
+                        }
+
+
+                        approachPositionReached = true; // Set to true once completed
+                        Console.WriteLine($"[DEBUG] Approach position reached for xbotID {xbotID}.");
+                    }
+
+                    // Step 2: Rotate if needed
+                    if (approachPositionReached && !rotationCompleted)
+                    {
+                        // Logic to perform rotation
+                        Console.WriteLine($"[DEBUG] Checking rotation for xbotID {xbotID}. Current Rz: {positions[xbotID][5]}, Target Rz: {StationCordinate[Command][1][5]}");
+                        var lastPosition = positions[xbotID];
+                        while (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
+                        {
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                Console.WriteLine($"[DEBUG] {Command} execution for xbotID {xbotID} was cancelled (inside approach loop).");
+                                return;
+                            }
+
+                            Console.WriteLine($"[DEBUG] Rotating xbotID {xbotID} to match orientation: {StationCordinate[Command][1][5]}");
+                            RotateCommand(xbotID);
+                            var currentPosition = positions[xbotID];
+                            DateTime startTimeRotation = DateTime.Now;
+                            int rerunCounterRotation = 0; // Counter to track reruns
+                            if ((DateTime.Now - startTimeRotation).TotalSeconds >= 5 && xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == lastPosition)
+                            {
+                                rerunCounterRotation++; // Increment the rerun counter
+
+                                if (rerunCounterRotation >= 2)
+                                {
+                                    Console.WriteLine($"[DEBUG] xbotID {xbotID} has reached the maximum rerun count of 3. Cancelling thread.");
+                                    commandCancellationTokens[xbotID].Cancel();
+                                    commandCancellationTokens[xbotID].Dispose();
+                                    commandCancellationTokens.Remove(xbotID);
+                                    var cancellationTokenSource = new CancellationTokenSource();
+                                    commandCancellationTokens[xbotID] = cancellationTokenSource;
+                                    CommandExecution(xbotID, Command, commandCancellationTokens[xbotID].Token);
+
+                                    return; // Exit this thread and run again  
+                                }
+
+
+
+                                Console.WriteLine($"[DEBUG] Rotating xbotID {xbotID} to match orientation: {StationCordinate[Command][1][5]}");
+                                RotateCommand(xbotID);
+
+                                // Wait until the rotation is completed
+                                startTimeRotation = DateTime.Now;
+
+                            }
+                            lastPosition = currentPosition;
+                            while (Math.Abs(positions[xbotID][5] - StationCordinate[Command][1][5]) > 0.1)
+                            {
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    Console.WriteLine($"[DEBUG] {Command} execution for xbotID {xbotID} was cancelled (inside approach loop).");
+                                    return;
+                                }
+                                //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to complete rotation...");
+                                Thread.Sleep(100);
+                            }
+                            Console.WriteLine($"[DEBUG] xbotID {xbotID} completed rotation.");
+                        }
+                        rotationCompleted = true; // Set to true once completed
+                        Console.WriteLine($"[DEBUG] Rotation completed for xbotID {xbotID}.");
+                    }
+
+                    // Step 3: Move to the station position
+                    if (rotationCompleted && !stationPositionReached)
+                    {
+                        Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to station position: {string.Join(", ", StationCordinate[Command][1])}");
+                        double[] stationTarget = StationCordinate[Command][1];
+                        targetPositions[xbotID] = stationTarget;
+
+                        var stationEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+                        if (stationEntry != default)
+                        {
+                            Console.WriteLine($"[DEBUG] Updating existing entry for xbotID {xbotID} in xBotID_From_To for station position");
+                            double[] updatedFrom = positions[xbotID] ?? stationEntry.Item2;
+                            double[] updatedTo = stationTarget ?? stationEntry.Item3;
+                            xBotID_From_To.Remove(stationEntry);
+                            xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+                            Console.WriteLine($"[DEBUG] Updated entry for xbotID {xbotID}: From: [{string.Join(", ", updatedFrom)}], To: [{string.Join(", ", updatedTo)}]");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DEBUG] Adding new entry for xbotID {xbotID} in xBotID_From_To for station position");
+                            xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), stationTarget ?? Array.Empty<double>()));
+
+                            Console.WriteLine($"[DEBUG] Added entry for xbotID {xbotID}: From: [{string.Join(", ", positions[xbotID] ?? Array.Empty<double>())}], To: [{string.Join(", ", stationTarget ?? Array.Empty<double>())}]");
+                        }
+
+                        StopTrajectoryExicution();
+
+                        Console.WriteLine("[DEBUG] Waiting for all xbots to be idle...");
+                        while (true)
+                        {
+                            lock (xbotState)
+                            {
+                                if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
+                                {
+                                    break;
                                 }
                             }
-                            stationPositionReached = true; // Set to true once completed
-                            
-                            if (Command == "Stoppering")
-                            {
-                                Land(xbotID);
-                            }
-                            Console.WriteLine($"[DEBUG] xbotID {xbotID} reached station position.");
-                            //CommandState[xbotID] = (CommandState[xbotID].Item1, CommandState[xbotID].Item2, CommandState[xbotID].Item3, true);
+                            Thread.Sleep(100); // Poll every 100ms  
                         }
-                        
-                        if (Command == "FillingPickNeedle" || Command == "FillingPlaceNeedle")
+                        Console.WriteLine("[DEBUG] All xbots are now idle.");
+
+                        ExecutePathPlanner();
+
+                        // Wait until the xbot reaches the station position
+                        DateTime startTimeEndPosition = DateTime.Now;
+                        int rerunCounterStation = 0; // Counter to track reruns
+                        var lastPosition = positions[xbotID];
+                        while (positions[xbotID][0] != StationCordinate[Command][1][0] || positions[xbotID][1] != StationCordinate[Command][1][1])
                         {
-                            while (!LeavePositionReached)
+                            //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach Station position...");
+                            Thread.Sleep(100);
+                            if (cancellationToken.IsCancellationRequested)
                             {
+                                Console.WriteLine($"[DEBUG] {Command} execution for xbotID {xbotID} was cancelled (inside approach loop).");
+                                return;
+                            }
+                            var currentPosition = positions[xbotID];
+
+                            // Check if the position has not changed for 5 seconds
+                            if ((DateTime.Now - startTimeEndPosition).TotalSeconds >= 5 && xbotState.ContainsKey(xbotID) && xbotState[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == lastPosition)
+                            {
+                                rerunCounterStation++; // Increment the rerun counter
+                                
+                                if (rerunCounterStation >= 2)
+                                {
+                                    Console.WriteLine($"[DEBUG] xbotID {xbotID} has reached the maximum rerun count of 3. Cancelling thread.");
+                                    commandCancellationTokens[xbotID].Cancel();
+                                    commandCancellationTokens[xbotID].Dispose();
+                                    commandCancellationTokens.Remove(xbotID);
+                                    var cancellationTokenSource = new CancellationTokenSource();
+                                    commandCancellationTokens[xbotID] = cancellationTokenSource;
+                                    CommandExecution(xbotID, Command, commandCancellationTokens[xbotID].Token);
+
+                                    return; // Exit this thread and run again  
+                                }
+
+                                Console.WriteLine($"[DEBUG] xbotID {xbotID} has been waiting for 5 seconds without position change. Re-running PathPlanner. Rerun count: {rerunCounterStation}");
+                                StopTrajectoryExicution();
+
+                                Console.WriteLine("[DEBUG] Waiting for all xbots to be idle...");
+                                while (true)
+                                {
+                                    lock (xbotState)
+                                    {
+                                        if (xbotState.Count > 0 && (xbotState.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
+                                        {
+                                            break;
+                                        }
+                                    }
+                                    Thread.Sleep(100); // Poll every 100ms  
+                                }
+                                Console.WriteLine("[DEBUG] All xbots are now idle.");
+
+                                ExecutePathPlanner();
+                                startTimeEndPosition = DateTime.Now; // Reset the timer
+                            }
+                            lastPosition = currentPosition;
+                        }
+                        stationPositionReached = true; // Set to true once completed
+
+                        if (Command == "Stoppering")
+                        {
+                            Land(xbotID);
+                        }
+                        Console.WriteLine($"[DEBUG] xbotID {xbotID} reached station position.");
+                        //CommandState[xbotID] = (CommandState[xbotID].Item1, CommandState[xbotID].Item2, CommandState[xbotID].Item3, true);
+                    }
+
+                    if (Command == "FillingPickNeedle" || Command == "FillingPlaceNeedle")
+                    {
+                        while (!LeavePositionReached)
+                        {
 
 
 
@@ -1246,24 +1373,24 @@ namespace PathPlaningNode
                                 LeavePositionReached = true;
                                 Console.WriteLine($"[DEBUG] xbotID {xbotID} left Station Position.");
 
-                                }
                             }
-                            CommandFinished = true;
-
                         }
-                        else
-                        {
-                            
-                            CommandFinished = true;
-                        }
-                        
-                        
+                        CommandFinished = true;
 
-                        // Add a small delay to avoid busy-waiting
-                        Thread.Sleep(100);
-                    
+                    }
+                    else
+                    {
 
-                    
+                        CommandFinished = true;
+                    }
+
+
+
+                    // Add a small delay to avoid busy-waiting
+                    Thread.Sleep(100);
+
+
+
                 }
                 if (CommandUuid.ContainsKey(xbotID))
                 {
@@ -1278,10 +1405,11 @@ namespace PathPlaningNode
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Error in CommandExecution for xbotID {xbotID}: {ex.Message}");
+                //PrintXbotDirectories(xbotID); // Print directories on error
             }
             finally
             {
-                
+                //commandCancellationTokens[xbotID].Dispose();
             }
         }
 

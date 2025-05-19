@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+//using UnityEngine;
 using System.Diagnostics;
-using System.Text.Json;
 
 public class Pathfinding
 {
@@ -17,6 +17,7 @@ public class Pathfinding
         public int f;
         public bool obstacle;
         public List<int> occupied;
+        public int proximityCost = 0;
         public node(int _x, int _y, bool _obstacle, List<int> _occupied)
         {
             g = 0;
@@ -27,6 +28,7 @@ public class Pathfinding
             x = _x;
             y = _y;
             parent = null;
+            proximityCost = 0;
         }
     }
 
@@ -53,37 +55,56 @@ public class Pathfinding
                     cells[x, y] = new node(x, y, false, new());
                 }
             }
-
+            
             double[,] zone1 = {
-                { 25, 25},
-                { 47, 71 }
+                { 25+1, 25+1},
+                { 47+1, 71+1 }
             };
-
             double[,] zone2 = {
-                { 73, 0},
-                { 96, 71 }
+                { 72+1, 0+1},
+                { 96+1, 71+1 }
             };
             double[,] zone3 = {
-                { 0, 85},
-                { 6, 96 }
+                { 0+1, 81-6+1+6+5+1},
+                { 19-6-1+6-5+1, 96+1 }
+            };
+            double[,] zone4 = {
+                { 0+11, 0+11},
+                { 0+1, height+1 }
+            };
+            double[,] zone5 = {
+                { 0+11, 0+11},
+                { width+1, 0+1 }
+            };
+            double[,] zone6 = {
+                { 0+11, height+11},
+                { width+1, height+1 }
+            };
+            double[,] zone7 = {
+                { width+11, 0+11},
+                { width+1, height+1 }
             };
 
             List<double[,]> zones = new List<double[,]>();
             zones.Add(zone1);
             zones.Add(zone2);
             zones.Add(zone3);
+            zones.Add(zone4);
+            zones.Add(zone5);
+            zones.Add(zone6);
+            zones.Add(zone7);
 
-            int dilationStart = -6;
-            int dilationEnd = 6;
+            int dilationStart = -5;
+            int dilationEnd = 5;
             int translation = -6;
 
             foreach (double[,] zone in zones)
             {
                 // Translate and dilate zone coordinates
-                int xStart = (int)Math.Round(zone[0, 0]) + translation + dilationStart + 1;
-                int yStart = (int)Math.Round(zone[0, 1]) + translation + dilationStart + 1;
-                int xEnd = (int)Math.Round(zone[1, 0]) + translation + dilationEnd - 1;
-                int yEnd = (int)Math.Round(zone[1, 1]) + translation + dilationEnd - 1;
+                int xStart = (int)Math.Round(zone[0, 0]) + translation + dilationStart;
+                int yStart = (int)Math.Round(zone[0, 1]) + translation + dilationStart;
+                int xEnd   = (int)Math.Round(zone[1, 0]) + translation + dilationEnd;
+                int yEnd   = (int)Math.Round(zone[1, 1]) + translation + dilationEnd;
 
                 for (int x = xStart; x <= xEnd; x++)
                 {
@@ -96,25 +117,37 @@ public class Pathfinding
                     }
                 }
             }
-        }
+            // Proximity bonus for all obstacle zones
+            int proximityRange = 10;
+            int proximityBonus = -20; // Tune as needed
 
-        public void SaveWalkablePointsToFile(int _xbotID, string filePath)
-        {
-            using (StreamWriter writer = new StreamWriter(filePath))
+            for (int x = 0; x <= width; x++)
             {
-                writer.WriteLine("Walkable Points:");
-                for (int x = 0; x <= width; x++)
+                for (int y = 0; y <= height; y++)
                 {
-                    for (int y = 0; y <= height; y++)
+                    if (cells[x, y].obstacle) continue;
+
+                    int minDist = proximityRange + 1;
+                    // Check all cells in the grid for the nearest obstacle
+                    for (int ox = 0; ox <= width; ox++)
                     {
-                        if (isWalkable(cells[x, y], _xbotID))
+                        for (int oy = 0; oy <= height; oy++)
                         {
-                            writer.WriteLine($"({x}, {y})");
+                            if (cells[ox, oy].obstacle)
+                            {
+                                int dist = Math.Abs(x - ox) + Math.Abs(y - oy);
+                                if (dist < minDist)
+                                    minDist = dist;
+                            }
                         }
+                    }
+                    if (minDist <= proximityRange && minDist > 0)
+                    {
+                        // The closer to any obstacle, the more negative the cost
+                        cells[x, y].proximityCost = proximityBonus / minDist;
                     }
                 }
             }
-            Console.WriteLine($"Walkable points saved to {filePath}");
         }
 
         public List<node> getNeighbors(node _node)
@@ -226,12 +259,13 @@ public class Pathfinding
             node.f = 0;
             node.parent = null;
         }
-        
+
         node startNode = _grid.cells[_from[0], _from[1]];
         node endNode = _grid.cells[_to[0], _to[1]];
 
-        if(startNode == endNode)
+        if (startNode == endNode)
         {
+            // Bot is already at its destination, return that as a "standing still" path
             return (new List<node> { startNode }, 0);
         }
 
@@ -259,6 +293,7 @@ public class Pathfinding
                 int fCost = 0;
                 while (currentNode != startNode)
                 {
+                    if (currentNode == null || currentNode.parent == null) {return (null, 0);}
                     fCost += currentNode.f;
                     path.Add(currentNode);
                     currentNode = currentNode.parent;
@@ -274,7 +309,10 @@ public class Pathfinding
                     continue;
                 }
 
-                int newMovementCostToNeighbor = currentNode.g + Convert.ToInt32(getDistance(currentNode, neighbor, false));
+                int baseCost = Convert.ToInt32(getDistance(currentNode, neighbor, false));
+                int proximity = neighbor.proximityCost;
+                int newMovementCostToNeighbor = currentNode.g + baseCost + proximity;
+
                 if (newMovementCostToNeighbor < neighbor.g || !openList.Contains(neighbor))
                 {
                     neighbor.g = newMovementCostToNeighbor;
@@ -300,11 +338,11 @@ public class Pathfinding
         stopwatch.Start();
 
         int[,] priorityMatrix = getPriorityMatrix(_xBotID_From_To);
-        
-        //Console.WriteLine("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
+
+        //UnityEngine.Debug.Log("Entries in priorityMatrix: " + priorityMatrix.GetLength(0));
         for (int i = 0; i < priorityMatrix.GetLength(0); i++)
         {
-            //Console.WriteLine("Trying priority: " + (i + 1));
+            //UnityEngine.Debug.Log("Trying priority: " + (i + 1));
             SortedList<int, int> priorityList = new SortedList<int, int>();
             for (int j = 0; j < priorityMatrix.GetLength(1); j++)
             {
@@ -321,69 +359,66 @@ public class Pathfinding
                 bool allBotsHavePaths = _xBotID_From_To.All(bot => newPathList.Any(path => path.Item1 == bot.Item1 && path.Item2 != null && path.Item2.Count > 0));
                 if (allBotsHavePaths)
                 {
-                    //Console.WriteLine("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
+                    //UnityEngine.Debug.Log("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
                     stopwatch.Stop();
-                    //Console.WriteLine("Path found. Returning path list with priority: " + (i + 1));
+                    //UnityEngine.Debug.Log("Path found. Returning path list with priority: " + (i + 1));
                     // Print each XbotID's priority  
                     foreach (var priorityEntry in priorityList)
                     {
-                        //Console.WriteLine($"XbotID: {priorityEntry.Value}, Priority: {priorityEntry.Key}");
+                        //UnityEngine.Debug.Log($"XbotID: {priorityEntry.Value}, Priority: {priorityEntry.Key}");
                     }
-                    //Console.WriteLine("Returning pathlist " + string.Join(", ", newPathList.Select(p => $"Bot {p.Item1}: {string.Join(" -> ", p.Item2.Select(n => $"({n.x}, {n.y})"))}")));
+                    //UnityEngine.Debug.Log("Returning pathlist " + string.Join(", ", newPathList.Select(p => $"Bot {p.Item1}: {string.Join(" -> ", p.Item2.Select(n => $"({n.x}, {n.y})"))}")));
                     return newPathList;
                 }
             }
-            //Console.WriteLine("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
+            //UnityEngine.Debug.Log("Priority " + (i + 1) + " took: " + stopwatch.ElapsedMilliseconds + " ms");
         }
-        Console.WriteLine("Tried: " + priorityMatrix.GetLength(0) + " different priorities. Without Luck");
+        //UnityEngine.Debug.Log("Tried: " + priorityMatrix.GetLength(0) + " different priorities. Without Luck");
         return null;
     }
+
     #endregion
-
-
-    #region PathPlanRunner
+    #region PathPlan Runner
     public List<(int, List<double[]>)> pathPlanRunner(grid _grid, List<(int, double[], double[])> _xBotID_From_To, int _xbotSize)
     {
         Stopwatch stopwatche = new Stopwatch();
         stopwatche.Start();
-
+        _grid.removeOccupied();
         List<(int, int[], int[])> xBotID_From_To = unit_M_To_CM(_xBotID_From_To); // Convert to CM
-
-        Console.WriteLine("[Debug] Pathfinder received xBotID_From_To: " + string.Join(", ", xBotID_From_To.Select(p => $"Bot {p.Item1}: From ({p.Item2[0]}, {p.Item2[1]}) To ({p.Item3[0]}, {p.Item3[1]})")));
+        //UnityEngine.Debug.Log("Pathfinder recieve xBotID_From_To: " + string.Join(", ", xBotID_From_To.Select(p => $"Bot {p.Item1}: From ({p.Item2[0]}, {p.Item2[1]}) To ({p.Item3[0]}, {p.Item3[1]})")));
         List<(int, List<node>, int)> pathList = priorityPlanner(_grid, xBotID_From_To, _xbotSize);
         List<(int, List<(int, int)>)> _output = new();
+        if (pathList == null || pathList.Count == 0)
+        {
+            //UnityEngine.Debug.LogError("No path found");
+            return null;
+        }
 
         foreach (var path in pathList)
         {
             _output.Add((path.Item1, path.Item2.Select(x => (x.x, x.y)).ToList()));
         }
-        //Console.WriteLine($"Pathfinding completed in: " + stopwatche.ElapsedMilliseconds + " ms");
+        //UnityEngine.Debug.Log("Pathfinding completed in: " + stopwatche.ElapsedMilliseconds + " ms");
         stopwatche.Stop();
         List<(int, List<double[]>)> output = unit_CM_To_M(_output)
-           .Select(botTuple => (botTuple.Item1, botTuple.Item2.Select(coords => new double[]
-           {
+          .Select(botTuple => (botTuple.Item1, botTuple.Item2.Select(coords => new double[]
+          {
                Math.Round(coords[0], 2),
                Math.Round(coords[1], 2)
-           }).ToList())).ToList();
+          }).ToList())).ToList();
         return output;
     }
 
     public List<(int, int[], int[])> unit_M_To_CM(List<(int, double[], double[])> _xBotID_From_To)
     {
-
         List<(int, int[], int[])> xBotID_From_To = new();
         foreach (var botTuple in _xBotID_From_To)
         {
-            /*int botID = botTuple.Item1;
-            int[] from = { (int)Math.Floor(botTuple.Item2[0] * 100), (int)Math.Floor(botTuple.Item2[1] * 100) };
-            int[] to = { (int)Math.Floor(botTuple.Item3[0] * 100), (int)Math.Floor(botTuple.Item3[1] * 100) };
-            xBotID_From_To.Add((botID, from, to));
-            */
             int botID = botTuple.Item1;
-            int[] from = { (int)Math.Floor(botTuple.Item2[0] * 100-6), (int)Math.Floor(botTuple.Item2[1] * 100-6) };
-            int[] to = { (int)Math.Floor(botTuple.Item3[0] * 100-6), (int)Math.Floor(botTuple.Item3[1] * 100-6) };
-            xBotID_From_To.Add((botID, from, to));
+            int[] from = { (int)Math.Floor(botTuple.Item2[0] * 100 - 5), (int)Math.Floor(botTuple.Item2[1] * 100 - 5) };
+            int[] to = { (int)Math.Floor(botTuple.Item3[0] * 100 - 5), (int)Math.Floor(botTuple.Item3[1] * 100 - 5) };
 
+            xBotID_From_To.Add((botID, from, to));
         }
         return xBotID_From_To;
     }
@@ -393,85 +428,13 @@ public class Pathfinding
         foreach (var botTuple in output)
         {
             int botID = botTuple.Item1;
-            //List<double[]> path = botTuple.Item2.Select(x => new double[] { (double)x.Item1 / 100, (double)x.Item2 / 100 +0.06}).ToList();
-            List<double[]> path = botTuple.Item2.Select(x => new double[] { ((double)x.Item1 / 100) + 0.06, ((double)x.Item2 / 100 + 0.06) }).ToList();
+            List<double[]> path = botTuple.Item2.Select(x => new double[] { ((double)x.Item1 / 100) + 0.05, ((double)x.Item2 / 100 + 0.05) }).ToList();
             xBotID_From_To.Add((botID, path));
         }
         return xBotID_From_To;
     }
     #endregion
-
-
     #region Conflict Searcher
-    /*
-    public List<(int, node, int, node)> conflictSearcher(List<(int, List<node>, int)> _pathList, int _xbotSize)
-    {
-        List<(int, node, int, node)> conflicts = new();
-        List<int> xBotIDs = _pathList.Select(x => x.Item1).ToList();
-
-        foreach (int xbotID in xBotIDs)
-        {
-            foreach (int otherXbotID in xBotIDs)
-            {
-                if (xbotID == otherXbotID || xbotID > otherXbotID)
-                    continue;
-
-                List<node> xbotPath = new List<node>(_pathList.First(x => x.Item1 == xbotID).Item2);
-                List<node> otherXbotPath = new List<node>(_pathList.First(x => x.Item1 == otherXbotID).Item2);
-
-                int maxLength = Math.Max(xbotPath.Count, otherXbotPath.Count);
-
-                // Pad the shorter path with the last node (simulate standing still)
-                if (xbotPath.Count < maxLength)
-                {
-                    node lastNode = xbotPath.Last();
-                    while (xbotPath.Count < maxLength)
-                        xbotPath.Add(lastNode);
-                }
-
-                if (otherXbotPath.Count < maxLength)
-                {
-                    node lastNode = otherXbotPath.Last();
-                    while (otherXbotPath.Count < maxLength)
-                        otherXbotPath.Add(lastNode);
-                }
-
-                for (int timeStep = 0; timeStep < maxLength; timeStep++)
-                {
-                    if (Math.Abs(xbotPath[timeStep].x - otherXbotPath[timeStep].x) < _xbotSize &&
-                        Math.Abs(xbotPath[timeStep].y - otherXbotPath[timeStep].y) < _xbotSize)
-                    {
-                        if (!conflicts.Any(c => (c.Item1 == xbotID && c.Item3 == otherXbotID)))
-                        {
-                            conflicts.Add((xbotID, xbotPath[timeStep], otherXbotID, otherXbotPath[timeStep]));
-                        }
-                    }
-                    // Check for segment intersection
-                    if (timeStep >= 1)
-                    {
-                        if (Math.Abs(xbotPath[timeStep].x - otherXbotPath[timeStep].x) < _xbotSize * 1.5 &&
-                            Math.Abs(xbotPath[timeStep].y - otherXbotPath[timeStep].y) < _xbotSize * 1.5)
-                        {
-                            float minDist = DistanceBetweenSegments(
-                            xbotPath[timeStep - 1], xbotPath[timeStep],
-                            otherXbotPath[timeStep - 1], otherXbotPath[timeStep]);
-
-                            if (minDist < _xbotSize)
-                            {
-                                conflicts.Add((xbotID, xbotPath[timeStep], otherXbotID, otherXbotPath[timeStep]));
-                            }
-                        }
-                    }
-                }
-
-
-            }
-        }
-
-        return conflicts;
-    }
-    */
-
     public List<(int, node, int, node)> conflictSearcher(List<(int, List<node>, int)> _pathList, int _xbotSize)
     {
         List<(int, node, int, node)> conflicts = new();
@@ -497,32 +460,36 @@ public class Pathfinding
 
                 for (int timeStep = 1; timeStep < maxLength; timeStep++)
                 {
-                    var A1 = (x: (double)xbotPath[timeStep - 1].x, y: (double)xbotPath[timeStep - 1].y);
-                    var A2 = (x: (double)xbotPath[timeStep].x, y: (double)xbotPath[timeStep].y);
-                    var B1 = (x: (double)otherXbotPath[timeStep - 1].x, y: (double)otherXbotPath[timeStep - 1].y);
-                    var B2 = (x: (double)otherXbotPath[timeStep].x, y: (double)otherXbotPath[timeStep].y);
-
-                    Geometry.SegmentToSegmentDistance(A1, A2, B1, B2, out var closestA, out var closestB);
-
-                    double dx = Math.Abs(closestA.x - closestB.x);
-                    double dy = Math.Abs(closestA.y - closestB.y);
-
-                    if (dx <= _xbotSize-0.5 && dy <= _xbotSize-0.5)
+                    if (Math.Abs(xbotPath[timeStep].x - otherXbotPath[timeStep].x) <= 15 &&
+                        Math.Abs(xbotPath[timeStep].y - otherXbotPath[timeStep].y) <= 15)
                     {
-                        node conflictA = xbotPath[timeStep];
-                        node conflictB = otherXbotPath[timeStep];
+                        var A1 = (x: (double)xbotPath[timeStep - 1].x, y: (double)xbotPath[timeStep - 1].y);
+                        var A2 = (x: (double)xbotPath[timeStep].x, y: (double)xbotPath[timeStep].y);
+                        var B1 = (x: (double)otherXbotPath[timeStep - 1].x, y: (double)otherXbotPath[timeStep - 1].y);
+                        var B2 = (x: (double)otherXbotPath[timeStep].x, y: (double)otherXbotPath[timeStep].y);
 
-                        if (!conflicts.Any(c => c.Item1 == xbotID && c.Item3 == otherXbotID))
+                        var (xdist, ydist) = SegmentToSegmentXYDistance(A1, A2, B1, B2);
+
+                        double threshold = _xbotSize; // or convert to float or meters explicitly
+                        if (xdist < threshold && ydist < threshold)
                         {
-                            conflicts.Add((xbotID, conflictA, otherXbotID, conflictB));
+                            node conflictA = xbotPath[timeStep - 1];
+                            node conflictB = otherXbotPath[timeStep - 1];
+
+                            if (!conflicts.Any(c => c.Item1 == xbotID && c.Item3 == otherXbotID))
+                            {
+                                conflicts.Add((xbotID, conflictA, otherXbotID, conflictB));
+                                //UnityEngine.Debug.LogError($"Conflict with Dist: {xdist} , {ydist}");
+                            }
                         }
                     }
                 }
             }
         }
-
         return conflicts;
     }
+
+
     #endregion
     #region Enhanced Conflict Handler
     public List<(int, List<node>, int)> conflictHandler(
@@ -539,7 +506,7 @@ public class Pathfinding
 
         Dictionary<int, int> botWaitTime = new();
         Dictionary<int, List<node>> botWaitingPaths = new(); // Tracks waiting steps for each bot
-        
+
         while (iteration < iterationMax)
         {
             List<(int, List<node>, int)> pathList = new();
@@ -565,7 +532,7 @@ public class Pathfinding
                 }
                 else
                 {
-                    Console.WriteLine("No path found for bot " + botID);
+                    //UnityEngine.Debug.Log("No path found for bot " + botID);
                 }
             }
 
@@ -594,10 +561,10 @@ public class Pathfinding
                 int currentCost = currentPathEntry.Item3;
 
                 // --- Simulate walk-around ---
-                grid walkClone = _grid.Clone(_xbotSize); // SHALLOW CLONE ALERT
-                walkClone.makeUnWalkable(conflictNode, lowerPriorityBot, false, true); // Temp unwalkable
-                (List<node> simWalkPath, int simWalkCost) = aStar(from, to, walkClone, lowerPriorityBot);
-                walkClone.makeUnWalkable(conflictNode, lowerPriorityBot, false, false); // Restore walkable
+                //grid walkClone = _grid.Clone(_xbotSize); // SHALLOW CLONE ALERT
+                _grid.makeUnWalkable(conflictNode, lowerPriorityBot, false, true); // Temp unwalkable
+                (List<node> simWalkPath, int simWalkCost) = aStar(from, to, _grid, lowerPriorityBot);
+                _grid.makeUnWalkable(conflictNode, lowerPriorityBot, false, false); // Restore walkable
                 if (simWalkPath == null || simWalkCost == 0)
                 {
                     simWalkCost = int.MaxValue;
@@ -619,7 +586,7 @@ public class Pathfinding
                         botWaitingPaths[lowerPriorityBot] = new List<node>();
                     botWaitingPaths[lowerPriorityBot].Add(startNode);
 
-                    //Console.WriteLine($"🕒 Bot {lowerPriorityBot} chooses to **WAIT**. WaitTime: {botWaitTime[lowerPriorityBot]}, WaitCost: {waitOptionCost}, WalkCost: {simWalkCost}");
+                    //UnityEngine.Debug.Log($"🕒 Bot {lowerPriorityBot} chooses to **WAIT**. WaitTime: {botWaitTime[lowerPriorityBot]}, WaitCost: {waitOptionCost}, WalkCost: {simWalkCost}");
                     _grid.removeOccupied();
                 }
                 else
@@ -630,11 +597,11 @@ public class Pathfinding
                     {
                         botWaitingPaths[lowerPriorityBot] = new List<node>(); // Clear waiting steps
                         _grid.makeUnWalkable(conflictNode, lowerPriorityBot, false, true);
-                        //Console.WriteLine($"🚶 Bot {lowerPriorityBot} chooses to **WALK AROUND** the conflict at ({conflictNode.x}, {conflictNode.y}). WalkCost: {simWalkCost}, WaitCost: {waitOptionCost}");
+                        //UnityEngine.Debug.Log($"🚶 Bot {lowerPriorityBot} chooses to **WALK AROUND** the conflict at ({conflictNode.x}, {conflictNode.y}). WalkCost: {simWalkCost}, WaitCost: {waitOptionCost}");
                     }
                     else
                     {
-                        //Console.WriteLine($"⚠️ Bot {lowerPriorityBot} attempted walk-around but no valid path found in main grid.");
+                        //UnityEngine.Debug.LogWarning($"⚠️ Bot {lowerPriorityBot} attempted walk-around but no valid path found in main grid.");
                     }
                 }
             }
@@ -643,73 +610,10 @@ public class Pathfinding
             iteration++;
         }
 
-        //Console.WriteLine("Iteration cap hit. No conflict solution found");
+        //UnityEngine.Debug.LogError("Iteration cap hit. No conflict solution found");
         return null;
     }
     #endregion
-
-    public class Geometry
-    {
-        // Point-to-line segment distance, pure C#
-        public static double PointToLineDistance((double x, double y) point, (double x, double y) lineStart, (double x, double y) lineEnd, out (double x, double y) closest)
-        {
-            double dx = lineEnd.x - lineStart.x;
-            double dy = lineEnd.y - lineStart.y;
-
-            if (dx == 0 && dy == 0)
-            {
-                closest = lineStart;
-                return Math.Sqrt((point.x - lineStart.x) * (point.x - lineStart.x) + (point.y - lineStart.y) * (point.y - lineStart.y));
-            }
-
-            double t = ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / (dx * dx + dy * dy);
-            t = Math.Max(0, Math.Min(1, t));
-
-            closest = (lineStart.x + t * dx, lineStart.y + t * dy);
-            return Math.Sqrt((point.x - closest.x) * (point.x - closest.x) + (point.y - closest.y) * (point.y - closest.y));
-        }
-
-        // Line-to-line shortest distance
-        public static double SegmentToSegmentDistance((double x, double y) A1, (double x, double y) A2, (double x, double y) B1, (double x, double y) B2,
-            out (double x, double y) closestA, out (double x, double y) closestB)
-        {
-            (double x, double y) temp1, temp2;
-            double d1 = PointToLineDistance(A1, B1, B2, out temp1);
-            double d2 = PointToLineDistance(A2, B1, B2, out temp2);
-            double d3 = PointToLineDistance(B1, A1, A2, out var temp3);
-            double d4 = PointToLineDistance(B2, A1, A2, out var temp4);
-
-            double minDist = d1;
-            closestA = A1;
-            closestB = temp1;
-
-            if (d2 < minDist)
-            {
-                minDist = d2;
-                closestA = A2;
-                closestB = temp2;
-            }
-
-            if (d3 < minDist)
-            {
-                minDist = d3;
-                closestA = temp3;
-                closestB = B1;
-            }
-
-            if (d4 < minDist)
-            {
-                minDist = d4;
-                closestA = temp4;
-                closestB = B2;
-            }
-
-            return minDist;
-        }
-    }
-
-
-
     #region Distance Calculator
     public double getDistance(node _nodeA, node _nodeB, bool euclidean)
     {
@@ -725,9 +629,9 @@ public class Pathfinding
             int dstY = Math.Abs(_nodeA.y - _nodeB.y);
             if (dstX > dstY)
             {
-                return 14 * dstY + 10 * (dstX - dstY);
+                return 100 * dstY + 100 * (dstX - dstY);
             }
-            return 14 * dstX + 10 * (dstY - dstX);
+            return 100 * dstX + 100 * (dstY - dstX);
         }
     }
     public int[,] getPriorityMatrix(List<(int, int[], int[])> _xBotID_From_To)
@@ -774,7 +678,87 @@ public class Pathfinding
         list.SelectMany((item, index) =>
             GetPermutations(list.Where((_, i) => i != index).ToArray())
             .Select(perm => new[] { item }.Concat(perm)));
-    
     #endregion
     #endregion
+
+    public static (double xdist, double ydist) SegmentToSegmentXYDistance(
+    (double x, double y) A1, (double x, double y) A2,
+    (double x, double y) B1, (double x, double y) B2)
+    {
+        bool A_is_point = A1.x == A2.x && A1.y == A2.y;
+        bool B_is_point = B1.x == B2.x && B1.y == B2.y;
+
+        if (A_is_point && B_is_point)
+        {
+            // Both are points
+            return (Math.Abs(A1.x - B1.x), Math.Abs(A1.y - B1.y));
+        }
+        else if (A_is_point)
+        {
+            var p = ClosestPointOnSegment(B1, B2, A1);
+            return (Math.Abs(A1.x - p.x), Math.Abs(A1.y - p.y));
+        }
+        else if (B_is_point)
+        {
+            var p = ClosestPointOnSegment(A1, A2, B1);
+            return (Math.Abs(p.x - B1.x), Math.Abs(p.y - B1.y));
+        }
+
+        // Segment-segment distance
+        var dA = (x: A2.x - A1.x, y: A2.y - A1.y);
+        var dB = (x: B2.x - B1.x, y: B2.y - B1.y);
+        var r = (x: A1.x - B1.x, y: A1.y - B1.y);
+
+        double a = Dot(dA, dA);
+        double b = Dot(dA, dB);
+        double c = Dot(dB, dB);
+        double d = Dot(dA, r);
+        double e = Dot(dB, r);
+
+        double denom = a * c - b * b;
+
+        double s = 0;
+        double t = 0;
+
+        if (denom != 0)
+        {
+            s = Clamp((b * e - c * d) / denom, 0, 1);
+        }
+
+        var pA = (x: A1.x + s * dA.x, y: A1.y + s * dA.y);
+        var rp = (x: pA.x - B1.x, y: pA.y - B1.y);
+        t = Clamp(Dot(dB, rp) / c, 0, 1);
+
+        var pB = (x: B1.x + t * dB.x, y: B1.y + t * dB.y);
+        var rq = (x: pB.x - A1.x, y: pB.y - A1.y);
+        s = Clamp(Dot(dA, rq) / a, 0, 1);
+
+        var finalA = (x: A1.x + s * dA.x, y: A1.y + s * dA.y);
+        var finalB = (x: B1.x + t * dB.x, y: B1.y + t * dB.y);
+
+        return (Math.Abs(finalA.x - finalB.x), Math.Abs(finalA.y - finalB.y));
+    }
+
+
+    private static (double x, double y) ClosestPointOnSegment((double x, double y) segA, (double x, double y) segB, (double x, double y) point)
+    {
+        var d = (x: segB.x - segA.x, y: segB.y - segA.y);
+        double lenSq = d.x * d.x + d.y * d.y;
+        if (lenSq == 0) return segA; // Segment is a point
+
+        double t = ((point.x - segA.x) * d.x + (point.y - segA.y) * d.y) / lenSq;
+        t = Clamp(t, 0, 1);
+
+        return (segA.x + t * d.x, segA.y + t * d.y);
+    }
+
+
+
+    private static double Dot((double x, double y) a, (double x, double y) b)
+        => a.x * b.x + a.y * b.y;
+
+    private static double Clamp(double val, double min, double max)
+        => Math.Max(min, Math.Min(max, val));
+
+
 }
