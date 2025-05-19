@@ -14,8 +14,8 @@ namespace VT2_Aseptic_Production_Demonstrator
     {
 
         private MQTTPublisher mqttPublisher;
-        //string brokerIP = "localhost";
-        string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
         int port = 1883;
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
         int selector = 4;
@@ -64,15 +64,15 @@ namespace VT2_Aseptic_Production_Demonstrator
                     Command(xbotID);
                     break;
                 case '3':
-                    xbotID = 3;
+                    xbotID = 5;
                     Command(xbotID);
                     break;
                 case '4':
-                    xbotID = 4;
+                    xbotID = 6;
                     Command(xbotID);
                     break;
                 case '5':
-                    xbotID = 5;
+                    xbotID = 7;
                     Command(xbotID);
                     break;
             }
@@ -108,7 +108,27 @@ namespace VT2_Aseptic_Production_Demonstrator
                     xbotID = 0;
                     break;
 
+                //case '1':
 
+                    //var FillingMessage = new
+                    //{
+                    //    CommandUuid = commandUuid,
+                    //    Command = "Filling",
+                    //    TimeStamp = timestamp
+                    //};
+                    //var FillingQueue1Message2 = new
+                    //{
+                    //    CommandUuid = commandUuid,
+                    //    Command = "FillingQueue1",
+                    //    TimeStamp = timestamp
+                    //};
+                    //string serializedMessage = JsonSerializer.Serialize(FillingMessage);
+                    //string serialized2Message = JsonSerializer.Serialize(FillingQueue1Message2);
+                    //await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage);
+                    //await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{2}/CMD", serialized2Message);
+                    //selector = 4;
+                    //xbotID = 0;
+                    //break;
                 case '1':
 
                     var FillingMessage = new

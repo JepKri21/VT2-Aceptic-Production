@@ -26,11 +26,8 @@ namespace PathPlaningNode
         private Dictionary<int, int?> xbotStateStationID = new();
 
         private readonly object xBotID_From_ToLock = new();
-        private readonly object pathPlannerLock = new();
-        private Task? pathPlannerTask = null;
-        private CancellationTokenSource? pathPlannerCts = null;
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
         private int width = 96;
@@ -460,127 +457,82 @@ namespace PathPlaningNode
 
 
 
-        private void ExecutePathPlanner()
+        private async void ExecutePathPlanner()
         {
-            Task? previousTask = null;
-            CancellationTokenSource? previousCts = null;
 
-            lock (pathPlannerLock)
+
+            Console.WriteLine("[Debug] Running Path Planner");
+            Console.WriteLine($"{xBotID_From_To.Count}");
+            for (int i = 0; i < xBotID_From_To.Count; i++)
             {
-                // If a previous task is running, capture it for cancellation outside the lock
-                if (pathPlannerTask != null && !pathPlannerTask.IsCompleted)
+                var (xbotID, from, to) = xBotID_From_To[i];
+
+                if (to == null || to.Length == 0)
                 {
-                    Console.WriteLine("[DEBUG] Cancelling previous path planner task.");
-                    previousCts = pathPlannerCts;
-                    previousTask = pathPlannerTask;
-                }
-
-                pathPlannerCts = new CancellationTokenSource();
-                pathPlannerTask = Task.Run(() => RunExecutePathPlannerAsync(pathPlannerCts.Token), pathPlannerCts.Token);
-            }
-        }
-
-        private async Task RunExecutePathPlannerAsync(CancellationToken token)
-        {
-            try
-            {
-                Console.WriteLine("[Debug] Running Path Planner");
-                Console.WriteLine($"{xBotID_From_To.Count}");
-                for (int i = 0; i < xBotID_From_To.Count; i++)
-                {
-                    if (token.IsCancellationRequested) return;
-
-                    var (xbotID, from, to) = xBotID_From_To[i];
-
-                    if (to == null || to.Length == 0)
+                    if (positions.ContainsKey(xbotID))
                     {
-                        if (positions.ContainsKey(xbotID))
-                        {
-                            xBotID_From_To[i] = (xbotID, from, from);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Error: Current position for xbotID {xbotID} is not available.");
-                            return;
-                        }
+                        xBotID_From_To[i] = (xbotID, from, from);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error: Current position for xbotID {xbotID} is not available.");
+                        return;
                     }
                 }
-
-                trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
-                               .GroupBy(item => item.Item1)
-                               .ToDictionary(group => group.Key, group => group.Last().Item2);
-
-                //if (trajectories == null || trajectories.Count == 0)
-                //{
-                //    Console.WriteLine("[DEBUG] No trajectories generated.");
-                //    //ExecutePathPlanner();
-                //}
+            }
 
 
-                foreach (var trajectory in trajectories)
+            trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
+                           .GroupBy(item => item.Item1)
+                           .ToDictionary(group => group.Key, group => group.Last().Item2);
+
+            foreach (var trajectory in trajectories)
+            {
+                int xbotId = trajectory.Key;
+
+                if (targetPositions.ContainsKey(xbotId))
                 {
-                    if (token.IsCancellationRequested) return;
-
-                    int xbotId = trajectory.Key;
-
-                    if (targetPositions.ContainsKey(xbotId))
+                    var targetPosition = targetPositions[xbotId];
+                    if (positions.ContainsKey(xbotId))
                     {
-                        var targetPosition = targetPositions[xbotId];
-                        if (positions.ContainsKey(xbotId))
-                        {
-                            var currentPosition = positions[xbotId];
+                        var currentPosition = positions[xbotId];
 
-                            if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1)
-                            {
-                                trajectory.Value.Add(targetPosition);
-                            }
+                        if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1)
+                        {
+                            trajectory.Value.Add(targetPosition);
                         }
                     }
-
-                    // Debug: Print the generated trajectory
-                    Console.WriteLine($"[DEBUG] Trajectory for xbotID {xbotId}:");
-                    foreach (var point in trajectory.Value)
-                    {
-                        Console.WriteLine($"[DEBUG] Point: {string.Join(", ", point)}");
-                    }
-
-                    // Generate a unique CommandUuid and current timestamp
-                    string commandUuid = CommandUuid.ContainsKey(xbotId) ? CommandUuid[xbotId] : null;
-
-                    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-
-                    // Construct the trajectory message with CommandUuid and TimeStamp
-                    var trajectoryMessage = new
-                    {
-                        CommandUuid = commandUuid,
-                        Trajectory = trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList(),
-                        TimeStamp = timestamp
-                    };
-
-                    string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/DATA/Trajectory", serializedMessage);
                 }
 
-                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
-
-                //ClearAllTargetPositions();
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("[DEBUG] Path planner task was cancelled.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Exception in path planner: {ex.Message}");
-            }
-            finally
-            {
-                lock (pathPlannerLock)
+                // Debug: Print the generated trajectory
+                Console.WriteLine($"[DEBUG] Trajectory for xbotID {xbotId}:");
+                foreach (var point in trajectory.Value)
                 {
-                    pathPlannerTask = null;
-                    pathPlannerCts = null;
+                    Console.WriteLine($"[DEBUG] Point: {string.Join(", ", point)}");
                 }
+            
+
+                // Generate a unique CommandUuid and current timestamp
+                string commandUuid = CommandUuid.ContainsKey(xbotId) ? CommandUuid[xbotId] : null;
+
+                string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+                // Construct the trajectory message with CommandUuid and TimeStamp
+                var trajectoryMessage = new
+                {
+                    CommandUuid = commandUuid,
+                    Trajectory = trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList(),
+                    TimeStamp = timestamp
+                };
+
+                string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/DATA/Trajectory", serializedMessage);
             }
+
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
+
+            //ClearAllTargetPositions();
+
         }
 
         private double[] FindClosestCenter(double[] currentPosition, List<double[]> centers)
@@ -807,7 +759,6 @@ namespace PathPlaningNode
             {
                 TestPathPlanner();
             }
-            
         }
 
         private async void HandleSubCMD(string topic, string message)
@@ -1419,35 +1370,27 @@ namespace PathPlaningNode
         public void TestPathPlanner()
         {
             // Example 'from' and 'to' points
-            double[] fromPoint1 = positions[1];
-            double[] toPoint1 = { 0.67, 0.6, 0.001, 0.0, 0.0, 0.0 };
-            double[] fromPoint2 = positions[2];
-            double[] toPoint2 = { 0.67, 0.06, 0.001, 0.0, 0.0, 0.0 };
-            /*
-            double[] fromPoint3 = positions[3];
-            double[] toPoint3 = { 0.06, 0.5, 0.0, 0.0, 0.0, 0.0 };
-            double[] fromPoint4 = positions[4];
-            double[] toPoint4 = { 0.06, 0.06, 0.0, 0.0, 0.0, 0.0 };
-            */
+            double[] fromPoint = { 0.06, 0.06, 0.001, 0.0, 0.0, 0.0 };
+            double[] toPoint = { 0.06, 0.5, 0.0, 0.0, 0.0, 0.0 };
+            double[] fromPoint1 = { 0.19, 0.06, 0.0, 0.0, 0.0, 0.0 };
+            double[] toPoint1 = { 0.06, 0.06, 0.0, 0.0, 0.0, 0.0 };
+
+
             // Add the points to the path planner
-            
-            
+            lock (xBotID_From_ToLock)
+            {
                 // Remove existing entries if they exist
-            xBotID_From_To.RemoveAll(entry => entry.Item1 == 1 || entry.Item1 == 2);
+                xBotID_From_To.RemoveAll(entry => entry.Item1 == 1 || entry.Item1 == 2);
 
                 // Add new entries
-            xBotID_From_To.Add((1, fromPoint1, toPoint1));
-            xBotID_From_To.Add((2, fromPoint2, toPoint2)); 
-                
-                
-                //xBotID_From_To.Add((3, fromPoint3, toPoint3));
-                //xBotID_From_To.Add((4, fromPoint4, toPoint4));
-            
+                xBotID_From_To.Add((1, fromPoint, toPoint));
+                xBotID_From_To.Add((2, fromPoint1, toPoint1));
+            }
 
             // Execute the path planner
             ExecutePathPlanner();
 
-            
+            Console.WriteLine("TestPathPlanner executed with 'from' and 'to' points.");
         }
 
         public static async Task Main(string[] args)

@@ -29,7 +29,7 @@ namespace PMC
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
         private Dictionary<int, int> xbotStateStationID = new();
-        /*
+        
         private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
         {
             {1, false },
@@ -37,7 +37,7 @@ namespace PMC
             {5, false },
             {6, false },
             {7, false }
-        };*/
+        };/*
         private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
         {
             {1, false },
@@ -45,11 +45,11 @@ namespace PMC
             {3, false },
             {4, false },
             {5, false }
-        };
+        };*/
         private Dictionary<int, double[]> Station = new(); //Key is the StationdId, value is the position
         private Dictionary<int, string> CommandUuid = new();
-        string brokerIP = "172.20.66.135";
-        //string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -310,7 +310,7 @@ namespace PMC
             xbotsID = xBotIDs.XBotIDsArray;
             Console.WriteLine("XBot IDs: " + string.Join(", ", xbotsID));
             var message = JsonSerializer.Serialize(new { XBotIDs = xbotsID, TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
-            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"DATA/IDs", message, true);
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"DATA/IDs", message, retain: true);
         }
 
         #endregion
@@ -419,9 +419,9 @@ namespace PMC
                 int[] xbot = { 1, 2 };
 
 
-                double[] xpostions = { 0.12, 0.6 };
+                double[] xpostions = { 0.66, 0.66};
 
-                double[] ypostions = { 0.78, 0.9 };
+                double[] ypostions = { 0.06, 0.6 };
 
                 _xbotCommand.AutoDrivingMotionSI(2, ASYNCOPTIONS.MOVEALL, xbot, xpostions, ypostions);
 
@@ -722,42 +722,7 @@ namespace PMC
         }
 
 
-        /*
-        public async void GetTrajectories(string topic, string message)
-        {
-            try 
-            {
-                // Find the segment that starts with "xbot" and extract the numeric part
-                string[] segments = topic.Split('/');
-                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot"));
-                if (xbotSegment != null)
-                {
-                    int xbotId = int.Parse(xbotSegment.Substring(4)); // Extract the numeric part after "xbot"
-
-                    // Deserialize the message into a TrajectoryMessage object
-                    var trajectoryMessage = JsonSerializer.Deserialize<TrajectoryMessage>(message);
-                    if (trajectoryMessage == null || trajectoryMessage.TrajectoryPoints == null)
-                    {
-                        Console.WriteLine($"Invalid trajectory message received for xbot {xbotId}");
-                        return;
-                    }
-
-                    // Log the CommandUuid and TimeStamp for debugging
-                    Console.WriteLine($"Received trajectory for xbot {xbotId} with CommandUuid: {trajectoryMessage.CommandUuid} and TimeStamp: {trajectoryMessage.TimeStamp}");
-
-                    // Update the trajectories dictionary
-                    trajectories[xbotId] = trajectoryMessage.TrajectoryPoints;
-
-                    // Print the received trajectory
-                    PrintTrajectories();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error processing trajectory message: {ex.Message}");
-            }
-        }
-        */
+        
 
         public async void ExecuteTrajectory()
         {
@@ -782,7 +747,7 @@ namespace PMC
                     {
                         try
                         {
-                            
+                            double baseVelocity = 0.1;
                             if (!trajectories.ContainsKey(xbotID))
                             {
                                 Console.WriteLine($"[Error] Key {xbotID} not found in trajectories dictionary.");
@@ -791,6 +756,7 @@ namespace PMC
                             if (trajectories[xbotID].Count < 2)
                             {
                                 Console.WriteLine($"[Warning] Trajectory for xbot {xbotID} has less than 2 points. Skipping execution.");
+                                _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, trajectories[xbotID][0][0], trajectories[xbotID][0][1], 0, baseVelocity, 0.5);
                                 return;
                             }
                             xbotStateStationID[xbotID] = 0;
@@ -827,9 +793,8 @@ namespace PMC
                                 double[] nextPoint = trajectories[xbotID][i + 1];
                                 double deltaX = nextPoint[0] - currentPoint[0];
                                 double deltaY = nextPoint[1] - currentPoint[1];
-                                double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
-                                double baseVelocity = 0.1;
-                                double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
+                                double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);                                
+                                double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2)*1.5 : baseVelocity;
 
                                 if (i < trajectories[xbotID].Count - 2)
                                 {
