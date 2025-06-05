@@ -14,8 +14,8 @@ namespace VT2_Aseptic_Production_Demonstrator
     {
 
         private MQTTPublisher mqttPublisher;
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
         int selector = 4;
@@ -35,18 +35,18 @@ namespace VT2_Aseptic_Production_Demonstrator
             mqttPublisher = new MQTTPublisher(brokerIP, port);
             await mqttPublisher.StartAsync();
         }
-
+        
 
         public async void runCommandSender()
         {
             Console.Clear();
             Console.WriteLine(" CommandHandler Select Xbot");
             Console.WriteLine("0    Return");
-            Console.WriteLine("1    Xbot1");
-            Console.WriteLine("2    Xbot2");
-            Console.WriteLine("3    Xbot5");
-            Console.WriteLine("4    Xbot6");
-            Console.WriteLine("5    Xbot7");
+            Console.WriteLine("1    Xbot2");
+            Console.WriteLine("2    Xbot5");
+            Console.WriteLine("3    Xbot6");
+            Console.WriteLine("4    Xbot7");
+            Console.WriteLine("5    Xbot1");
             ConsoleKeyInfo keyInfo = Console.ReadKey();
             switch (keyInfo.KeyChar)
             {
@@ -56,23 +56,23 @@ namespace VT2_Aseptic_Production_Demonstrator
 
 
                 case '1':
-                    xbotID = 1;
-                    Command(xbotID);
-                    break;
-                case '2':
                     xbotID = 2;
                     Command(xbotID);
                     break;
+                case '2':
+                    xbotID = 5;
+                    Command(xbotID);
+                    break;
                 case '3':
-                    xbotID = 3;
+                    xbotID = 6;
                     Command(xbotID);
                     break;
                 case '4':
-                    xbotID = 4;
+                    xbotID = 7;
                     Command(xbotID);
                     break;
                 case '5':
-                    xbotID = 5;
+                    xbotID = 1;
                     Command(xbotID);
                     break;
             }
@@ -119,6 +119,33 @@ namespace VT2_Aseptic_Production_Demonstrator
                     };
                     string serializedMessage = JsonSerializer.Serialize(FillingMessage);
                     await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage);
+                    /*
+                    var FillingQueue1Message1 = new
+                    {
+                        CommandUuid = commandUuid,
+                        Command = "FillingQueue1",
+                        TimeStamp = timestamp
+                    };
+                    string serialized2Message = JsonSerializer.Serialize(FillingQueue1Message1);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{2}/CMD", serialized2Message);
+                    
+                    var FillingQueue2Message1 = new
+                    {
+                        CommandUuid = commandUuid,
+                        Command = "FillingQueue2",
+                        TimeStamp = timestamp
+                    };
+                    string serialized3Message = JsonSerializer.Serialize(FillingQueue2Message1);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{3}/CMD", serialized3Message);
+                    
+                    var FillingQueue3Message1 = new
+                    {
+                        CommandUuid = commandUuid,
+                        Command = "FillingQueue3",
+                        TimeStamp = timestamp
+                    };
+                    string serialized4Message = JsonSerializer.Serialize(FillingQueue3Message1);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{4}/CMD", serialized4Message);*/
                     selector = 4;
                     xbotID = 0;
                     break;
@@ -238,7 +265,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var PickPlaceStorageMessage = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "PickPlaceStorage",
+                        Command = "PickPlacerStorage",
                         TimeStamp = timestamp
                     };
                     string serializedMessage9 = JsonSerializer.Serialize(PickPlaceStorageMessage);

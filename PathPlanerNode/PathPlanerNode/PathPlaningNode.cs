@@ -29,8 +29,8 @@ namespace PathPlaningNode
         private readonly object pathPlannerLock = new();
         private Task? pathPlannerTask = null;
         private CancellationTokenSource? pathPlannerCts = null;
-        string brokerIP = "localhost";
-        //string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
         private int width = 98;
@@ -138,24 +138,24 @@ namespace PathPlaningNode
         {
             double[] FillingStation = { 0.083, 0.114, 0.001, 0, 0, 90 };
             double[] FillingApproach = { 0.12, 0.12, 0.001, 0, 0, 0 };
-            double[] StopperingStation = { 0.108, 0.361, 0.001, 0, 0, 90 };
+            double[] StopperingStation = { 0.1075, 0.3613, 0.001, 0, 0, 90 };
             double[] StopperingApproach = { 0.12, 0.36, 0.001, 0, 0, 0 };
             double[] VisionStation = { 0.102, 0.587, 0.001, 0, 0, 90 };
             double[] VisionApproach = { 0.12, 0.6, 0.001, 0, 0, 0 };
             double[] FillingQueueApproach1 = { 0.6, 0.84, 0.001, 0, 0, 0 };
-            double[] EndQueue1 = { 0.3, 0.54, 0.001, 0, 0, 90 };
+            double[] EndPoint = { 0.36, 0.84, 0.001, 0, 0, 90 };
             double[] EndQueue2 = { 0.42, 0.54, 0.001, 0, 0, 90 };
             double[] EndQueue3 = { 0.54, 0.54, 0.001, 0, 0, 90 };
             double[] EndQueue4 = { 0.66, 0.54, 0.001, 0, 0, 90 };
             double[] FillingQueue1 = { 0.3, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue2 = { 0.43, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue3 = { 0.56, 0.06, 0.001, 0, 0, 0 };
-            double[] FillingQueue4 = { 0.66, 0.19, 0.001, 0, 0, 0 };
+            double[] FillingQueue2 = { 0.42, 0.06, 0.001, 0, 0, 0 };
+            double[] FillingQueue3 = { 0.54, 0.06, 0.001, 0, 0, 0 };
+            double[] FillingQueue4 = { 0.66, 0.06, 0.001, 0, 0, 0 };
             double[] FillingPickNeedle = { 0.12, 0.08, 0.001, 0, 0, 180 };
             double[] FillingPickNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
             double[] FillingPlaceNeedle = { 0.106, 0.12, 0.001, 0, 0, 90 };
             double[] FillingPlaceNeedleApproch = { 0.12, 0.12, 0.001, 0, 0, 0 };
-            double[] PickPlacerStoreage = { 0.66, 0.9, 0, 001, 0, 0, 180 };
+            double[] PickPlacerStoreage = { 0.84, 0.84, 0, 001, 0, 0, 180 };
             double[] ErrorHandelingStation = { 0.36, 0.90, 0.001, 0, 0, 0 };
             double[] ErrorHandelingStationApproch2 = { 0.36, 0.84, 0.001, 0, 0, 0 };
             var stationMessage = new StationMessage
@@ -227,10 +227,10 @@ namespace PathPlaningNode
                     },
                     new StationMessage.Station
                     {
-                        Name = "EndQueue",
+                        Name = "EndPoint",
                         StationId = 10,
-                        ApproachPosition = EndQueue1,
-                        ProcessPosition = EndQueue1
+                        ApproachPosition = EndPoint,
+                        ProcessPosition = EndPoint
                     },
                     new StationMessage.Station
                     {
@@ -257,7 +257,7 @@ namespace PathPlaningNode
                     {
                         Name = "PickPlacerStorage",
                         StationId =14,
-                        ApproachPosition = FillingApproach,
+                        ApproachPosition = PickPlacerStoreage,
                         ProcessPosition = PickPlacerStoreage
                     }
                 }
@@ -807,6 +807,14 @@ namespace PathPlaningNode
             string[] segments = topic.Split('/');
             string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
             int xbotID = int.Parse(xbotSegment.Substring(4));
+            if (string.IsNullOrWhiteSpace(message) || message == "null")
+            {
+                Console.WriteLine("[DEBUG] Received empty or null command message. Ignoring.");
+                CommandUuid[xbotID] = null;
+                return;
+            }
+
+            
 
             // Deserialize the message into a structured object
             var commandMessage = JsonSerializer.Deserialize<CommandMessage>(message);
@@ -937,7 +945,7 @@ namespace PathPlaningNode
 
 
 
-        void CommandExecution(int xbotID, string Command, CancellationToken cancellationToken)
+        async void CommandExecution(int xbotID, string Command, CancellationToken cancellationToken)
         {
             try
             {
@@ -958,7 +966,7 @@ namespace PathPlaningNode
                 }
 
 
-                if (Command == "FillingQueue1" || Command == "FillingQueue2" || Command == "FillingQueue3")
+                if (Command == "FillingQueue1" || Command == "FillingQueue2" || Command == "FillingQueue3" || Command == "EndPoint")
                 {
                     approachPositionReached = true;
                     rotationCompleted = true;
@@ -1206,8 +1214,11 @@ namespace PathPlaningNode
                         // Wait until the xbot reaches the station position
                         DateTime startTimeEndPosition = DateTime.Now;
                         int rerunCounterStation = 0; // Counter to track reruns
-                        var lastPosition = positions[xbotID];
-                        while (positions[xbotID][0] != StationCordinate[Command][1][0] || positions[xbotID][1] != StationCordinate[Command][1][1])
+                        var lastPosition = positions[xbotID]; 
+                        const double epsilon = 0.001; // or smaller if needed
+
+                        while (Math.Abs(positions[xbotID][0] - StationCordinate[Command][1][0]) > epsilon ||
+                               Math.Abs(positions[xbotID][1] - StationCordinate[Command][1][1]) > epsilon)
                         {
                             //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach Station position...");
                             Thread.Sleep(100);
@@ -1375,13 +1386,33 @@ namespace PathPlaningNode
 
                             }
                         }
-                        CommandFinished = true;
+                        string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                        var nullCommand = new
+                        {
+                            CommandUuid = "null",
+                            Command = "null",
+                            TimeStamp = timestamp
+                        };
+                        string serializedMessage = JsonSerializer.Serialize(nullCommand);
+                        
 
+                        CommandFinished = true;
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD", serializedMessage, retain: true); // Sends an empty message
                     }
                     else
                     {
+                        string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                        var nullCommand = new
+                        {
+                            CommandUuid = "null",
+                            Command = "null",
+                            TimeStamp = timestamp
+                        };
+                        string serializedMessage = JsonSerializer.Serialize(nullCommand);
+
 
                         CommandFinished = true;
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD", serializedMessage, retain: true); // Sends an empty message
                     }
 
 
@@ -1434,22 +1465,24 @@ namespace PathPlaningNode
         public void TestPathPlanner()
         {
             // Example 'from' and 'to' points
-            double[] fromPoint = { 0.06, 0.06, 0.001, 0.0, 0.0, 0.0 };
-            double[] toPoint = { 0.06, 0.5, 0.0, 0.0, 0.0, 0.0 };
-            double[] fromPoint1 = { 0.19, 0.06, 0.0, 0.0, 0.0, 0.0 };
-            double[] toPoint1 = { 0.06, 0.06, 0.0, 0.0, 0.0, 0.0 };
-
-
+            
+            double[] toPoint1 = { 0.6, 0.42, 0.0, 0.0, 0.0, 0.0 };            
+            double[] toPoint2 = { 0.18, 0.36, 0.0, 0.0, 0.0, 0.0 };
+            double[] toPoint3 = { 0.06, 0.6, 0.0, 0.0, 0.0, 0.0 };
+            double[] toPoint4 = { 0.36, 0.9, 0.0, 0.0, 0.0, 0.0 };
+            double[] toPoint5 = { 0.06, 0.06, 0.001, 0.0, 0.0, 0.0 };
             // Add the points to the path planner
-            lock (xBotID_From_ToLock)
-            {
+            
                 // Remove existing entries if they exist
                 xBotID_From_To.RemoveAll(entry => entry.Item1 == 1 || entry.Item1 == 2);
 
                 // Add new entries
-                xBotID_From_To.Add((1, fromPoint, toPoint));
-                xBotID_From_To.Add((2, fromPoint1, toPoint1));
-            }
+                xBotID_From_To.Add((1, positions[1], toPoint1));
+                xBotID_From_To.Add((2, positions[2], toPoint2)); 
+                xBotID_From_To.Add((3, positions[3], toPoint3));
+                xBotID_From_To.Add((4, positions[4], toPoint4));
+                xBotID_From_To.Add((5, positions[5], toPoint5));
+            
 
             // Execute the path planner
             ExecutePathPlanner();

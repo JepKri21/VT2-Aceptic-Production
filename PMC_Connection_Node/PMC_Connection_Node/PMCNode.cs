@@ -29,27 +29,23 @@ namespace PMC
         private Dictionary<int, double[]> targetPositions = new();
         private Dictionary<int, double[]> positions = new();
         private Dictionary<int, int> xbotStateStationID = new();
-        /*
-        private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
-        {
-            {1, false },
-            {2, false },
-            {5, false },
-            {6, false },
-            {7, false }
-        };*/
+
         private Dictionary<int, bool> RotationLock = new Dictionary<int, bool>
         {
             {1, false },
             {2, false },
             {3, false },
             {4, false },
-            {5, false }
+            {5, false },
+            {6, false },
+            {7, false },
+            {8, false },
         };
+        
         private Dictionary<int, double[]> Station = new(); //Key is the StationdId, value is the position
         private Dictionary<int, string> CommandUuid = new();
-        //string brokerIP = "172.20.66.135";
-        string brokerIP = "localhost";
+        string brokerIP = "172.20.66.135";
+        //string brokerIP = "localhost";
         int port = 1883;
         int[] xbotsID;
         Dictionary<int, List<double[]>> trajectories = new Dictionary<int, List<double[]>>();
@@ -63,14 +59,14 @@ namespace PMC
         {
             { 0, "Undetected" },
             { 1, "Discovering" },
-            { 2, "Execute" },
-            //{ 2, "Idle" },
+            { 2, "Execute" },            
             { 3, "Idle" },
             { 4, "Stopped" },
             { 5, "Executing" },
             { 6, "Executing" },
             { 7, "Stopping" },
             { 8, "Held" },
+            { 9, "Held" },
             { 10, "Stopped" },
             { 14, "Error" }
         };
@@ -259,21 +255,18 @@ namespace PMC
                         string serializedPositionMessage = JsonSerializer.Serialize(positionMessage);
                         await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/DATA/Position", serializedPositionMessage, retain: true);
                     }
-                    // Find the key in Station where the value matches the target position
+                    // Find the key in Station where the value matches the current position
                     var matchingStation = Station.FirstOrDefault(station =>
                         station.Value.Take(2).Zip(new double[] { position[0], position[1] },
                                                  (stationValue, targetValue) => Math.Abs(stationValue - targetValue) < 0.001).All(isClose => isClose));
 
-                    if (matchingStation.Key != 0) // Check if the key is not the default value for int (0)
+                    if (matchingStation.Key != 0) // If the current position matches a station position
                     {
-                        //Console.WriteLine($"[Debug] Matching station found for xbotID {xbotID}: StationID {matchingStation.Key}");
-
-                        // Add the key as the stationID to the xbotStateStationID
-                        xbotStateStationID[xbot] = matchingStation.Key; // No need to parse as it's already an int
+                        xbotStateStationID[xbot] = matchingStation.Key;
                     }
-                    else
+                    else // If the current position does not match any station position
                     {
-                        //Console.WriteLine($"[Debug] No matching station found for xbotID {xbotID} at position: ({nextPoint[0]}, {nextPoint[1]})");
+                        xbotStateStationID[xbot] = 0;
                     }
                     // Check if state has changed
                     if (!lastPublishedStates.ContainsKey(xbot) ||
@@ -416,14 +409,14 @@ namespace PMC
             }
             if (message == "home")
             {
-                int[] xbot = { 1, 2 };
+                int[] xbot = { 1, 2, 3, 4, 5 };
 
 
-                double[] xpostions = { 0.12, 0.6 };
+                double[] xpostions = { 0.12, 0.6, 0.6, 0.36, 0.84};
 
-                double[] ypostions = { 0.78, 0.9 };
+                double[] ypostions = { 0.6, 0.9,  0.12, 0.12, 0.84};
 
-                _xbotCommand.AutoDrivingMotionSI(2, ASYNCOPTIONS.MOVEALL, xbot, xpostions, ypostions);
+                _xbotCommand.AutoDrivingMotionSI(5, ASYNCOPTIONS.MOVEALL, xbot, xpostions, ypostions);
 
 
 
@@ -775,8 +768,8 @@ namespace PMC
                     Console.WriteLine($"[Info] Task for xbotID {xbotID} is already running. Skipping new task.");
                     continue;
                 }
-
-                if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
+                //&& trajectories[xbotID].Count > 0
+                if (trajectories.ContainsKey(xbotID) )
                 {
                     var task = Task.Run(async () =>
                     {
@@ -838,7 +831,7 @@ namespace PMC
                                     WaitUntilTriggerParams time_params = new WaitUntilTriggerParams();
                                     time_params.delaySecs = 0.18 * identicalCount - 1;
 
-                                    if (i == 1 && nextPoint[0] == nextNextPoint[0] && nextPoint[1] == nextNextPoint[1])
+                                    if (i == 1  && nextPoint[0] == nextNextPoint[0] && nextPoint[1] == nextNextPoint[1])
                                     {
                                         Console.WriteLine($"xbot{xbotID} is waiting");
                                         _xbotCommand.WaitUntil(0, xbotID, TRIGGERSOURCE.TIME_DELAY, time_params);
@@ -909,201 +902,6 @@ namespace PMC
         }
 
 
-        public async void RunTrajectory2()
-        {
-            runTrajectoryCancellationTokenSource = new CancellationTokenSource();
-            var cancellationToken = runTrajectoryCancellationTokenSource.Token;
-
-            List<Task> tasks = new List<Task>();
-
-            foreach (var xbotID in trajectories.Keys)
-            {
-                if (trajectories.ContainsKey(xbotID) && trajectories[xbotID].Count > 0)
-                {
-                    tasks.Add(Task.Run(async () =>
-                    {
-                        try
-                        {
-                            // Log the state of the trajectories dictionary
-                            Console.WriteLine($"[Debug] Current state of trajectories dictionary: {string.Join(", ", trajectories.Select(kvp => $"xbotID: {kvp.Key}, Points: {kvp.Value.Count}"))}");
-
-                            // Check if the key exists in the dictionary
-                            if (!trajectories.ContainsKey(xbotID))
-                            {
-                                Console.WriteLine($"[Error] Key {xbotID} not found in trajectories dictionary.");
-                                return;
-                            }
-
-                            //Console.WriteLine($"Trajectory Points: {string.Join(" | ", trajectories[xbotID].Select(p => $"({p[0]}, {p[1]})"))}");
-                            // Print the number of identical points in the trajectory
-                            //int identicalCount = CountConsecutiveIdenticalTrajectoryPoints(trajectories[xbotID], 0.0); // Use 0.0 for exact match, or a small value for tolerance
-                            //Console.WriteLine($"Identical points in trajectory for xbot {xbotID}: {identicalCount}");
-                            // Add the first motion to the buffer
-                            double[] point = trajectories[xbotID][0];
-                            //Console.WriteLine($"Next point for xbot {xbotID}: ({point[0]}, {point[1]})");
-                            //Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={point[0]}, tagPosY={point[1]}, pathType='D'");
-                            xbotStateStationID[xbotID] = 0;
-                            for (int i = 1; i < trajectories[xbotID].Count; i++)
-                            {
-                                if (cancellationToken.IsCancellationRequested)
-                                {
-                                    Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
-                                    return; // Exit the loop if cancellation is requested
-                                }
-
-                                MotionBufferReturn BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                int bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
-
-                             
-                                
-
-                                // Wait until there is only 1 motion left in the buffer
-                                while (bufferCount > 1)
-                                {
-                                    if (cancellationToken.IsCancellationRequested)
-                                    {
-                                        Console.WriteLine($"RunTrajectory canceled for xbotID {xbotID}");
-                                        return; // Exit the loop if cancellation is requested
-                                    }
-
-                                    BufferStatus = _xbotCommand.MotionBufferControl(xbotID, MOTIONBUFFEROPTIONS.RELEASEBUFFER);
-                                    bufferCount = BufferStatus.motionBufferStatus.bufferedMotionCount;
-                                }
-
-                                // Handle trajectory points
-                                double[] currentPoint = trajectories[xbotID][i - 1];
-                                double[] nextPoint = trajectories[xbotID][i];
-                                double deltaX = nextPoint[0] - currentPoint[0];
-                                double deltaY = nextPoint[1] - currentPoint[1];
-                                double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
-                                double baseVelocity = 0.1;
-                                double adjustedVelocity = (distance > 1.0) ? baseVelocity * Math.Sqrt(2) : baseVelocity;
-
-                                //Console.WriteLine($"Next point for xbot {xbotID}: ({nextPoint[0]}, {nextPoint[1]})");
-                                //Console.WriteLine($"Calling LinarMotion with: cmdLabel=0, xbotID={xbotID}, tagPosX={nextPoint[0]}, tagPosY={nextPoint[1]}, pathType='D'");
-
-
-
-
-                                if (i < trajectories[xbotID].Count - 1)
-                                {
-                                    double[] nextNextPoint = trajectories[xbotID][i + 1];
-                                    double[] nextDirectionVector = { nextNextPoint[0] - nextPoint[0], nextNextPoint[1] - nextPoint[1] };
-
-                                    //WaitUntilTriggerParams time_params = new WaitUntilTriggerParams();
-                                    //time_params.delaySecs = 0.18;
-                                    //Console.WriteLine($"[Debug] nextPoint: ({nextPoint[0]}, {nextPoint[1]}), nextNextPoint: ({nextNextPoint[0]}, {nextNextPoint[1]})");
-                                    //Console.WriteLine($"[Debug] nextPoint == nextNextPoint: true");
-                                    //Console.WriteLine($"[Debug] i: {i}, xbotID: {xbotID}");
-                                    //Console.WriteLine($"[Debug] Full nextPoint: [{string.Join(", ", nextPoint)}]");
-                                    //Console.WriteLine($"[Debug] Full nextNextPoint: [{string.Join(", ", nextNextPoint)}]");
-                                    //Console.WriteLine($"[Debug] Trajectory count for xbotID {xbotID}: {trajectories[xbotID].Count}");
-                                    //if (nextPoint[0] == nextNextPoint[0] && nextPoint[1] == nextNextPoint[1])                                    
-                                    //{
-                                    //    Console.WriteLine($"xbot{xbotID} is waiting");
-                                    //    _xbotCommand.WaitUntil(0, xbotID, TRIGGERSOURCE.TIME_DELAY, time_params);
-                                    //}
-                                    //else
-                                    //{
-                                    //    if (Math.Sign(deltaX) != Math.Sign(nextDirectionVector[0]) || Math.Sign(deltaY) != Math.Sign(nextDirectionVector[1]))
-                                    //    {
-                                    //        Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
-                                    //        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.5);
-
-                                    //    }
-                                    //    else
-                                    //    {
-                                    //        Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
-                                    //        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.5);
-
-                                    //    }
-                                    //}
-                                    if (Math.Sign(deltaX) != Math.Sign(nextDirectionVector[0]) || Math.Sign(deltaY) != Math.Sign(nextDirectionVector[1]))
-                                    {
-                                        Console.WriteLine($"Direction change detected at point {i + 1} for xbotID {xbotID}");
-                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.5);
-
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($"Maintaining direction for xbotID {xbotID} at point {i}");
-                                        _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.5);
-
-                                    }
-                                }
-                                else
-                                {
-                                    // Handle the last point explicitly
-                                    Console.WriteLine($"Adding last point to buffer for xbotID {xbotID}: {string.Join(", ", nextPoint.Select(p => Math.Round(p, 3)))}");
-                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], 0, adjustedVelocity, 0.5);
-
-
-
-                                    if (nextPoint[0] == targetPositions[xbotID][0] && nextPoint[1] == targetPositions[xbotID][1])
-                                    {
-                                        Console.WriteLine($"[Debug] xbotID {xbotID} reached target position: ({nextPoint[0]}, {nextPoint[1]})");
-
-                                        // Find the key in Station where the value matches the target position
-                                        var matchingStation = Station.FirstOrDefault(station =>
-                                            station.Value.Take(2).Zip(new double[] { targetPositions[xbotID][0], targetPositions[xbotID][1] },
-                                                                     (stationValue, targetValue) => Math.Abs(stationValue - targetValue) < 0.001).All(isClose => isClose));
-                                        
-                                        if (matchingStation.Key != 0) // Check if the key is not the default value for int (0)
-                                        {
-                                            Console.WriteLine($"[Debug] Matching station found for xbotID {xbotID}: StationID {matchingStation.Key}");
-
-                                            // Add the key as the stationID to the xbotStateStationID
-                                            xbotStateStationID[xbotID] = matchingStation.Key; // No need to parse as it's already an int
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine($"[Debug] No matching station found for xbotID {xbotID} at position: ({nextPoint[0]}, {nextPoint[1]})");
-                                        }
-                                    }
-
-                                    
-                                    
-                                    
-                                }
-
-                                // Print remaining trajectory points
-                                //Console.WriteLine($"Remaining trajectory points for xbot {xbotID}:");
-                                //for (int j = i + 1; j < trajectories[xbotID].Count; j++)
-                                //{
-                                //    Console.WriteLine($"({trajectories[xbotID][j][0]}, {trajectories[xbotID][j][1]})");
-                                //}
-                            }
-                             
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error in RunTrajectory for xbotID {xbotID}: {ex.Message}");
-                        }
-                        finally
-                        {
-                            lock (trajectories)
-                            {
-                                trajectories.Remove(xbotID);
-                            }
-                        }
-                    }));
-                }
-            }
-
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine("RunTrajectory operation was canceled.");
-            }
-            finally
-            {
-                runTrajectoryCancellationTokenSource?.Dispose();
-                runTrajectoryCancellationTokenSource = new CancellationTokenSource(); // Replace null assignment
-            }
-        }
 
         
 

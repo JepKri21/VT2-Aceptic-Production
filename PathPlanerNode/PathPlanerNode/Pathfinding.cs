@@ -62,7 +62,7 @@ public class Pathfinding
             };
             double[,] zone2 = {
                 { 72+1, 0+1},
-                { 96+1, 71+1 }
+                { 96+1, 72+1 }
             };
             double[,] zone3 = {
                 { 0+1, 81-6+1+6+5+1},

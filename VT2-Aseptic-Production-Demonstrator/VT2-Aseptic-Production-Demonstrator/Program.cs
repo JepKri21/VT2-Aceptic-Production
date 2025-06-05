@@ -101,7 +101,11 @@ ____________________________________________________________________| ";
                     commandSender.runCommandSender();
                     commandSender.setSelectorOne();
                 }
-
+                while (selector == 5)
+                {
+                    commandSender.runCommandSender();
+                    commandSender.setSelectorOne();
+                }
             } while (true);
 
         }
