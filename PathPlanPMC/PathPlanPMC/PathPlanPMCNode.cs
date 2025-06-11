@@ -770,15 +770,37 @@ namespace PathPlanPMC
         #endregion
 
         #region Command execution
-        private void Levitate(int xbotID)
+        private async void Levitate(int xbotID)
         {
             Console.WriteLine($"[DEBUG] Sending levitate command to xbotID {xbotID}.");            
             _xbotCommand.LevitationCommand(xbotID, LEVITATEOPTIONS.LEVITATE);
+            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+            var nullCommand = new
+            {
+                CommandUuid = "None",
+                Task = "None",
+                TimeStamp = timestamp
+            };
+            string serializedMessage = JsonSerializer.Serialize(nullCommand);
+
+
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", serializedMessage); // Sends an empty message
         }
-        private void Land(int xbotID)
+        private async void Land(int xbotID)
         {
             Console.WriteLine($"[DEBUG] Sending levitate command to xbotID {xbotID}.");            
             _xbotCommand.LevitationCommand(xbotID, LEVITATEOPTIONS.LAND);
+            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+            var nullCommand = new
+            {
+                CommandUuid = "None",
+                Task = "None",
+                TimeStamp = timestamp
+            };
+            string serializedMessage = JsonSerializer.Serialize(nullCommand);
+
+
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", serializedMessage); // Sends an empty message
         }
 
         private void Rotation(int xbotID)
@@ -893,6 +915,17 @@ namespace PathPlanPMC
 
                         await Task.Delay(100, cancellationToken);
                     }
+                    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                    var nullCommand = new
+                    {
+                        CommandUuid = "None",
+                        Task = "None",
+                        TimeStamp = timestamp
+                    };
+                    string serializedMessage = JsonSerializer.Serialize(nullCommand);
+
+                   
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", serializedMessage); // Sends an empty message
                 }
                 catch (Exception ex)
                 {
