@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PathPlanerNode")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2c994a0536a8255b7964e393662337e81debb5eb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0bb0b2d807c34a7eee850e79271e83c205218661")]
 [assembly: System.Reflection.AssemblyProductAttribute("PathPlanerNode")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PathPlanerNode")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

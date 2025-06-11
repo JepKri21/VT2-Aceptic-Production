@@ -29,8 +29,8 @@ namespace PathPlaningNode
         private readonly object pathPlannerLock = new();
         private Task? pathPlannerTask = null;
         private CancellationTokenSource? pathPlannerCts = null;
-        //string brokerIP = "localhost";
-        string brokerIP = "172.20.66.135";
+        string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
         int port = 1883;
         private int xbotSize = 12;
         private int width = 98;

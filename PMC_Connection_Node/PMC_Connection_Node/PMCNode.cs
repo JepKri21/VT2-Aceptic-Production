@@ -386,10 +386,7 @@ namespace PMC
 
             foreach (var station in stationMessage.Stations)
             {
-                Console.WriteLine($"[Debug] Processing station: Name={station.Name}, StationId={station.StationId}, " +
-                                  $"ApproachPosition=({string.Join(", ", station.ApproachPosition)}), " +
-                                  $"ProcessPosition=({string.Join(", ", station.ProcessPosition)})");
-
+                
                 Station[station.StationId] = station.ProcessPosition;
             }
 

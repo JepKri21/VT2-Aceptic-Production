@@ -154,11 +154,11 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var StopperingMessage = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Stoppering",
+                        Task = "Approach",
                         TimeStamp = timestamp
                     };
                     string serializedMessage1 = JsonSerializer.Serialize(StopperingMessage);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage1);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD/SubCMD", serializedMessage1);
                     selector = 4;
                     xbotID = 0;
                     break;
@@ -167,11 +167,11 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var VisionMessage = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Vision",
+                        Task = "Rotation",
                         TimeStamp = timestamp
                     };
                     string serializedMessage2 = JsonSerializer.Serialize(VisionMessage);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage2);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD/SubCMD", serializedMessage2);
                     selector = 4;
                     xbotID = 0;
                     break;
@@ -181,11 +181,11 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var FillingQueue1Message = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "FillingQueue1",
+                        Task = "StationPosition",
                         TimeStamp = timestamp
                     };
                     string serializedMessage3 = JsonSerializer.Serialize(FillingQueue1Message);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD", serializedMessage3);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbot}/CMD/SubCMD", serializedMessage3);
                     selector = 4;
                     xbotID = 0;
                     break;
