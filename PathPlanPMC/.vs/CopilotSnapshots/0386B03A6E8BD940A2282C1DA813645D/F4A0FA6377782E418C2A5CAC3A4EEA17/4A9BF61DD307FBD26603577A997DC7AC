@@ -3,6 +3,7 @@ using PathPlaningNode;
 using PMCLIB;
 using System.ComponentModel.Design;
 using System.Numerics;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -416,18 +417,15 @@ namespace PathPlanPMC
             string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
             int xbotID = int.Parse(xbotSegment.Substring(4));
 
-            
+
             var subCommandMessage = JsonSerializer.Deserialize<SubCommandMessage>(message);
             CurrentTask[xbotID] = subCommandMessage.Task; // Update the current task for this xbotID
             if (subCommandMessage == null)
             {
                 throw new InvalidOperationException("Command message is null or invalid.");
             }
-            
             switch (subCommandMessage.Task)
             {
-                case "None":
-                    break;
                 case "Levitate":
                     Levitate(xbotID);
                     break;
@@ -624,11 +622,15 @@ namespace PathPlanPMC
                     Console.WriteLine("[DEBUG] Cancelling previous path planner task.");
                     previousCts = pathPlannerCts;
                     previousTask = pathPlannerTask;
+                    // Properly cancel the previous token
+                    previousCts?.Cancel();
+                    previousTask.Dispose(); // Dispose the previous task if it was running
                 }
 
                 pathPlannerCts = new CancellationTokenSource();
                 pathPlannerTask = Task.Run(() => RunExecutePathPlannerAsync(pathPlannerCts.Token), pathPlannerCts.Token);
             }
+            
         }
 
         private async Task RunExecutePathPlannerAsync(CancellationToken token)
@@ -642,8 +644,7 @@ namespace PathPlanPMC
                     if (token.IsCancellationRequested) return;
 
                     var (xbotID, from, to) = xBotID_From_To[i];
-                    from = positions[xbotID];
-                    xBotID_From_To[i] = (xbotID, from, to);
+
                     if (to == null || to.Length == 0)
                     {
                         if (positions.ContainsKey(xbotID))
@@ -689,12 +690,12 @@ namespace PathPlanPMC
                         }
                     }
 
-                    //// Debug: Print the generated trajectory
-                    //Console.WriteLine($"[DEBUG] Trajectory for xbotID {xbotId}:");
-                    //foreach (var point in trajectory.Value)
-                    //{
-                    //    Console.WriteLine($"[DEBUG] Point: {string.Join(", ", point)}");
-                    //}
+                    // Debug: Print the generated trajectory
+                    Console.WriteLine($"[DEBUG] Trajectory for xbotID {xbotId}:");
+                    foreach (var point in trajectory.Value)
+                    {
+                        Console.WriteLine($"[DEBUG] Point: {string.Join(", ", point)}");
+                    }
 
                     // Generate a unique CommandUuid and current timestamp
                     string commandUuid = CommandUuid.ContainsKey(xbotId) ? CommandUuid[xbotId] : null;
@@ -909,15 +910,17 @@ namespace PathPlanPMC
                                 TimeStamp = timestamp
                             };
                             string serializedMessage = JsonSerializer.Serialize(nullCommand);
-
-
                             await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", serializedMessage); // Sends an empty message
                             break;
+
                         }
 
                         await Task.Delay(100, cancellationToken);
                     }
+                    
+
                    
+                    
                 }
                 catch (Exception ex)
                 {
@@ -931,8 +934,10 @@ namespace PathPlanPMC
                         rotationCancellationTokens[xbotID].Dispose();
                         rotationCancellationTokens.Remove(xbotID);
                     }
+                    
                 }
             }, cancellationToken);
+
         }
 
 
@@ -996,17 +1001,17 @@ namespace PathPlanPMC
                             {
                                 lock (XbotStates)
                                 {
-                                    //Console.WriteLine("I am here");
+                                   
                                     // Debug print for XbotStates and their values before the check
                                     //Console.WriteLine("[DEBUG] XbotStates contents:");
-                                    //foreach (var kvp in ShuttleStates)
-                                    //{
-                                    //    Console.WriteLine($"  xbotID: {kvp.Key}, State: {kvp.Value}");
-                                    //}
+                                    foreach (var kvp in ShuttleStates)
+                                    {
+                                        Console.WriteLine($"  xbotID: {kvp.Key}, State: {kvp.Value}");
+                                    }
                                     //Console.WriteLine($"[DEBUG] XbotStates.Count: {ShuttleStates.Count}");
                                     //Console.WriteLine($"[DEBUG] XbotStates.Values: {string.Join(", ", ShuttleStates.Values)}");
 
-                                    if (ShuttleStates.Count > 0 && (ShuttleStates.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase) || state.Equals("Stopped", StringComparison.OrdinalIgnoreCase))))
+                                    if (ShuttleStates.Count > 0 && (ShuttleStates.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase))))
                                     {
                                         Console.WriteLine("[DEBUG] All xbots are Idle or Execute. Breaking loop.");
                                         break;
@@ -1035,8 +1040,8 @@ namespace PathPlanPMC
                                 }
                                 var currentPosition = positions[xbotID];
                                 //
-                                // Check if the position has not changed for 2 seconds
-                                if ((DateTime.Now - startTime).TotalSeconds >= 2 && ShuttleStates.ContainsKey(xbotID) && ShuttleStates[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == lastPosition)
+                                // Check if the position has not changed for 5 seconds
+                                if ((DateTime.Now - startTime).TotalSeconds >= 5 && ShuttleStates.ContainsKey(xbotID) && ShuttleStates[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == lastPosition)
                                 {
                                     rerunCounter++; // Increment the rerun counter
 
@@ -1067,7 +1072,6 @@ namespace PathPlanPMC
                                             }
                                         }
                                         Thread.Sleep(100); // Poll every 100ms  
-                                        StopRunTrajectory();
                                     }
                                     Console.WriteLine("[DEBUG] All xbots are now idle.");
 
@@ -1162,17 +1166,17 @@ namespace PathPlanPMC
                                 Console.WriteLine($"[Error] Key {xbotID} not found in trajectories dictionary.");
                                 return;
                             }
-                            // If there is only one point, make a linear motion to that point
-                            if (trajectories[xbotID].Count == 1)
-                            {
-                                double[] point = trajectories[xbotID][0];
-                                double baseVelocity = 0.1;
-                                _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, point[0], point[1], 0, baseVelocity, 0.5);
-                                return;
-                            }
                             if (trajectories[xbotID].Count < 2)
                             {
                                 Console.WriteLine($"[Warning] Trajectory for xbot {xbotID} has less than 2 points. Skipping execution.");
+                                if (trajectories[xbotID].Count == 1)
+                                {
+                                    // Only one point in the trajectory, perform a LinearMotionSI to that point
+                                    double[] onlyPoint = trajectories[xbotID][0];
+                                    double baseVelocity = 0.1;
+                                    _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, onlyPoint[0], onlyPoint[1], 0, baseVelocity, 0.5);
+                                    return;
+                                }
                                 return;
                             }
                             xbotStateStationID[xbotID] = 0;
@@ -1236,7 +1240,8 @@ namespace PathPlanPMC
                                         }
                                         else
                                         {
-                                            _xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.5);
+                                            continue; // Skip this iteration if the direction is not changing
+                                            //_xbotCommand.LinearMotionSI(0, xbotID, POSITIONMODE.ABSOLUTE, LINEARPATHTYPE.DIRECT, nextPoint[0], nextPoint[1], adjustedVelocity, adjustedVelocity, 0.5);
                                         }
                                     }
                                 }
@@ -1266,10 +1271,10 @@ namespace PathPlanPMC
                         }
                         finally
                         {
-                            lock (trajectories)
-                            {
-                                trajectories.Remove(xbotID);
-                            }
+                            //lock (trajectories)
+                            //{
+                            //    trajectories.Remove(xbotID);
+                            //}
                         }
                     });
                     runningTasks[xbotID] = task;
@@ -1283,12 +1288,35 @@ namespace PathPlanPMC
             catch (OperationCanceledException)
             {
                 Console.WriteLine("RunTrajectory operation was canceled.");
-            }
+            }         
             finally
             {
+                // Replace the problematic block with the following, using a local variable for xbotID
+                foreach (var xbotID in trajectories.Keys.ToList())
+                {
+                    if (trajectories.ContainsKey(xbotID))
+                    {
+                        lock (trajectories)
+                        {
+                            trajectories.Remove(xbotID);
+                        }
+
+                    }
+                    
+                    // Remove the completed task from runningTasks
+                    lock (runningTasks)
+                    {
+                        if (runningTasks.ContainsKey(xbotID))
+                        {
+                            runningTasks.Remove(xbotID);
+                        }
+                    }
+                }
                 runTrajectoryCancellationTokenSource?.Dispose();
                 runTrajectoryCancellationTokenSource = new CancellationTokenSource(); // Replace null assignment
             }
+           
+            
         }
 
         // Utility method to count consecutive identical points in a trajectory (exact match, both X and Y)
@@ -1397,10 +1425,7 @@ namespace PathPlanPMC
                         Console.WriteLine($"[StopDebug] Error stopping motion for xbot {xbot}: {ex.Message}");
                     }
                 }
-                else if (!RotationLock.ContainsKey(xbot))
-                {
-
-                }
+                
 
 
             }

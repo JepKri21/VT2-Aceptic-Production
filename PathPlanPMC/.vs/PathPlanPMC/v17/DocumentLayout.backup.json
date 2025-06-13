@@ -7,8 +7,8 @@
       "RelativeMoniker": "D:0:0:{8ED4748E-4820-49CC-B96C-F8CA4FAA0AD8}|PathPlanPMC\\PathPlanPMC.csproj|solutionrelative:pathplanpmc\\pathplanpmcnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8ED4748E-4820-49CC-B96C-F8CA4FAA0AD8}|PathPlanPMC\\PathPlanPMC.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pathplanpmc\\pathplanpmc\\connection_handler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8ED4748E-4820-49CC-B96C-F8CA4FAA0AD8}|PathPlanPMC\\PathPlanPMC.csproj|solutionrelative:pathplanpmc\\connection_handler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{8ED4748E-4820-49CC-B96C-F8CA4FAA0AD8}|PathPlanPMC\\PathPlanPMC.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pathplanpmc\\pathplanpmc\\pathfinding.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8ED4748E-4820-49CC-B96C-F8CA4FAA0AD8}|PathPlanPMC\\PathPlanPMC.csproj|solutionrelative:pathplanpmc\\pathfinding.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -23,15 +23,14 @@
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "connection_handler.cs",
-              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanPMC\\PathPlanPMC\\connection_handler.cs",
-              "RelativeDocumentMoniker": "PathPlanPMC\\connection_handler.cs",
-              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanPMC\\PathPlanPMC\\connection_handler.cs",
-              "RelativeToolTip": "PathPlanPMC\\connection_handler.cs",
-              "ViewState": "AgIAAEEAAAAAAAAAAAAgwAAAAAAAAAAAAAAAAA==",
+              "Title": "Pathfinding.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanPMC\\PathPlanPMC\\Pathfinding.cs",
+              "RelativeDocumentMoniker": "PathPlanPMC\\Pathfinding.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanPMC\\PathPlanPMC\\Pathfinding.cs",
+              "RelativeToolTip": "PathPlanPMC\\Pathfinding.cs",
+              "ViewState": "AgIAAPIAAAAAAAAAAAAjwP4AAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-11T08:53:19.36Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-13T08:34:47.435Z"
             },
             {
               "$type": "Document",
@@ -39,9 +38,9 @@
               "Title": "PathPlanPMCNode.cs",
               "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanPMC\\PathPlanPMC\\PathPlanPMCNode.cs",
               "RelativeDocumentMoniker": "PathPlanPMC\\PathPlanPMCNode.cs",
-              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanPMC\\PathPlanPMC\\PathPlanPMCNode.cs*",
-              "RelativeToolTip": "PathPlanPMC\\PathPlanPMCNode.cs*",
-              "ViewState": "AgIAAPcBAAAAAAAAAAAYwAoCAAAXAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanPMC\\PathPlanPMC\\PathPlanPMCNode.cs",
+              "RelativeToolTip": "PathPlanPMC\\PathPlanPMCNode.cs",
+              "ViewState": "AgIAAGYAAAAAAAAAAAAvwHUCAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-06-05T10:25:44.5Z",
               "EditorCaption": ""

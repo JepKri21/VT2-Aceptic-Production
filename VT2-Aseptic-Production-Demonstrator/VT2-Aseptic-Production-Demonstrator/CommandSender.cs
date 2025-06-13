@@ -56,7 +56,7 @@ namespace VT2_Aseptic_Production_Demonstrator
 
 
                 case '1':
-                    xbotID = 2;
+                    xbotID = 7;
                     Command(xbotID);
                     break;
                 case '2':
@@ -114,7 +114,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var FillingMessage = new
                     {
                         CommandUuid = commandUuid,
-                        Command = "Filling",
+                        Command = "Away",
                         TimeStamp = timestamp
                     };
                     string serializedMessage = JsonSerializer.Serialize(FillingMessage);
@@ -154,7 +154,7 @@ namespace VT2_Aseptic_Production_Demonstrator
                     var StopperingMessage = new
                     {
                         CommandUuid = commandUuid,
-                        Task = "Approach",
+                        Task = "AwayPosition",
                         TimeStamp = timestamp
                     };
                     string serializedMessage1 = JsonSerializer.Serialize(StopperingMessage);
