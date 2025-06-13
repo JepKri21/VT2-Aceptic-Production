@@ -1,0 +1,53 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pathplanernode\\pathplanernode\\pathplaningnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|solutionrelative:pathplanernode\\pathplaningnode.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|c:\\users\\jeppe\\onedrive\\dokumenter\\github\\vt2-aceptic-production\\pathplanernode\\pathplanernode\\pathfinding.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7B046084-9963-46C1-80C6-579E66243C54}|PathPlanerNode\\PathPlanerNode.csproj|solutionrelative:pathplanernode\\pathfinding.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 212,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "PathPlaningNode.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\PathPlaningNode.cs",
+              "RelativeDocumentMoniker": "PathPlanerNode\\PathPlaningNode.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\PathPlaningNode.cs*",
+              "RelativeToolTip": "PathPlanerNode\\PathPlaningNode.cs*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-05T10:29:55.407Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Pathfinding.cs",
+              "DocumentMoniker": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\Pathfinding.cs",
+              "RelativeDocumentMoniker": "PathPlanerNode\\Pathfinding.cs",
+              "ToolTip": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\PathPlanerNode\\PathPlanerNode\\Pathfinding.cs",
+              "RelativeToolTip": "PathPlanerNode\\Pathfinding.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-05T10:28:07.769Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

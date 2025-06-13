@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "uxSBrcjuss0=",
+  "dgSpecHash": "2by3Xv1mhPA=",
   "success": true,
-  "projectFilePath": "C:\\Users\\jeppe\\source\\repos\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\jeppe\\OneDrive\\Dokumenter\\GitHub\\VT2-Aceptic-Production\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator\\VT2-Aseptic-Production-Demonstrator.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\jeppe\\.nuget\\packages\\mqttnet\\4.3.7.1207\\mqttnet.4.3.7.1207.nupkg.sha512"
+  ],
   "logs": []
 }

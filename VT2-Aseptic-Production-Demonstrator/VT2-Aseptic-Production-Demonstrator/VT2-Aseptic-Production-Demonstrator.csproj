@@ -8,4 +8,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="PMCLIB">
+      <HintPath>..\..\..\..\..\..\OneDrive - Aalborg Universitet\Robotteknologi\VT2\PMCLIB.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

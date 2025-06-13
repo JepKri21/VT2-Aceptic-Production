@@ -1,0 +1,716 @@
+﻿using MQTTnet.Protocol;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Diagnostics;
+using System.Linq;
+using System.Text.Json;
+//using UnityEngine;
+
+
+
+namespace PathPlaningNode
+{
+    class PathPlaningNode
+    {
+        private MQTTSubscriber mqttSubscriber = null!;
+        private MQTTPublisher mqttPublisher = null!;
+        private Dictionary<string, Action<string, string>> topicHandlers = null!;
+        private int[] xbotsID = null!;
+        private Dictionary<int, List<double[]>> trajectories = new();
+        private Dictionary<string, List<double[]>> StationCordinate = new(); //First entry is the approach position and the second entry is the process position
+        private Dictionary<int, double[]> targetPositions = new();
+        private Dictionary<int, double[]> positions = new();
+        private Dictionary<int, string> CommandUuid = new();
+        string brokerIP = "localhost";
+        //string brokerIP = "172.20.66.135";
+        int port = 1883;
+        private int xbotSize = 12;
+        private int width = 72;
+        private int height = 96;
+        private Pathfinding.grid gridGlobal;
+        private Pathfinding pathfinder;
+        private List<(int, double[], double[])> xBotID_From_To = new();        
+        string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
+         
+
+       
+
+        private class PositionMessage
+        {
+            public string Uuid { get; set; } = string.Empty;
+            public double X { get; set; }
+            public double Y { get; set; }
+            public double Z { get; set; }
+            public double Rx { get; set; }
+            public double Ry { get; set; }
+            public double Rz { get; set; }
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
+        private class TargetPositionMessage
+        {
+            public string Uuid { get; set; } = string.Empty;
+            public double X { get; set; }
+            public double Y { get; set; }
+            public double Z { get; set; }
+            public double Rx { get; set; }
+            public double Ry { get; set; }
+            public double Rz { get; set; }
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
+        private class CommandMessage
+        {
+            public string CommnadUuid { get; set; } = string.Empty;
+            public string Command { get; set; } = string.Empty;
+            public string TimeStamp { get; set; } = string.Empty;
+        }
+
+        private class StationMessage
+        {
+            public List<Station> Stations { get; set; } = new();
+
+            public class Station
+            {
+                public string Name { get; set; } = string.Empty;
+                public int StationId { get; set; }
+                public double[] ApproachPosition { get; set; } = Array.Empty<double>();
+                public double[] ProcessPosition { get; set; } = Array.Empty<double>();
+            }
+        }
+
+        #region Initialize
+       
+
+        private async Task WaitForMqttConnectionAsync(MQTTPublisher mQTTPublisher,MQTTSubscriber mQTTSubscriber)
+        {
+            while (!mQTTPublisher.IsConnected || !mQTTSubscriber.IsConnected)
+            {
+                Console.WriteLine("Waiting for MQTT connection...");
+                await Task.Delay(500); // Wait for 500ms before checking again
+            }
+            Console.WriteLine("MQTT connection established.");
+        }
+
+        public PathPlaningNode()
+        {
+            mqttSubscriber = new MQTTSubscriber(brokerIP, port);
+            mqttPublisher = new MQTTPublisher(brokerIP, port);
+            InitializeMqttPublisher(mqttPublisher);
+            InitializeTopicHandlers();
+            InitializeMqttSubscriber(mqttSubscriber);
+
+            Task.Run(async () =>
+            {
+                await WaitForMqttConnectionAsync();
+                gridGlobal = new Pathfinding.grid(width, height, xbotSize);
+                pathfinder = new Pathfinding();
+                InitializeStations();
+            });
+        }
+
+        
+
+        private async void InitializeStations()
+        {
+            double[] FillingStation = { 0.6, 0.06, 0, 0, 0, 90 };
+            double[] FillingApproach = { 0.6, 0.12, 0, 0, 0, 0 };
+            double[] StopperingStation = { 0.12, 0.36, 0, 0, 0, 0 };
+            double[] StopperingApproach = { 0.12, 0.36, 0, 0, 0, 0 };
+            double[] VisionStation = { 0.12, 0.6, 0, 0, 0, 0 };
+            double[] VisionApproach = { 0.12, 0.6, 0, 0, 0, 0 };
+            double[] FillingQueue1 = { 0.12, 0.84, 0, 0, 0, 0 };
+            double[] FillingQueue2 = { 0.36, 0.12, 0, 0, 0, 0 };
+            double[] FillingQueue3 = { 0.36, 0.36, 0, 0, 0, 0 };
+            double[] FillingQueue4 = { 0.36, 0.6, 0, 0, 0, 0 };
+
+            var stationMessage = new StationMessage
+            {
+                Stations = new List<StationMessage.Station>
+                {
+                    new StationMessage.Station
+                    {
+                        Name = "Filling",
+                        StationId = 1,
+                        ApproachPosition = FillingApproach,
+                        ProcessPosition = FillingStation
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "Stoppering",
+                        StationId = 2,
+                        ApproachPosition = StopperingApproach,
+                        ProcessPosition = StopperingStation
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "Vision",
+                        StationId = 3,
+                        ApproachPosition = VisionApproach,
+                        ProcessPosition = VisionStation
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "FillingQueue1",
+                        StationId = 4,
+                        ApproachPosition = FillingQueue1,
+                        ProcessPosition = FillingQueue1
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "FillingQueue2",
+                        StationId = 5,
+                        ApproachPosition = FillingQueue2,
+                        ProcessPosition = FillingQueue2
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "FillingQueue3",
+                        StationId = 6,
+                        ApproachPosition = FillingQueue3,
+                        ProcessPosition = FillingQueue3
+                    },
+                    new StationMessage.Station
+                    {
+                        Name = "FillingQueue4",
+                        StationId = 7,
+                        ApproachPosition = FillingQueue4,
+                        ProcessPosition = FillingQueue4
+                    },
+                }
+            };
+
+            string serializedMessage = JsonSerializer.Serialize(stationMessage);
+            await mqttPublisher.PublishMessageAsync("AAU/Fibigerstræde/Building14/FillingLine/Configuration/Data/Planar/Staions", serializedMessage);
+        }
+            
+
+
+        private void InitializeTopicHandlers()
+        {
+            topicHandlers = new Dictionary<string, Action<string, string>>
+                {
+                    { UNSPrefix + "+/Data/TargetPosition", getTargetPostion },
+                    { UNSPrefix + "+/Data/Position", getPostion },
+                    { UNSPrefix + "PathPlan/CMD", HandlePathPlanStatus },
+                    { UNSPrefix + "+/CMD/SubCMD", HandleSubCMD},
+                    { UNSPrefix + "+/CMD", HandleCMD },
+                    { "AAU/Fibigerstræde/Building14/FillingLine/Configuration/Data/Planar/Staions", HandelStationSetup}
+                };
+        }
+
+        private async void InitializeMqttSubscriber(MQTTSubscriber mQTTSubscriber)
+        {
+            
+            mQTTSubscriber.MessageReceived += messageHandler;
+            await mqttSubscriber.StartAsync();
+            Console.WriteLine("Connected to MQTT broker.");
+            foreach (var topic in topicHandlers.Keys)
+            {
+                await mqttSubscriber.SubscribeAsync(topic);
+            }
+        }
+
+        private async void InitializeMqttPublisher(MQTTPublisher mQTTPublisher)
+        {
+            
+            await mQTTPublisher.StartAsync();
+        }
+        public async void getTargetPostion(string topic, string message)
+        {
+            try
+            {
+                Console.WriteLine($"Received target position message on topic {topic}: {message}");
+
+                StopTrajectoryExicution();
+
+                // Deserialize the message into a TargetPositionMessage object
+                var targetPositionMessage = JsonSerializer.Deserialize<TargetPositionMessage>(message)
+                    ?? throw new InvalidOperationException("TargetPosition is null");
+
+                // Extract numeric values from the structured object
+                double[] targetPosition = new double[]
+                {
+                    targetPositionMessage.X,
+                    targetPositionMessage.Y,
+                    targetPositionMessage.Z,
+                    targetPositionMessage.Rx,
+                    targetPositionMessage.Ry,
+                    targetPositionMessage.Rz
+                };
+                Console.WriteLine($"Target Position: {string.Join(", ", targetPosition)}");
+
+                double thresholdValue = 1;
+                string[] segments = topic.Split('/');
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot"))
+                    ?? throw new InvalidOperationException("xbot segment not found");
+                int xbotID = int.Parse(xbotSegment.Substring(4));
+                targetPositions[xbotID] = targetPosition;
+
+                if (positions.ContainsKey(xbotID))
+                {
+                    var currentPosition = positions[xbotID];
+
+                    if (Math.Abs(currentPosition[5] - targetPosition[5]) < thresholdValue)
+                    {
+                        Console.WriteLine($"Rz value difference is less than the threshold for xbotID {xbotID}.");
+                        Console.WriteLine($"Updating target position for xbotID {xbotID}: {string.Join(", ", targetPosition)}");
+
+                        UpdateFromAndTo(xbotID);
+                        
+                    }
+                    else
+                    {
+                        Console.WriteLine("Need to rotate");
+                        RotateCommand(xbotID);                        
+                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", "Rotate");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing target position message: {ex.Message}");
+            }
+        }
+
+        private async void RotateCommand(int xbotID)
+        {
+            Console.WriteLine("Sending rotate command to xbot...");
+
+            List<double[]> flywayCenters = new()
+            {
+                new double[] {0.12, 0.12},
+                new double[] {0.12, 0.36},
+                new double[] {0.12, 0.6},
+                new double[] {0.12, 0.84},
+                new double[] {0.36, 0.12},
+                new double[] {0.36, 0.36},
+                new double[] {0.36, 0.84},
+                new double[] {0.6, 0.12},
+                new double[] {0.6, 0.36},
+                new double[] {0.6, 0.6},
+                new double[] {0.6, 0.84}
+            };
+
+            double[] targetPositionsRotation = FindClosestCenter(positions[xbotID], flywayCenters);
+            double[]? currentPosition = positions.ContainsKey(xbotID) ? positions[xbotID] : null;
+            // Update xBotID_From_To with the rotation target
+
+            //double[]? currentXY = currentPosition != null ? new double[] { currentPosition[0], currentPosition[1] } : null;
+
+
+            // Add the rotation target to xBotID_From_To           
+
+            
+            var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+            if (existingEntry != default)
+            {
+                double[] updatedFrom = currentPosition ?? existingEntry.Item2;
+                double[] updatedTo = targetPositionsRotation ?? existingEntry.Item3;
+                xBotID_From_To.Remove(existingEntry);
+                xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+            }
+            else
+            {
+                xBotID_From_To.Add((xbotID, currentPosition ?? Array.Empty<double>(), targetPositionsRotation ?? Array.Empty<double>()));
+            }
+            PrintXBotIDFromTo();
+
+            
+
+        }
+
+        private async void StopTrajectoryExicution()
+        {
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + "PathPlan/Stop", "Stop");
+        }
+
+
+
+        private async void ExicutePathPlanner()
+        {
+            Console.WriteLine("Running Path Planner");
+            Console.WriteLine($"{xBotID_From_To.Count}");
+            for (int i = 0; i < xBotID_From_To.Count; i++)
+            {
+                var (xbotID, from, to) = xBotID_From_To[i];
+
+                if (to == null || to.Length == 0)
+                {
+                    if (positions.ContainsKey(xbotID))
+                    {
+                        xBotID_From_To[i] = (xbotID, from, from);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error: Current position for xbotID {xbotID} is not available.");
+                        return;
+                    }
+                }
+            }
+
+            trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
+                .ToDictionary(item => item.Item1, item => item.Item2);
+
+            foreach (var trajectory in trajectories)
+            {
+                int xbotId = trajectory.Key;
+
+                if (targetPositions.ContainsKey(xbotId))
+                {
+                    var targetPosition = targetPositions[xbotId];
+                    if (positions.ContainsKey(xbotId))
+                    {
+                        var currentPosition = positions[xbotId];
+
+                        if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1)
+                        {
+                            trajectory.Value.Add(targetPosition);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Rz values do not match for xbotID {xbotId}. Target position will not be added.");
+                        }
+                    }
+                }
+
+                // Generate a unique CommandUuid and current timestamp
+                string commandUuid = Guid.NewGuid().ToString();
+                string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+                // Construct the trajectory message with CommandUuid and TimeStamp
+                var trajectoryMessage = new
+                {
+                    CommandUuid = commandUuid,
+                    Trajectory = trajectory.Value.Select(t => new double[] { t[0], t[1] }).ToList(),
+                    TimeStamp = timestamp
+                };
+
+                string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/Data/Trajectory", serializedMessage);
+            }
+
+            await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "ready");
+        }
+
+        private double[] FindClosestCenter(double[] currentPosition, List<double[]> centers)
+        {
+            if (currentPosition == null || currentPosition.Length < 2)
+            {
+                throw new ArgumentException("Current position must contain at least 2 values: x and y.");
+            }
+
+            double[] closestCenter = centers[0];
+            double minDistance = double.MaxValue;
+
+            foreach (var center in centers)
+            {
+                double distance = Math.Sqrt(Math.Pow(center[0] - currentPosition[0], 2) + Math.Pow(center[1] - currentPosition[1], 2));
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestCenter = center;
+                }
+            }
+
+            return closestCenter;
+        }
+
+        public void getPostion(string topic, string message)
+        {
+            try
+            {
+                Console.WriteLine($"Received position message on topic {topic}: {message}");
+                string[] topicSegments = topic.Split('/');
+                string xbotSegment = topicSegments.LastOrDefault(s => s.StartsWith("Xbot", StringComparison.OrdinalIgnoreCase))
+                                     ?? throw new InvalidOperationException("xbot segment not found");
+                int xbotId = int.Parse(xbotSegment.Substring(4));
+
+                // Deserialize the message into a structured object
+                var positionMessage = JsonSerializer.Deserialize<PositionMessage>(message);
+
+                if (positionMessage == null)
+                {
+                    throw new InvalidOperationException("Position message is null or invalid.");
+                }
+
+                // Extract numeric values from the structured object
+                double[] position = new double[]
+                {
+                    positionMessage.X,
+                    positionMessage.Y,
+                    positionMessage.Z,
+                    positionMessage.Rx,
+                    positionMessage.Ry,
+                    positionMessage.Rz
+                };
+                Console.WriteLine($"Position: {string.Join(", ", position)}");
+                positions[xbotId] = position;
+
+                UpdateFromAndTo(xbotId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing position message: {ex.Message}");
+            }
+        }
+
+        private async void UpdateFromAndTo(int xbotID)
+        {
+            
+            Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
+            Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
+            Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
+
+            double[]? currentPosition = positions.ContainsKey(xbotID) ? positions[xbotID] : null;
+            double[]? targetPosition = targetPositions.ContainsKey(xbotID) ? targetPositions[xbotID] : null;
+
+            double[]? currentXY = currentPosition != null ? new double[] { currentPosition[0], currentPosition[1] } : null;
+            double[]? targetXY = targetPosition != null ? new double[] { targetPosition[0], targetPosition[1] } : null;
+
+            var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+            if (existingEntry != default)
+            {
+                double[] updatedFrom = currentXY ?? existingEntry.Item2;
+                double[] updatedTo = targetXY ?? existingEntry.Item3;
+
+                xBotID_From_To.Remove(existingEntry);
+                xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+            }
+            else
+            {
+                xBotID_From_To.Add((xbotID, currentXY ?? Array.Empty<double>(), targetXY ?? Array.Empty<double>()));
+            }
+
+            PrintXBotIDFromTo();
+
+            
+        }
+
+        public void PrintXBotIDFromTo()
+        {
+            Console.WriteLine($"positions contains: {string.Join(", ", positions.Keys)}");
+            Console.WriteLine($"targetPostions contains: {string.Join(", ", targetPositions.Keys)}");
+            Console.WriteLine("Current xBotID_From_To Entries:");
+            foreach (var entry in xBotID_From_To)
+            {
+                string from = entry.Item2 != null ? $"[{string.Join(", ", entry.Item2)}]" : "null";
+                string to = entry.Item3 != null ? $"[{string.Join(", ", entry.Item3)}]" : "null";
+                Console.WriteLine($"xbotID: {entry.Item1}, From: {from}, To: {to}");
+            }
+        }
+        #endregion
+
+        #region MessageHandler
+        private void messageHandler(string topic, string message)
+        {
+            try
+            {
+                foreach (var handler in topicHandlers)
+                {
+                    if (TopicMatches(handler.Key, topic))
+                    {
+                        handler.Value(topic, message);
+                        return;
+                    }
+                }
+                Console.WriteLine($"Unhandled topic: {topic}");
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Failed to deserialize message: {message}");
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+
+        private bool TopicMatches(string pattern, string topic)
+        {
+            var patternSegments = pattern.Split('/');
+            var topicSegments = topic.Split('/');
+
+            if (patternSegments.Length != topicSegments.Length)
+                return false;
+
+            for (int i = 0; i < patternSegments.Length; i++)
+            {
+                if (patternSegments[i] == "+")
+                    continue;
+
+                if (patternSegments[i] != topicSegments[i])
+                    return false;
+            }
+
+            return true;
+        }
+
+        private async void HandlePathPlanStatus(string topic, string message)
+        {
+            if (message == "runPathPlanner")
+            {
+                ExicutePathPlanner();
+            }
+        }
+
+        private async void HandleSubCMD(string topic, string message)
+        {
+            Console.WriteLine($"Received message on topic {topic}: {message}");
+
+            if (message == "RotationDone")
+            {
+                Console.WriteLine("I am here");
+                //await mqttPublisher.PublishMessageAsync($"AAU/Fiberstræde/Building14/FillingLine/Stations/Acopos6D/PathPlan/Stop", "Stop");
+                string[] segments = topic.Split('/');
+                string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
+                int xbotID = int.Parse(xbotSegment.Substring(4));
+                Console.WriteLine($"Checking UpdateFromAndTo for xbotID {xbotID}");
+                Console.WriteLine($"{targetPositions[xbotID]}");
+
+                await mqttPublisher.PublishMessageAsync(UNSPrefix + $"PathPlan/CMD", "runPathPlanner");
+            }
+        }
+
+        private async void HandelStationSetup(string topic, string message)
+        {
+            try
+            {
+                Console.WriteLine($"Received station setup message on topic {topic}: {message}");
+                // Deserialize the message into a StationMessage object
+                var stationMessage = JsonSerializer.Deserialize<StationMessage>(message)
+                    ?? throw new InvalidOperationException("StationMessage is null");
+
+                foreach (var station in stationMessage.Stations)
+                {
+                    // Add the station's positions to the StationCordinate dictionary
+                    StationCordinate[station.Name] = new List<double[]>
+                    {
+                        station.ApproachPosition,
+                        station.ProcessPosition
+                    };
+                }
+
+                Console.WriteLine("Station positions have been updated in the directory.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing station setup message: {ex.Message}");
+            }
+        }
+
+        private async void HandleCMD(string topic, string message)
+        {
+            string[] segments = topic.Split('/');
+            string xbotSegment = segments.LastOrDefault(s => s.StartsWith("Xbot")) ?? throw new InvalidOperationException("xbot segment not found");
+            int xbotID = int.Parse(xbotSegment.Substring(4));
+
+            // Deserialize the message into a structured object
+            var commandMessage = JsonSerializer.Deserialize<CommandMessage>(message);
+
+            if (commandMessage == null)
+            {
+                throw new InvalidOperationException("Position message is null or invalid.");
+            }
+
+            CommandUuid[xbotID] = commandMessage.CommnadUuid;
+
+            if (commandMessage.Command == "Filling")
+            {
+                FillingCommand(xbotID);
+            }
+        }
+
+        private void FillingCommand(int xbotID)
+        {
+            Task.Run(() =>
+            {
+                if (positions[xbotID] != StationCordinate["Filling"][1])
+                {
+                    // Step 1: Move to the approach position first
+                    if (positions[xbotID][0] != StationCordinate["Filling"][0][0] || positions[xbotID][1] != StationCordinate["Filling"][0][1])
+                    {
+                        double[] approachTarget = StationCordinate["Filling"][0];
+                        targetPositions[xbotID] = approachTarget;
+
+                        var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+                        if (existingEntry != default)
+                        {
+                            double[] updatedFrom = positions[xbotID] ?? existingEntry.Item2;
+                            double[] updatedTo = approachTarget ?? existingEntry.Item3;
+                            xBotID_From_To.Remove(existingEntry);
+                            xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+                        }
+                        else
+                        {
+                            xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), approachTarget ?? Array.Empty<double>()));
+                        }
+
+                        StopTrajectoryExicution();
+                        ExicutePathPlanner();
+
+                        // Wait until the xbot reaches the approach position
+                        while (positions[xbotID][0] != StationCordinate["Filling"][0][0] || positions[xbotID][1] != StationCordinate["Filling"][0][1])
+                        {
+                            Thread.Sleep(100);
+                        }
+                    }
+
+                    // Step 2: Rotate if needed
+                    if (Math.Abs(positions[xbotID][5] - StationCordinate["Filling"][0][5]) > 0.1)
+                    {
+                        RotateCommand(xbotID);
+                        StopTrajectoryExicution();
+                        ExicutePathPlanner();
+
+                        // Wait until the rotation is completed
+                        while (Math.Abs(positions[xbotID][5] - StationCordinate["Filling"][0][5]) > 0.1)
+                        {
+                            Thread.Sleep(100);
+                        }
+                    }
+
+                    // Step 3: Move to the station position
+                    double[] stationTarget = StationCordinate["Filling"][1];
+                    targetPositions[xbotID] = stationTarget;
+
+                    var stationEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
+
+                    if (stationEntry != default)
+                    {
+                        double[] updatedFrom = positions[xbotID] ?? stationEntry.Item2;
+                        double[] updatedTo = stationTarget ?? stationEntry.Item3;
+                        xBotID_From_To.Remove(stationEntry);
+                        xBotID_From_To.Add((xbotID, updatedFrom, updatedTo));
+                    }
+                    else
+                    {
+                        xBotID_From_To.Add((xbotID, positions[xbotID] ?? Array.Empty<double>(), stationTarget ?? Array.Empty<double>()));
+                    }
+
+                    StopTrajectoryExicution();
+                    ExicutePathPlanner();
+
+                    // Wait until the xbot reaches the station position
+                    while (positions[xbotID][0] != StationCordinate["Filling"][1][0] || positions[xbotID][1] != StationCordinate["Filling"][1][1])
+                    {
+                        Thread.Sleep(100);
+                    }
+                }
+            });
+        }
+
+
+
+        #endregion
+
+        public static async Task Main(string[] args)
+        {
+            PathPlaningNode client = new PathPlaningNode();
+            await Task.Delay(-1);
+        }
+        
+    }
+
+}
