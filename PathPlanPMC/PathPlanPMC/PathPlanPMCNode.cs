@@ -68,6 +68,7 @@ namespace PathPlanPMC
         private Dictionary<string, Dictionary<string, double[]>> StationCoordinates = new();
         private Dictionary<string, int> StationsID = new();
 
+
         //UNS Prefix
         string UNSPrefix = "AAU/Fibigerstræde/Building14/FillingLine/Planar/";
 
@@ -611,30 +612,103 @@ namespace PathPlanPMC
         #endregion
 
         #region PathPlaning
-        private void ExecutePathPlanner()
+        /*private void ExecutePathPlanner()
         {
             Task? previousTask = null;
             CancellationTokenSource? previousCts = null;
 
+            try
+            {
+                lock (pathPlannerLock)
+                {
+                    // If a previous task is running, capture it for cancellation outside the lock
+                    if (pathPlannerTask != null && !pathPlannerTask.IsCompleted)
+                    {
+                        Console.WriteLine("[DEBUG] Cancelling previous path planner task.");
+                        previousCts = pathPlannerCts;
+                  
+                        previousTask = pathPlannerTask;
+
+                        trajectories = new Dictionary<int, List<double[]>>();
+                    }
+
+                    pathPlannerCts = new CancellationTokenSource();
+                    if (pathPlannerCts == null)
+                        throw new InvalidOperationException("CancellationTokenSource is null.");
+                    pathPlannerTask = Task.Run(() => RunExecutePathPlannerAsync(pathPlannerCts.Token), pathPlannerCts.Token);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Exception in ExecutePathPlanner: {ex.Message}");
+                // Simple retry logic (avoid infinite loops in production)
+                //Task.Delay(1000).Wait();
+                try
+                {
+                    lock (pathPlannerLock)
+                    {
+                        pathPlannerCts = new CancellationTokenSource();
+                        pathPlannerTask = Task.Run(() => RunExecutePathPlannerAsync(pathPlannerCts.Token), pathPlannerCts.Token);
+                    }
+                }
+                catch (Exception retryEx)
+                {
+                    Console.WriteLine($"[ERROR] Retry failed in ExecutePathPlanner: {retryEx.Message}");
+                }
+            }
+        }
+        */
+        private void ExecutePathPlanner()
+        {
             lock (pathPlannerLock)
             {
-                // If a previous task is running, capture it for cancellation outside the lock
+                // Cancel and await previous task if running
                 if (pathPlannerTask != null && !pathPlannerTask.IsCompleted)
                 {
                     Console.WriteLine("[DEBUG] Cancelling previous path planner task.");
-                    previousCts = pathPlannerCts;
-                    previousTask = pathPlannerTask;
+                    pathPlannerCts?.Cancel();
+
+                    try
+                    {
+                        // Wait for the previous task to finish (avoid deadlock by not blocking UI thread)
+                        pathPlannerTask.Wait(500); // Wait up to 2 seconds
+                    }
+                    catch (AggregateException ex)
+                    {
+                        foreach (var inner in ex.InnerExceptions)
+                            Console.WriteLine($"[ERROR] Exception while waiting for previous path planner task: {inner.Message}");
+                    }
+                    finally
+                    {
+                        pathPlannerCts?.Dispose();
+                        pathPlannerCts = null;
+                        pathPlannerTask = null;
+                    }
+
+                    trajectories = new Dictionary<int, List<double[]>>();
                 }
 
                 pathPlannerCts = new CancellationTokenSource();
                 pathPlannerTask = Task.Run(() => RunExecutePathPlannerAsync(pathPlannerCts.Token), pathPlannerCts.Token);
             }
         }
-
         private async Task RunExecutePathPlannerAsync(CancellationToken token)
         {
             try
             {
+                /*
+                foreach (var xbotID in xbotsID)
+                {
+                    bool exists = xBotID_From_To.Any(entry => entry.Item1 == xbotID);
+                    Console.WriteLine($"{xbotID} har position: {positions[xbotID]}");
+                    if (!exists && positions.ContainsKey(xbotID))
+                    {
+                            var currentPosition = positions[xbotID];
+                            xBotID_From_To.Add((xbotID, currentPosition, currentPosition));
+                    }
+                }
+                */
+
                 Console.WriteLine("[Debug] Running Path Planner");
                 Console.WriteLine($"{xBotID_From_To.Count}");
                 for (int i = 0; i < xBotID_From_To.Count; i++)
@@ -642,7 +716,15 @@ namespace PathPlanPMC
                     if (token.IsCancellationRequested) return;
 
                     var (xbotID, from, to) = xBotID_From_To[i];
+                    
+                    // Defensive: Ensure positions contains xbotID
+                    if (!positions.ContainsKey(xbotID))
+                    {
+                        Console.WriteLine($"[ERROR] positions does not contain xbotID {xbotID}. Skipping.");
+                        continue; // or handle as needed
+                    }
                     from = positions[xbotID];
+
                     xBotID_From_To[i] = (xbotID, from, to);
                     if (to == null || to.Length == 0)
                     {
@@ -653,10 +735,16 @@ namespace PathPlanPMC
                         else
                         {
                             Console.WriteLine($"Error: Current position for xbotID {xbotID} is not available.");
-                            return;
+                            continue; // or return;
                         }
                     }
+                    // Add this debug print right after the for loop in RunExecutePathPlannerAsync
+                    Console.WriteLine("xBotID_From_To contents:");
+                    string fromStr = from != null ? $"[{string.Join(", ", from)}]" : "null";
+                    string toStr = to != null ? $"[{string.Join(", ", to)}]" : "null";
+                    Console.WriteLine($"xbotID: {xbotID}, from: {fromStr}, to: {toStr}");
                 }
+                
 
                 trajectories = pathfinder.pathPlanRunner(gridGlobal, xBotID_From_To, xbotSize)
                                .GroupBy(item => item.Item1)
@@ -673,14 +761,14 @@ namespace PathPlanPMC
                 {
                     if (token.IsCancellationRequested) return;
 
-                    int xbotId = trajectory.Key;
-
-                    if (targetPositions.ContainsKey(xbotId))
+                    int xbotID = trajectory.Key;
+                    
+                    if (targetPositions.ContainsKey(xbotID))
                     {
-                        var targetPosition = targetPositions[xbotId];
-                        if (positions.ContainsKey(xbotId))
+                        var targetPosition = targetPositions[xbotID];
+                        if (positions.ContainsKey(xbotID))
                         {
-                            var currentPosition = positions[xbotId];
+                            var currentPosition = positions[xbotID];
 
                             if (Math.Abs(currentPosition[5] - targetPosition[5]) < 1)
                             {
@@ -697,7 +785,8 @@ namespace PathPlanPMC
                     //}
 
                     // Generate a unique CommandUuid and current timestamp
-                    string commandUuid = CommandUuid.ContainsKey(xbotId) ? CommandUuid[xbotId] : null;
+                    
+                    string commandUuid = CommandUuid.ContainsKey(xbotID) ? CommandUuid[xbotID] : null;
 
                     string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
@@ -710,15 +799,18 @@ namespace PathPlanPMC
                     };
 
                     string serializedMessage = JsonSerializer.Serialize(trajectoryMessage);
-                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotId}/DATA/Trajectory", serializedMessage);
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/DATA/Trajectory", serializedMessage);
 
-                    // Ensure SubCommand is set appropriately for the current xbotId
-                    if (CurrentCommand.ContainsKey(xbotId) && !string.IsNullOrEmpty(CurrentTask[xbotId]))
+                    // Ensure SubCommand is set appropriately for the current xbotID
+                    if (CurrentCommand.ContainsKey(xbotID) &&
+                        CurrentTask.ContainsKey(xbotID) &&
+                        !string.IsNullOrEmpty(CurrentTask[xbotID]))
                     {
-                        var currentCmd = CurrentCommand[xbotId];
-                        if (StationCoordinates.ContainsKey(currentCmd) && StationCoordinates[currentCmd].ContainsKey(CurrentTask[xbotId]))
+                        var currentCmd = CurrentCommand[xbotID];
+                        var currentTask = CurrentTask[xbotID];
+                        if (StationCoordinates.ContainsKey(currentCmd) && StationCoordinates[currentCmd].ContainsKey(currentTask))
                         {
-                            var stationPos = StationCoordinates[currentCmd][CurrentTask[xbotId]];
+                            var stationPos = StationCoordinates[currentCmd][currentTask];
                             if (stationPos.Length >= 2)
                             {
                                 // Only add if not already the last point
@@ -732,6 +824,7 @@ namespace PathPlanPMC
                             }
                         }
                     }
+
                 }
 
                 
@@ -748,14 +841,14 @@ namespace PathPlanPMC
             {
                 Console.WriteLine($"[ERROR] Exception in path planner: {ex.Message}");
             }
-            finally
+            /*finally
             {
                 lock (pathPlannerLock)
                 {
                     pathPlannerTask = null;
                     pathPlannerCts = null;
                 }
-            }
+            }*/
         }
 
         #endregion
@@ -848,9 +941,10 @@ namespace PathPlanPMC
                         return;
                     }
 
-                                      
                     
-                    double[] targetPosition = StationCoordinates[CurrentCommand[xbotID]]["StationPosition"];
+                    
+                    double[] targetPosition = targetPositions[xbotID];
+                    
                     _xbotCommand.RotaryMotionP2P(0, xbotID, ROTATIONMODE.NO_ANGLE_WRAP, targetPosition[5] * (Math.PI / 180), 1, 0.5, POSITIONMODE.ABSOLUTE);
 
                     double lastOrientation = positions[xbotID][5];
@@ -938,26 +1032,27 @@ namespace PathPlanPMC
 
         public async Task ExecuteMovementTask(int xbotID, string Task, CancellationToken cancellationToken)
         {
-
             bool approachPositionReached = false;
             bool CommandFinished = false;
             xbotStateStationID[xbotID] = 0;
             try
             {
+                
+
                 while (!CommandFinished)
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
-
                         return;
                     }
+
+                    double[] approachTarget = StationCoordinates[CurrentCommand[xbotID]][Task];
+                    targetPositions[xbotID] = approachTarget;
 
                     Console.WriteLine($"[DEBUG] Starting {Task} under {CurrentCommand[xbotID]} for xbotID: {xbotID}");
                     // Step 1: Move to the approach position
                     if (!approachPositionReached)
                     {
-
-
                         Console.WriteLine($"[DEBUG] Current position of xbotID {xbotID}: {string.Join(", ", positions[xbotID])}");
                         Console.WriteLine($"[DEBUG] Target station position of xbotID {xbotID}: {string.Join(", ", StationCoordinates[CurrentCommand[xbotID]][Task])}");
 
@@ -965,8 +1060,6 @@ namespace PathPlanPMC
                         if (positions[xbotID][0] != StationCoordinates[CurrentCommand[xbotID]][Task][0] || positions[xbotID][1] != StationCoordinates[CurrentCommand[xbotID]][Task][1])
                         {
                             Console.WriteLine($"[DEBUG] Moving xbotID {xbotID} to approach position: {string.Join(", ", StationCoordinates[CurrentCommand[xbotID]][Task])}");
-                            double[] approachTarget = StationCoordinates[CurrentCommand[xbotID]][Task];
-                            targetPositions[xbotID] = approachTarget;
 
                             var existingEntry = xBotID_From_To.FirstOrDefault(entry => entry.Item1 == xbotID);
 
@@ -988,24 +1081,12 @@ namespace PathPlanPMC
                                 Console.WriteLine($"[DEBUG] Added entry for xbotID {xbotID}: From: [{string.Join(", ", positions[xbotID] ?? Array.Empty<double>())}], To: [{string.Join(", ", approachTarget ?? Array.Empty<double>())}]");
                             }
 
-
                             StopRunTrajectory();
-
 
                             while (true)
                             {
                                 lock (XbotStates)
                                 {
-                                    //Console.WriteLine("I am here");
-                                    // Debug print for XbotStates and their values before the check
-                                    //Console.WriteLine("[DEBUG] XbotStates contents:");
-                                    //foreach (var kvp in ShuttleStates)
-                                    //{
-                                    //    Console.WriteLine($"  xbotID: {kvp.Key}, State: {kvp.Value}");
-                                    //}
-                                    //Console.WriteLine($"[DEBUG] XbotStates.Count: {ShuttleStates.Count}");
-                                    //Console.WriteLine($"[DEBUG] XbotStates.Values: {string.Join(", ", ShuttleStates.Values)}");
-
                                     if (ShuttleStates.Count > 0 && (ShuttleStates.Values.All(state => state.Equals("Idle", StringComparison.OrdinalIgnoreCase) || state.Equals("Execute", StringComparison.OrdinalIgnoreCase) || state.Equals("Stopped", StringComparison.OrdinalIgnoreCase))))
                                     {
                                         Console.WriteLine("[DEBUG] All xbots are Idle or Execute. Breaking loop.");
@@ -1013,9 +1094,7 @@ namespace PathPlanPMC
                                     }
                                 }
                                 Thread.Sleep(100); // Poll every 100ms  
-
                             }
-
 
                             ExecutePathPlanner();
 
@@ -1026,7 +1105,6 @@ namespace PathPlanPMC
                             var lastPosition = positions[xbotID];
                             while (positions[xbotID][0] != StationCoordinates[CurrentCommand[xbotID]][Task][0] || positions[xbotID][1] != StationCoordinates[CurrentCommand[xbotID]][Task][1])
                             {
-                                //Console.WriteLine($"[DEBUG] Waiting for xbotID {xbotID} to reach approach position...");
                                 Thread.Sleep(100);
                                 if (cancellationToken.IsCancellationRequested)
                                 {
@@ -1034,8 +1112,6 @@ namespace PathPlanPMC
                                     return;
                                 }
                                 var currentPosition = positions[xbotID];
-                                //
-                                // Check if the position has not changed for 2 seconds
                                 if ((DateTime.Now - startTime).TotalSeconds >= 2 && ShuttleStates.ContainsKey(xbotID) && ShuttleStates[xbotID].Equals("Idle", StringComparison.OrdinalIgnoreCase) && currentPosition == lastPosition)
                                 {
                                     rerunCounter++; // Increment the rerun counter
@@ -1071,61 +1147,74 @@ namespace PathPlanPMC
                                     }
                                     Console.WriteLine("[DEBUG] All xbots are now idle.");
 
-
-
                                     ExecutePathPlanner();
                                     startTime = DateTime.Now; // Reset the timer
                                 }
 
                                 lastPosition = currentPosition;
                             }
-
-
                         }
-
-
+                        
                         approachPositionReached = true; // Set to true once completed
                         Console.WriteLine($"[DEBUG] Approach position reached for xbotID {xbotID}.");
                     }
-                    
-                    
-                        string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-                        var nullCommand = new
-                        {
-                            CommandUuid = "None",
-                            Task = "None",
-                            TimeStamp = timestamp
-                        };
-                        string serializedMessage = JsonSerializer.Serialize(nullCommand);
 
+                    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                    var nullCommand = new
+                    {
+                        CommandUuid = "None",
+                        Task = "None",
+                        TimeStamp = timestamp
+                    };
+                    string serializedMessage = JsonSerializer.Serialize(nullCommand);
 
-                        CommandFinished = true;
-                        await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", serializedMessage); // Sends an empty message
+                    CommandFinished = true;
+                    await mqttPublisher.PublishMessageAsync(UNSPrefix + $"Xbot{xbotID}/CMD/SubCMD", serializedMessage); // Sends an empty message
                     Console.WriteLine($"[Debug] StationID for command:{CurrentCommand[xbotID]} is {StationsID[CurrentCommand[xbotID]]}");
 
                     bool LocatedAdStation = IsCurrentPositionAtStation(xbotID, positions[xbotID]);
-                    
+
                     if (LocatedAdStation == true)
                     {
                         xbotStateStationID[xbotID] = StationsID[CurrentCommand[xbotID]];
                     }
-                        
-                    
-                    // Add a small delay to avoid busy-waiting
 
                     Thread.Sleep(100);
-
-
                 }
                 if (CommandUuid.ContainsKey(xbotID))
                 {
                     CommandUuid.Remove(xbotID);
                 }
+                // If Task is "Storage", remove xbotID from all relevant dictionaries
+                if (Task.Equals("Storage", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Remove from all relevant dictionaries
+                    CommandUuid.Remove(xbotID);
+                    CurrentCommand.Remove(xbotID);
+                    CurrentTask.Remove(xbotID);
+                    RotationLock.Remove(xbotID);
+                    targetPositions.Remove(xbotID);
+                    positions.Remove(xbotID);
+                    xbotStateStationID.Remove(xbotID);
+                    lastPublishedPositions.Remove(xbotID);
+                    lastPublishedStates.Remove(xbotID);
+                    lastPublishedStatesID.Remove(xbotID);
+                    ShuttleStates.Remove(xbotID);
+                    trajectories.Remove(xbotID);
+                    commandCancellationTokens.Remove(xbotID);
+                    taskCancellationTokens.Remove(xbotID);
+                    rotationCancellationTokens.Remove(xbotID);
+                    runningTasks.Remove(xbotID);
+                    // Remove from xBotID_From_To
+                    xBotID_From_To.RemoveAll(entry => entry.Item1 == xbotID);
+                    // Optionally, publish a message or log
+                    Console.WriteLine($"[INFO] xbotID {xbotID} removed from all directories due to Storage task.");
+                    return;
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Error in ApproachCommandExecution for xbotID {xbotID}: {ex.Message}");
-                //PrintXbotDirectories(xbotID); // Print directories on error
             }
         }
 

@@ -385,6 +385,22 @@ public class Pathfinding
         stopwatche.Start();
         _grid.removeOccupied();
         List<(int, int[], int[])> xBotID_From_To = unit_M_To_CM(_xBotID_From_To); // Convert to CM
+
+        //Check if endpoints collide
+        foreach (var xbotCommand1 in xBotID_From_To)
+        {
+            foreach (var xbotCommand2 in xBotID_From_To)
+            {
+                if (xbotCommand2.Item1 >= xbotCommand1.Item1)
+                {
+                    continue;
+                }
+                if (Math.Abs(xbotCommand2.Item3[0] - xbotCommand1.Item3[0]) < _xbotSize && Math.Abs(xbotCommand2.Item3[1] - xbotCommand1.Item3[1]) < _xbotSize)
+                {
+                    return null;
+                }
+            }
+        }
         //UnityEngine.Debug.Log("Pathfinder recieve xBotID_From_To: " + string.Join(", ", xBotID_From_To.Select(p => $"Bot {p.Item1}: From ({p.Item2[0]}, {p.Item2[1]}) To ({p.Item3[0]}, {p.Item3[1]})")));
         List<(int, List<node>, int)> pathList = priorityPlanner(_grid, xBotID_From_To, _xbotSize);
         List<(int, List<(int, int)>)> _output = new();

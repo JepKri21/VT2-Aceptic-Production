@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PathPlanPMC")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+84eb40f13b05df4db1d47939b4237655c8461a6c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f6ea2f0a08e3b5ab880e8c16b7090aa6bb9629cd")]
 [assembly: System.Reflection.AssemblyProductAttribute("PathPlanPMC")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PathPlanPMC")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
