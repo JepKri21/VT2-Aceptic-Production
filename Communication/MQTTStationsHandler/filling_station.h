@@ -21,8 +21,10 @@ unsigned long startTime;
 void FillingStop() {
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
-  analogWrite(enB, speed);
+  analogWrite(enB, speed+50);
   startTime = millis();
+  delay(200);
+  analogWrite(enB, speed);
 
   while (digitalRead(BUTTON_PIN_TOP) == 0) {
     if (millis() - startTime >= 8000) {
@@ -51,8 +53,10 @@ void FillingRunning() {
   SendMQTTMessage(commandUuid, "Executing", topic_pub_status);
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
-  analogWrite(enB, speed);
+  analogWrite(enB, speed+50);
   startTime = millis();
+  delay(200);
+  analogWrite(enB, speed);
 
   while (digitalRead(BUTTON_PIN_BOTTOM) == 0) {
     if (millis() - startTime >= 8000) {
