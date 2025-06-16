@@ -458,6 +458,12 @@ for station_dict in all_stations:
         #print(station)
 
 while True:
+    for station_dict in all_stations:
+        for station_name, station in station_dict.items():
+            if station.get("Name") == "NeedleStation":
+                station["State"] = "Idle"
+                #print(station)
+
     time.sleep(0.3)
     AssigningTasksBasedOnCommands()
 

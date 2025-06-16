@@ -18,21 +18,21 @@ general_station_config = {"Stations" : [
         "Name": "Filling",
         "StationID": 1,
         "RequiredTool" : "Shuttle Rack",
-        "Approach": [0.12, 0.12, 0.001, 0, 0, 0 ],
+        "Approach": [0.12, 0.12, 0.001, 0, 0, 90 ],
         "StationPosition": [0.085, 0.113, 0.001, 0, 0, 90]
     },
     {
         "Name": "Stoppering",
         "StationID": 2,
         "RequiredTool" : "Shuttle Rack",
-        "Approach": [0.12, 0.36, 0.001, 0, 0, 0],
+        "Approach": [0.12, 0.36, 0.001, 0, 0, 90],
         "StationPosition": [0.110, 0.360, 0.001, 0, 0, 90]
     },
     {
         "Name": "Vision",
         "StationID": 3,
         "RequiredTool" : "Shuttle Rack",
-        "Approach": [0.12, 0.6, 0.001, 0, 0, 0],
+        "Approach": [0.12, 0.6, 0.001, 0, 0, 90],
         "StationPosition": [0.102, 0.587, 0.001, 0, 0, 90]
     },
     {
@@ -53,10 +53,12 @@ general_station_config = {"Stations" : [
         "Name": "NeedleStation",
         "StationID": 4,
         "RequiredTool" : "Needle Clamp",
-        "ApproachPick": [0.12, 0.12, 0.001, 0, 0, 0],
+        "ApproachPick": [0.12, 0.12, 0.001, 0, 0, 180],
         "PickPosition": [0.12, 0.08, 0.001, 0, 0, 180],
-        "ApproachPlace": [0.12, 0.12, 0.001, 0, 0, 0],  
-        "PlacePosition": [0.106, 0.12, 0.001, 0, 0, 90]
+        "ApproachPlace": [0.12, 0.12, 0.001, 0, 0, 90],  
+        "PlacePosition": [0.106, 0.12, 0.001, 0, 0, 90],
+        "Away" : [0.179,0.179, 0.001, 0, 0, 90],
+        "Storage" : [0.300, 0.900, 0.001, 0, 0, 90]
     },
     {
         "Name": "FillingQueue",
@@ -88,11 +90,10 @@ full_shuttle_config = [
         "ID" : "7",
         "Tool" : "Shuttle Rack"
     },
-    
-    #{
-    #    "ID" : "4",
-    #    "Tool" : "Shuttle Rack"
-    #},
+    {
+        "ID" : "1",
+        "Tool" : "Needle Clamp"
+    }
     #{
     #    "ID" : "7",
     #    "Tool" : "Shuttle Rack"
@@ -106,7 +107,7 @@ filling_station = {
     "Function" : "Filling",
     "QueueDirection" : "FillingQueue",
     "Station Specific Tasks" : {"Dispense" : "AAU/Fibigerstræde/Building14/FillingLine/Filling/CMD/Dispense"},
-    "Command Tasks" : {"Filling" : ["Approach", "Rotation", "StationPosition", "Land", "Dispense", "Levitate", "Finished"]}
+    "Command Tasks" : {"Filling" : [ "Approach","Rotation","StationPosition", "Land", "Dispense", "Levitate", "Finished"]}
     }
 
 stoppering_station = {
@@ -160,15 +161,15 @@ finished_station = {
 
 needle_station = {
     "Name": "NeedleStation", 
-    "Function" : "Attaching Needle",
+    "Function" : "NeedleStation",
     "Station Specific Tasks" : {"AttachNeedle" : "AAU/Fibigerstræde/Building14/FillingLine/Filling/CMD/Needle"},
-    "Command Tasks" : {"Needle" : ["ApproachPick", "PickPosition", "ApproachPick", "ApproachPlace", "AttachNeedle", "PlacePosition", "ApproachPlace", "Dispense"]}
+    "Command Tasks" : {"Needle" : ["AttachNeedle", "ApproachPick", "Rotation", "PickPosition", "ApproachPick", "ApproachPlace", "Rotation", "PlacePosition", "ApproachPlace", "Rotation", "Away", "Storage", "Finished"]}
     }
 
 
 #=========== General system configuration ==========
 batch = {
-    "BatchSize" : 3,
+    "BatchSize" : 21,
     "CommandOrder" : ["Filling", "Stoppering", "Vision", "Away"] #Remember to add vision
 }
 #In the command handler we check these commands with the functions of the stations

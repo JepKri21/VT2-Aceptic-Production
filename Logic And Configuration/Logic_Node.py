@@ -135,6 +135,18 @@ def on_message(client, userdata, msg):
 #============================================================================
 #============================================================================
 
+def generate_station_command_payload():
+    #Set the command UUId to the station (in this script)
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    unique_id = str(uuid.uuid4())
+
+    payload = {
+        "CommandUuid": unique_id,
+        "TimeStamp": timestamp
+    }
+
+    return json.dumps(payload)
+
 def generate_shuttle_command_payload(command):
     #Set the command Uuid to the shuttle (in this script) Maybe just do this outside, 
     #where I should know which shuttle it is
@@ -328,8 +340,17 @@ client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 client.loop_start()
 
+print("Sending attach needle comand")
+CMD_topic = f"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot1/CMD"
+client.publish(CMD_topic, generate_shuttle_command_payload("NeedleStation"))
 
-time.sleep(1)
+print("Waiting to finish")
+time.sleep(30)
+client.publish(CMD_topic, generate_shuttle_command_payload("None"))
+
+client.publish("AAU/Fibigerstræde/Building14/FillingLine/Filling/CMD/Dispense",generate_station_command_payload())
+
+print("Starting the real program")
 
 running_script = True
 
@@ -353,7 +374,7 @@ while running_script == False:
                 if len(cmd_list) == 0 and shuttle.get("Command") == "None":
                     subcmd_topic = f"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot{shuttle.get('ID')}/CMD/SubCMD"
                     CMD_topic = f"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot{shuttle.get('ID')}/CMD"
-                    client.publish(CMD_topic, generate_shuttle_command_payload("Done"))
+                    client.publish(CMD_topic, generate_shuttle_command_payload("Done")) #When I send the command "Done" the command handler takes over and gives it all the tasks for the Done command
                     client.publish(subcmd_topic, generate_shuttle_task_payload("DONE", complete_list[0]))
 
                     complete_list.pop(0)
