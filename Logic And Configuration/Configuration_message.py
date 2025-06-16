@@ -58,7 +58,7 @@ general_station_config = {"Stations" : [
         "ApproachPlace": [0.12, 0.12, 0.001, 0, 0, 90],  
         "PlacePosition": [0.106, 0.12, 0.001, 0, 0, 90],
         "Away" : [0.179,0.179, 0.001, 0, 0, 90],
-        "Storage" : [0.300, 0.900, 0.001, 0, 0, 90]
+        "Storage" : [0.420, 0.900, 0.001, 0, 0, 90]
     },
     {
         "Name": "FillingQueue",

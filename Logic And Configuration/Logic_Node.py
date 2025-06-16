@@ -371,7 +371,7 @@ while running_script == False:
         for shuttle_dict in all_shuttles:
             for name, shuttle in shuttle_dict.items():
                 cmd_list = shuttle.get("CommandOrderList", [])
-                if len(cmd_list) == 0 and shuttle.get("Command") == "None":
+                if len(cmd_list) == 0 and shuttle.get("Command") == "None" and shuttle.get("ID") != 1:
                     subcmd_topic = f"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot{shuttle.get('ID')}/CMD/SubCMD"
                     CMD_topic = f"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot{shuttle.get('ID')}/CMD"
                     client.publish(CMD_topic, generate_shuttle_command_payload("Done")) #When I send the command "Done" the command handler takes over and gives it all the tasks for the Done command

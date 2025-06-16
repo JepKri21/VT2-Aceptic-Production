@@ -44,7 +44,7 @@ def on_message(client, userdata, msg):
                 named_shuttle = {f"shuttle_{shuttle_id}" : shuttle}
                 all_shuttles.append(named_shuttle)
                 #Also subscribe to the shuttle state and command
-                #client.subscribe(planar_topic_prefix+f"/Xbot{shuttle_id}/DATA/State")
+                client.subscribe(planar_topic_prefix+f"/Xbot{shuttle_id}/DATA/State")
                 client.subscribe(planar_topic_prefix+f"/Xbot{shuttle_id}/CMD")
                 client.subscribe(planar_topic_prefix+f"/Xbot{shuttle_id}/CMD/SubCMD")
 
@@ -144,7 +144,22 @@ def on_message(client, userdata, msg):
                         print(f"Updated state of station '{station_name}' to: {station['State']}")
                         
                         break  # Optional: exit inner loop once station is found
+                        
+        # Regular expression pattern
+        #pattern = r"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot(\d+)/DATA/State$"
+        #match = re.fullmatch(pattern, msg.topic)
+        #
 
+        #if match:
+        #    xbot_id = match.group(1)
+
+        #    for shuttle_dict in all_shuttles:
+        #        for name, shuttle in shuttle_dict.items():
+        #            if shuttle["ID"] == xbot_id:
+        #                shuttle["StationId"] = data["StationId"]
+        #                print(f"StationID: {data['StationId']} updated for shuttle: {shuttle.get('ID')}")
+
+        
 
     
     except json.JSONDecodeError as e:
@@ -270,6 +285,9 @@ def ExecutingTasks():
             if not command or not task_list:
                 continue
 
+            if command == "Done":
+                continue
+
             # Only continue if SubCMD is not present or is explicitly "None"
             if shuttle.get("SubCMD") is not None and shuttle.get("SubCMD") != "None":
                 continue
@@ -324,6 +342,10 @@ def ExecutingTasks():
 
             station_specific_tasks = matching_station.get("Station Specific Tasks", {})
             station_task_match =False
+
+
+            #I need to check all the shuttles, if anythey have a StationId value equal to
+
             if station_specific_tasks != None:
                 station_task_match = station_specific_tasks.get(current_task)
             if matching_station.get("State") == "Idle":
