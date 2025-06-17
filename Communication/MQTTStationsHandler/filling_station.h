@@ -32,7 +32,11 @@ void FillingStop() {
       break;
     }
   }
-
+  analogWrite(enB, speed+50);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+  delay(100);
+  analogWrite(enB, speed);
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
   analogWrite(enB, 0);
