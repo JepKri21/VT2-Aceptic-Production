@@ -285,7 +285,7 @@ def ExecutingTasks():
             if not command or not task_list:
                 continue
 
-            if command == "Done":
+            if command == "Done": #REMOVE THIS IF IT DOESN'T WORK
                 continue
 
             # Only continue if SubCMD is not present or is explicitly "None"
