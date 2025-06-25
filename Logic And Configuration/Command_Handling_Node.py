@@ -23,7 +23,6 @@ all_queues = []
 command_order = []
 batch_size = 0
 
-#I MIGHT NEED TO GIVE EVERY SHUTTLE A "None" COMMAND FIRST, JUST IN MY SYSTEM
 
 # Callback when connected
 def on_connect(client, userdata, flags, rc):
@@ -55,14 +54,9 @@ def on_message(client, userdata, msg):
                 #Also subscribe to the shuttle state and command
                 client.subscribe(planar_topic_prefix+f"/Xbot{shuttle_id}/DATA/State")
                 client.subscribe(planar_topic_prefix+f"/Xbot{shuttle_id}/CMD")
-
-            # Just example of how to use it
-            #for shuttle_dict in all_shuttles:
-            #    for name, info in shuttle_dict.items():
-            #        print(f"{name}: ID={info['ID']}, Tool={info['Tool']}")
         
 
-        #if msg.topic.startswith(config_topic_prefix +"/Planar/Stations"):
+        #Here we just subscribe to all the station states and create them as dictionaries
         if msg.topic == config_topic_prefix +"/Planar/Stations":
             stations = data["Stations"]
             for station in stations:
@@ -70,10 +64,7 @@ def on_message(client, userdata, msg):
                 named_station = {f"{station_name}_station" : station}
                 all_stations.append(named_station)
 
-                #Maybe if we save this topic to a list of topics then we can run through all
-                # all those topics when we check new messages
                 client.subscribe(station_topic_prefix+f"/{station_name}/DATA/State")
-            #If Command Tasks is non-null
 
         if msg.topic.startswith(config_topic_prefix +"/Station"):
             #Here we just add all the traits to already existsting stations
@@ -103,6 +94,7 @@ def on_message(client, userdata, msg):
             for station in stations_to_remove:
                 all_stations.remove(station)
 
+        #This is the batch information, like batch size and the order of commands
         if msg.topic == config_topic_prefix + "/System/BatchInfo":
             command_order = data["CommandOrder"]
             batch_size = data["BatchSize"]
@@ -111,11 +103,11 @@ def on_message(client, userdata, msg):
         #====================== Other messages =====================
         #===========================================================
 
-        # Regular expression pattern
+        # Regular expression pattern for the command of any shuttle
         pattern = r"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot(\d+)/CMD$"
         match = re.fullmatch(pattern, msg.topic)
         
-
+        #Just updates the command when a shuttle gets a new command from the UNS
         if match:
             xbot_id = match.group(1)
 
@@ -137,6 +129,7 @@ def on_message(client, userdata, msg):
 
 def generate_station_command_payload():
     #Set the command UUId to the station (in this script)
+    #So we just generate a json message to send to a station
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     unique_id = str(uuid.uuid4())
 
@@ -148,12 +141,10 @@ def generate_station_command_payload():
     return json.dumps(payload)
 
 def generate_shuttle_command_payload(command):
-    #Set the command Uuid to the shuttle (in this script) Maybe just do this outside, 
-    #where I should know which shuttle it is
+    #So we just generate a json message to send to a shuttle (with a command)
+
     unique_id = str(uuid.uuid4())
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    #print(f"Generated new command ID {unique_id}")
 
     payload = {
         "CommandUuid": unique_id,
@@ -166,11 +157,8 @@ def generate_shuttle_command_payload(command):
 
 
 def generate_shuttle_task_payload(unique_id, task):
-    #Set the command Uuid to the shuttle (in this script) Maybe just do this outside, 
-    #where I should know which shuttle it is
+     #So we just generate a json message to send to a shuttle (with a task)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    #print(f"Generated new command ID {unique_id}")
 
     payload = {
         "CommandUuid": unique_id,
@@ -188,19 +176,20 @@ def CheckCommandOrderList():
         for name, shuttle in shuttle_dict.items():
             if not shuttle.get("CommandOrderList"): #If it does not have any pending commands
                 if batch_size > -1:                  #AND there is still parts of the batch left to do
-                    if shuttle["Tool"] == "Shuttle Rack": #This could be done better, like checking for all the stations and making sure that they have the same tool requirement
+                    if shuttle["Tool"] == "Shuttle Rack": #This could be done better, like checking for all the stations and making sure that they have the same tool requirement, this is hardcoded because I was in a hurry
                         shuttle["CommandOrderList"] = command_order.copy()
                         batch_size = batch_size-1 #Then we remove it from the batch
                         print(f"New order given to shuttle{shuttle['ID']} and new batch size is {batch_size}")
-    #I need a function that checks if a shuttle has a commandOrderList
-    #If there is no list or it is empty AND the batch is bigger than 0, 
-    # then we fill the shuttles commandOrderList up with one of the commandOrders
+
 
 
 def CheckAndSendCommands():
+    # checking all the commands for the shuttles, and if they do not have any pending commands (commandOrderList) then it will be given them
     for shuttle_dict in all_shuttles:
         for name, shuttle in shuttle_dict.items():
             cmd_list = shuttle.get("CommandOrderList", [])
+
+            #These if-statements just check if a shuttle already has a command or a commandOrderList
             if not cmd_list:
                 continue
 
@@ -310,18 +299,6 @@ def CheckAndSendCommands():
                                     print(f"Queue direction '{queue_direction}' not found for station '{station_name}'")
 
 
-                                    
-                
-
-
-#If no other shuttle has a currentCommand that matches the new Command of the current shuttle then we can send it that Command
-#AND the current shuttle does not already have a Command
-#AND the current shuttle has the correct tool for this Command
-
-#If, however, some shuttle DOES have that currentCommand, then we check if the station with that Command/Function/Name? has a QueueDirection. And if it does then we send that
-
-#I also think, that once we have sent it we can remove it from the list of tasks
-
 #============================================================================
 #============================================================================
 #=========================== END OF ACTUAL LOGIC PART =======================
@@ -340,6 +317,8 @@ client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 client.loop_start()
 
+
+#===============THIS PART IS ALL HARD CODED, WE DIDN'T HAVE TIME TO IMPLEMENT INITIALIZING COMMANDS FOR THE SHUTTLES
 print("Sending attach needle comand")
 CMD_topic = f"AAU/Fibigerstræde/Building14/FillingLine/Planar/Xbot1/CMD"
 client.publish(CMD_topic, generate_shuttle_command_payload("NeedleStation"))
@@ -352,6 +331,8 @@ client.publish("AAU/Fibigerstræde/Building14/FillingLine/Filling/CMD/Dispense",
 
 print("Starting the real program")
 
+#The hard coded part ends here
+
 running_script = True
 
 while running_script:
@@ -363,7 +344,7 @@ while running_script:
     if batch_size == 0:
         running_script = False
     
-#If
+#This part is also hard coded, just to get them to move away from the stations whenever they have finished the batch
 complete_list = ["Done1", "Done2", "Done3"]
 
 while running_script == False:
