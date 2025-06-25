@@ -1,5 +1,11 @@
+#ifndef STOPPERIN_STATION_H
+#define STOPPERIN_STATION_H
+
 #include <ESP32Servo.h>
 #include <Arduino.h>
+#include <PubSubClient.h>
+
+extern PubSubClient client;
 
 #define servoPWM 2
 
@@ -24,6 +30,7 @@
 Servo myservo;
 
 
+
 void initPins(){
 
   myservo.attach(servoPWM);
@@ -34,7 +41,7 @@ void initPins(){
   pinMode(LA_IN2, OUTPUT);
   delay(10);
 
-  ledcAttachChannel(LA_ENA, LA_PWM_FREQ, LA_PWM_RES, LA_PWM_CHANNEL);
+  ledcAttachChannel(LA_ENA, LA_PWM_FREQ, LA_PWM_RES, LA_PWM_CHANNEL); //You HAVE to do this with the ESP32s, it's very important not to use analogWrite
 
   ledcWrite(LA_ENA, 200); // Set speed (0–255)
   delay(10);
@@ -52,14 +59,12 @@ void initPins(){
 
   ledcWrite(DC_ENB, 200);
   delay(10);
-
 }
 
-void initServo()
-{
+void initServo(){
   myservo.write(90);
   delay(2000);
-  myservo.write(135);
+  myservo.write(120);
   delay(2000);
 }
 
@@ -89,8 +94,7 @@ void initDC() {
 }
 
 
-void setup() {
-  Serial.begin(115200);
+void InitStoppering() {
   initPins();
   delay(15);
 
@@ -103,28 +107,33 @@ void setup() {
   initDC();
   delay(15);
 
-  delay(3000);
+  delay(1000);
+
+  
 }
 
 void runLA() {
+  //First we run the actuator down to push a plunger
   digitalWrite(LA_IN1, LOW);
   digitalWrite(LA_IN2, HIGH);
-  delay(10000);
+  delay(10000); //This could be less, however we found that sometimes it helps when it has more time to let gravity push the plunger
 
+  //Then we move it back up again
   digitalWrite(LA_IN1, HIGH);
   digitalWrite(LA_IN2, LOW);
   delay(6500);
 }
 
 void runServo() {
+  //Simply going from the inner position to the outer position
   myservo.write(0);
   delay(2000);
 
-  myservo.write(140);
+  myservo.write(120);
   delay(2000);
 }
 
-void DCDown() {
+void DCDown() { //Simply running the piston down until it hits the limit switch
   digitalWrite(DC_IN3, LOW);
   digitalWrite(DC_IN4, HIGH);
 
@@ -134,7 +143,7 @@ void DCDown() {
   digitalWrite(DC_IN4, LOW);
 }
 
-void DCUp() {
+void DCUp() {//Simply running the piston up for 2 seconds to ensure it has clearance
   digitalWrite(DC_IN3, HIGH);
   digitalWrite(DC_IN4, LOW);
   delay(2000);
@@ -143,25 +152,23 @@ void DCUp() {
   digitalWrite(DC_IN4, LOW);
 }
 
-int i = 0;
-int loops = 1;
-void loop() {
-  while (i < loops) {
-    Serial.println("Loop number: " + String(i+1) + " stopping at loop: " + String(loops));
+void StopperingRunning(){ //This is the full execution
+  SendMQTTMessage(commandUuid, "Executing", topic_pub_status);
+  DCDown();
+  delay(100);
 
-    DCDown();
-    delay(100);
+  runServo();
+  delay(100);
 
-    runServo();
-    delay(100);
+  runLA();
+  delay(100);
 
-    runLA();
-    delay(100);
-
-    DCUp();
-    delay(5000);
-    i++;
-
-  }
+  DCUp();
+  delay(500);
+  reconnect(); //Had some problems with it disconnecting after these longer delays, so we just make sure to reconnect
+  SendMQTTMessage(commandUuid, "Idle", topic_pub_status);
 }
 
+
+
+#endif

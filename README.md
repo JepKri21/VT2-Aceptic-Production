@@ -1,1 +1,0 @@
-# VT2-Aceptic-Production

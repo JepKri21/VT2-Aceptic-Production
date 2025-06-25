@@ -1,8 +1,8 @@
-#define DC_ENB 41
-#define DC_IN3 39
-#define DC_IN4 40
+#define DC_ENB 18
+#define DC_IN3 17
+#define DC_IN4 16
 
-int speed = 200; // Example speed value for analogWrite
+int speed = 140; // Example speed value for analogWrite
 
 void setup() {
   // Setting the pin modes for the DC motor controller pins
@@ -18,6 +18,8 @@ void setup() {
   digitalWrite(DC_IN4, LOW);
   analogWrite(DC_ENB, speed);
   delay(1000);
+  Serial.println("Write 'd' or 'u' followed by a number to move the actuator down or up for a number of milliseconds")
+  Serial.println("Example could be 'u1000' to make the piston go up for 1 second (1000 milliseconds)")
   
 }
 
