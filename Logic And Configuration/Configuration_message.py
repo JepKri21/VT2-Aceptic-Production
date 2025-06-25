@@ -13,6 +13,8 @@ config_topic_prefix = "AAU/Fibigerstræde/Building14/FillingLine/Configuration/D
 
 
 #=========== General station configuration ==========
+#Here you just need to add the Name, StationID, Required tool and then all the relevant positions for the new station
+#These positions can have any name
 general_station_config = {"Stations" : [
     {
         "Name": "Filling",
@@ -74,9 +76,9 @@ general_station_config = {"Stations" : [
 }
 
 
-#Add the queues to the stations, such that the system knows which queue to send a shuttle to when there is no space
 
 #=========== Full shuttle configuration ==========
+# To add other shuttles, just copy and paste one of the shuttles and change the ID and maybe the tool
 full_shuttle_config = [
     {
         "ID" : "2",
@@ -88,19 +90,19 @@ full_shuttle_config = [
     },
     {
         "ID" : "7",
-        "Tool" : "Shuttle Rack"
+        "Tool" : "Shuttle Rack" #This tool is the one we used to hold the syringes
     },
     {
         "ID" : "1",
-        "Tool" : "Needle Clamp"
+        "Tool" : "Needle Clamp" #This tool we used to hold the filling needle and attach it to the station
     }
-    #{
-    #    "ID" : "7",
-    #    "Tool" : "Shuttle Rack"
-    #}
 ]
 
 #=========== Additional station configurations ==========
+#This is the station data that is not apart of the Planar system (although it is weird to have these as seperate messages from the rest of the station data)
+#For these station you must have a Name that matches the Name from the other station configuration
+# Also a function, station specific task (This could be done WAY better, but we were running out of time. Also, this is just optional) and lastly a list of command tasks.
+# You might also add a queue direction, where a shuttle will go incase the station is occupied.
 
 filling_station = {
     "Name": "Filling", 
@@ -146,19 +148,6 @@ finished_station = {
     "Command Tasks" : {"Done" : ["Done1", "Done2", "Done3"]}
 }
 
-#We can put the shuttles in a list of occupancy
-#If they are in this list, then they can't be "Finished"
-# hopefully they will continue through all the queue positions, but 
-# They won't be given a new queue command
-# But how do we get them out of this list?
-# Maybe what we do is just check the first position in that list as the first shuttle to get a new command
-# We'd just have to make a list of lists, for each queue. So if a station["Function"] is Queue, then we make a list for it
-
-
-#You should also be pretty easily able to check if there are any shuttles that
-# have the tasks of the next queue positions
-#Because if they don't then we can skip that one.
-
 needle_station = {
     "Name": "NeedleStation", 
     "Function" : "NeedleStation",
@@ -168,14 +157,14 @@ needle_station = {
 
 
 #=========== General system configuration ==========
-batch = {
+batch = { #Here you simply change the batchsize and then the order of commands that a shuttle must go through to complete 1 unit.
     "BatchSize" : 21,
-    "CommandOrder" : ["Filling", "Stoppering", "Vision", "Away"] #Remember to add vision
+    "CommandOrder" : ["Filling", "Stoppering", "Vision", "Away"] #We needed it to move "Away" from the vision station such that another shuttle could go there
 }
 #In the command handler we check these commands with the functions of the stations
 
-#=========== System configuration messages ==========
-
+#=========== ALL System configuration messages ==========
+#REMEMBER TO ADD ANY NEW STATION TO THIS MESSAGE-------------------------------------------------------!
 all_messages = [
     ("/Planar/Stations", general_station_config),
     ("/Planar/Shuttles", full_shuttle_config),
@@ -211,6 +200,8 @@ client.loop_start()
 
 
 time.sleep(1)
+
+#This loop just publishes each message with a 0.5 second delay because it was not happy when I sent all of them at once :)
 for topic, data in all_messages:
     json_message = json.dumps(data, indent=len(data))
     print("Published a message")
