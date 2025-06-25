@@ -1,3 +1,4 @@
+# Import necessary libraries
 from opcua import Client, ua
 import time
 import requests
@@ -20,43 +21,40 @@ from torchvision.transforms import CenterCrop
 import threading
 from flask import Flask, send_from_directory
 import shutil
+
+# Suppress warnings
 warnings.filterwarnings("ignore")
 
-# Configuration
+# Configuration for OPC UA, MQTT, and HTTP trigger
 OPC_UA_URL = "opc.tcp://192.168.10.116:4840"
 NODE_ID = "ns=6;s=::Program:ImageNettime"
 ACTIVATION_NODE_ID = "ns=6;s=::Program:ImageCapture"
 HTTP_TRIGGER_URL = "http://192.168.200.8:8080/jpg?q=50"
 mqtt_server = "172.20.66.135"
 mqtt_port = 1883
- 
-# MQTT Topics
+
+# MQTT topics for communication
 topic_vision_execute = "AAU/Fibigerstræde/Building14/FillingLine/Vision/CMD/Snapshot"
 topic_vision_data = "AAU/Fibigerstræde/Building14/FillingLine/Vision/DATA/Anomaly"
 topic_vision_status = "AAU/Fibigerstræde/Building14/FillingLine/Vision/DATA/State"
- 
-commandUuid = ""
 
-# OPC UA Client Initialization
+# Global variables for command UUID and OPC UA client
+commandUuid = ""
 opcua_client = Client(OPC_UA_URL)  # Renamed from 'client' to 'opcua_client'
 opcua_client.connect()
 
-
-
-
-# Global variables
+# Global variables for model and engine
 model = None
 engine = None
 initial_nettime = None
 first_change = True
 
-
-
-
+# Function to clear CUDA memory
 def clear_cuda_memory():
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
 
+# Function to load the anomaly detection model
 def load_model():
     """Loads the anomaly detection model and engine."""
     global model, engine
@@ -77,21 +75,15 @@ def load_model():
     engine = Engine(accelerator="cpu", devices=1)
     print("[INFO] Model loaded successfully.")
 
+# Function to predict anomalies in an image
 def predict_image(image_path):
     """Runs the prediction on the given image path."""
     global model, engine
     try:
         gc.collect()
         dataset = PredictDataset(path=Path(image_path))
-        #predictions = engine.predict(
-        #    model=model,
-        #    dataset=dataset,
-        #    ckpt_path="results/Padim/Images/v33/weights/lightning/model.ckpt",
-        #)
-
         # Set model to evaluation mode
         model.eval()
-        
         # Use no_grad to reduce memory usage during inference
         with torch.no_grad():
             predictions = engine.predict(
@@ -99,10 +91,8 @@ def predict_image(image_path):
                 dataset=dataset,
                 ckpt_path="results/Padim/Images/v43/weights/lightning/model.ckpt",
             )
-        
         # Clear CUDA cache after prediction to free memory
         torch.cuda.empty_cache()
-
 
         if predictions:
             for prediction in predictions:
@@ -110,7 +100,6 @@ def predict_image(image_path):
                 label = bool(prediction.pred_label.item())
                 print(f"[INFO] Prediction - Score: {score:.4f}, Label: {label}")
                 clear_cuda_memory()
-
                 # Explicitly delete prediction data after use
                 del predictions
                 gc.collect()  # Additional memory cleanup
@@ -123,17 +112,11 @@ def predict_image(image_path):
         gc.collect()
         return None, None
 
-
-
-
-
-
-# MQTT Client Setup
+# MQTT client setup and event handlers
 def on_connect(mqtt_client, userdata, flags, rc):
     print("Connected with result code", rc)
     mqtt_client.subscribe(topic_vision_execute)
 
-# MQTT Message Handling
 def on_message(mqtt_client, userdata, msg):
     global commandUuid
     data = json.loads(msg.payload.decode())
@@ -142,7 +125,7 @@ def on_message(mqtt_client, userdata, msg):
         publish_status("Executing")
         activate_node()
 
-# MQTT Status Publishing
+# Function to publish status updates via MQTT
 def publish_status(status): 
     payload = json.dumps({
         "CommandUuid": commandUuid,
@@ -151,7 +134,7 @@ def publish_status(status):
     })
     mqtt_client.publish(topic_vision_status, payload, retain=True)
 
-# Activate and Deactivate OPC UA Node
+# Function to activate and deactivate OPC UA node
 def activate_node():
     try:
         node = opcua_client.get_node(ACTIVATION_NODE_ID)
@@ -164,11 +147,10 @@ def activate_node():
         print(f"[ERROR] Activation failed: {e}")
 
 # If activation fails, check REST API, if none is available, run the following in admin terminal "route add 192.168.200.0 mask 255.255.255.0 192.168.10.116"
-
+# Function to save an image from HTTP response
 def save_image(response):
     image_folder = "abnormal"
     os.makedirs(image_folder, exist_ok=True)
-    #image_path = f"{image_folder}/image_{commandUuid}.jpg"
     image_path = f"{image_folder}/image_latest.jpg"
     with open(image_path, "wb") as f:
         f.write(response.content)
@@ -186,12 +168,7 @@ def save_image(response):
 
     return image_path
 
-# SubHandler for OPC UA Node Changes
-#class SubHandler(object):
-#    def datachange_notification(self, node, val, data):
-#        print(f"[NetTime Changed] New value: {val}")
-#        process_image()
-
+# OPC UA subscription handler for node changes
 class SubHandler(object):
     def datachange_notification(self, node, val, data):
         global initial_nettime, first_change
@@ -213,20 +190,7 @@ class SubHandler(object):
         print(f"[NetTime Changed] New value: {val}")
         process_image()
 
-
-# Image Processing and Prediction
-#def process_image():
-#    try:
-#        response = requests.get(HTTP_TRIGGER_URL)
-#        if response.status_code == 200:
-#            image_path = save_image(response)
-#            prediction = os.system(f"python3 Prediction.py {image_path}")
-#            result = "True" if prediction == 0 else "False"
-#            publish_anomaly(result)
-#    except Exception as e:
-#        print(f"[ERROR] Image processing failed: {e}")
-
-
+# Function to process an image and predict anomalies
 def process_image():
     try:
         response = requests.get(HTTP_TRIGGER_URL)
@@ -243,6 +207,7 @@ def process_image():
     except Exception as e:
         print(f"[ERROR] Image processing failed: {e}")
 
+# Function to save result images with a counter
 def save_result_image_with_counter():
     results_folder = Path("results/Padim/latest/images")
     latest_image = results_folder / "image_latest.jpg"
@@ -264,7 +229,7 @@ def save_result_image_with_counter():
     except Exception as e:
         print(f"[ERROR] Failed to copy result image: {e}")
 
-# Publish Anomaly Result
+# Function to publish anomaly results via MQTT
 def publish_anomaly(result):
     payload = json.dumps({
         "CommandUuid": commandUuid,
@@ -273,7 +238,7 @@ def publish_anomaly(result):
     })
     mqtt_client.publish(topic_vision_data, payload)
 
-# MQTT Client Initialization
+# MQTT client initialization
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
